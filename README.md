@@ -1,6 +1,6 @@
 # drawfi_flutter_project
 
-This is DrawFi! We're glad you're here. 
+This is DrawFi! 
 
 ## Getting Started
 

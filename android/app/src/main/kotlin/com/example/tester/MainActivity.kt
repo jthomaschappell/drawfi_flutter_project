@@ -1,4 +1,4 @@
-package com.example.drawfi_flutter_project
+package com.example.tester
 
 import io.flutter.embedding.android.FlutterActivity
 

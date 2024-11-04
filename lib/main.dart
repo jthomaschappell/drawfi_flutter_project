@@ -3,6 +3,7 @@ import 'package:tester/screens/login_page.dart';
 // Updated import
 import 'screens/sign_up_page.dart';
 
+// this is the main app.
 void main() {
   runApp(const MyApp());
 }

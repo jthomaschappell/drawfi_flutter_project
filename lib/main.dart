@@ -202,12 +202,9 @@ class _AuthPageState extends State<AuthPage> {
               ),
             );
           }
-
-          /// TODO:
-          /// It looks like this block is rendered unconditionally.
-          /// I want to know if this block renders OVER everything else,
-          /// even when the condition "snapshot.data?.session != null" is met.
-          return SafeArea(
+          /// This block renders ONLY if the snapshot has no session data. 
+          else {
+            return SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -334,6 +331,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
             ),
           );
+          }
         },
       ),
     );

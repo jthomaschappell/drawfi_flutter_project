@@ -49,7 +49,7 @@ class _AuthPageState extends State<AuthPage> {
   final _fullNameController = TextEditingController();
   UserRole _selectedRole = UserRole.lender;
   bool isLoading = false;
-  bool isSignUp = false;
+  bool isSignUpPage = false;
   final _authService = AuthService();
 
   final Map<UserRole, Map<String, String>> roleDetails = {
@@ -68,6 +68,7 @@ class _AuthPageState extends State<AuthPage> {
   };
 
   Future<void> _handleSignUp() async {
+    print("Sign up was called!"); 
     if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _fullNameController.text.isEmpty) {
@@ -110,6 +111,7 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   Future<void> _handleSignIn() async {
+    print("Sign in was called!");
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
@@ -168,7 +170,7 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: _authService.signOut,
+                    onPressed: _authService.signOut, 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(
@@ -185,7 +187,10 @@ class _AuthPageState extends State<AuthPage> {
               ),
             );
           }
-
+          /// TODO: 
+          /// It looks like this block is rendered unconditionally. 
+          /// I want to know if this block renders OVER everything else, 
+          /// even when the condition "snapshot.data?.session != null" is met. 
           return SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -202,7 +207,9 @@ class _AuthPageState extends State<AuthPage> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
-                  if (isSignUp) ...[
+                  // if it's the sign up page, we add extra fields. 
+                  // these extra fields are 'Full Name' and 'Role'. 
+                  if (isSignUpPage) ...[
                     TextField(
                       controller: _fullNameController,
                       decoration: const InputDecoration(
@@ -228,24 +235,25 @@ class _AuthPageState extends State<AuthPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          ...UserRole.values
-                              .map((role) => RadioListTile<UserRole>(
-                                    title: Text(roleDetails[role]!['label']!),
-                                    subtitle: Text(
-                                      roleDetails[role]!['description']!,
-                                      style: TextStyle(
-                                        color: Colors.grey[400],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    value: role,
-                                    groupValue: _selectedRole,
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() => _selectedRole = value);
-                                      }
-                                    },
-                                  )),
+                          ...UserRole.values.map(
+                            (role) => RadioListTile<UserRole>(
+                              title: Text(roleDetails[role]!['label']!),
+                              subtitle: Text(
+                                roleDetails[role]!['description']!,
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 12,
+                                ),
+                              ),
+                              value: role,
+                              groupValue: _selectedRole,
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => _selectedRole = value);
+                                }
+                              },
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -272,7 +280,7 @@ class _AuthPageState extends State<AuthPage> {
                   ElevatedButton(
                     onPressed: isLoading
                         ? null
-                        : (isSignUp ? _handleSignUp : _handleSignIn),
+                        : (isSignUpPage ? _handleSignUp : _handleSignIn),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -290,7 +298,7 @@ class _AuthPageState extends State<AuthPage> {
                             ),
                           )
                         : Text(
-                            isSignUp ? 'Sign Up' : 'Sign In',
+                            isSignUpPage ? 'Sign Up' : 'Sign In',
                             style: const TextStyle(fontSize: 16),
                           ),
                   ),
@@ -298,9 +306,9 @@ class _AuthPageState extends State<AuthPage> {
                   TextButton(
                     onPressed: isLoading
                         ? null
-                        : () => setState(() => isSignUp = !isSignUp),
+                        : () => setState(() => isSignUpPage = !isSignUpPage),
                     child: Text(
-                      isSignUp
+                      isSignUpPage
                           ? 'Already have an account? Sign In'
                           : 'Don\'t have an account? Sign Up',
                       style: const TextStyle(color: Colors.blue),

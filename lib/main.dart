@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:tester/models/draw_request.dart';
 
 // project specific import
 import 'services/auth_service.dart';
@@ -68,6 +69,7 @@ class _AuthPageState extends State<AuthPage> {
   bool isLoading = false;
   bool isSignUpPage = false;
   final _authService = AuthService();
+  final supabase = Supabase.instance.client;
 
   final Map<UserRole, Map<String, String>> roleDetails = {
     UserRole.lender: {
@@ -191,8 +193,7 @@ class _AuthPageState extends State<AuthPage> {
       body: StreamBuilder<AuthState>(
         stream: _authService.authStateChanges(),
         builder: (context, snapshot) {
-
-          /// TODO: 
+          /// TODO:
           /// When does this get rendered?
           if (snapshot.data?.session != null) {
             return Center(
@@ -350,6 +351,50 @@ class _AuthPageState extends State<AuthPage> {
                             ? 'Already have an account? Sign In'
                             : 'Don\'t have an account? Sign Up',
                         style: const TextStyle(color: Colors.blue),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          print("The big button was pressed!");
+
+                          // try adding to the table. See if permissions are chill.
+                          // await supabase.from('draw_requests').insert({''})
+                          try {
+                            await supabase.from('draw_requests').insert({
+                              'user_id': '479ef22c-a59f-4b82-84cd-6210dd38b55e',
+                              'amount_requested': 20.0
+                            });
+                          } on PostgrestException catch (error) {
+                            print(
+                                "Error Code: ${error.code}. Error Message: ${error.message}");
+                          }
+                          /**
+                           * TODO: 
+                           * 
+                           */
+
+                          /// user_id = 479ef22c-a59f-4b82-84cd-6210dd38b55e
+                          /// amount_requested = 20.0
+                          /// status: Status.pending
+                          ///
+
+                          DrawRequest d1 = DrawRequest(
+                            userId:
+                                "479ef22c-a59f-4b82-84cd-6210dd38b55e", // this is the user id for ben@franklin.com (fake)
+                            amountRequested: 20.0,
+                            status: Status.pending,
+                          );
+                          print("This is d1: $d1");
+
+                          /// TODO:
+                          /// Add the d1 draw request to the draw_requests table on Supabase.
+                        },
+                        child: const Text(
+                          "Big Button",
+                          style: TextStyle(fontSize: 24),
+                        ),
                       ),
                     ),
                   ],

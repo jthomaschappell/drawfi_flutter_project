@@ -1,17 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/auth_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
+  final supabaseUrl = dotenv.env['SUPABASE_URL'];
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+  print("This is the supabase url: $supabaseUrl");
+  print("This is the supabase anon key: $supabaseAnonKey");
+
+  // Check if any required environment variables are null
+  if (supabaseUrl == null || supabaseAnonKey == null) {
+    // CHANGE WAS MADE HERE
+    throw Exception(
+        "Supabase configuration error: SUPABASE_URL or SUPABASE_ANON_KEY is missing.");
+  }
 
   await Supabase.initialize(
-      url: 'https://spndakpqcijkgdcicafp.supabase.co',
-      anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbmRha3BxY2lqa2dkY2ljYWZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA1ODI1NzEsImV4cCI6MjA0NjE1ODU3MX0.1xdfqEE64YgUbGMWWJue2iCvlRhgvzHwii8sNxNB2_o',
-      debug: true);
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+    debug: true,
+  );
 
-  runApp(const MyApp());
+  runApp(
+    const MyApp(),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -68,7 +83,7 @@ class _AuthPageState extends State<AuthPage> {
   };
 
   Future<void> _handleSignUp() async {
-    print("Sign up was called!"); 
+    print("Sign up was called!");
     if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _fullNameController.text.isEmpty) {
@@ -170,7 +185,7 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: _authService.signOut, 
+                    onPressed: _authService.signOut,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(
@@ -187,10 +202,11 @@ class _AuthPageState extends State<AuthPage> {
               ),
             );
           }
-          /// TODO: 
-          /// It looks like this block is rendered unconditionally. 
-          /// I want to know if this block renders OVER everything else, 
-          /// even when the condition "snapshot.data?.session != null" is met. 
+
+          /// TODO:
+          /// It looks like this block is rendered unconditionally.
+          /// I want to know if this block renders OVER everything else,
+          /// even when the condition "snapshot.data?.session != null" is met.
           return SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -207,8 +223,8 @@ class _AuthPageState extends State<AuthPage> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
-                  // if it's the sign up page, we add extra fields. 
-                  // these extra fields are 'Full Name' and 'Role'. 
+                  // if it's the sign up page, we add extra fields.
+                  // these extra fields are 'Full Name' and 'Role'.
                   if (isSignUpPage) ...[
                     TextField(
                       controller: _fullNameController,

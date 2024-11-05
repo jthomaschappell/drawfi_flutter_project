@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'services/auth_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+// project specific import
+import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,11 +86,30 @@ class _AuthPageState extends State<AuthPage> {
 
   Future<void> _handleSignUp() async {
     print("Sign up was called!");
+
+    // Validation: Ensure all fields are filled in
     if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
-        _fullNameController.text.isEmpty) {
+        _fullNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    if (!isValidEmail(_emailController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter a valid email address"),
+        ),
+      );
+      return;
+    }
+
+    // Password strength validation (example: minimum 8 characters)
+    if (_passwordController.text.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 8 characters')),
       );
       return;
     }
@@ -170,6 +191,9 @@ class _AuthPageState extends State<AuthPage> {
       body: StreamBuilder<AuthState>(
         stream: _authService.authStateChanges(),
         builder: (context, snapshot) {
+
+          /// TODO: 
+          /// When does this get rendered?
           if (snapshot.data?.session != null) {
             return Center(
               child: Column(
@@ -202,135 +226,136 @@ class _AuthPageState extends State<AuthPage> {
               ),
             );
           }
-          /// This block renders ONLY if the snapshot has no session data. 
+
+          /// This block renders ONLY if the snapshot has no session data.
           else {
             return SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Auth Test',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 48),
-                  // if it's the sign up page, we add extra fields.
-                  // these extra fields are 'Full Name' and 'Role'.
-                  if (isSignUpPage) ...[
-                    TextField(
-                      controller: _fullNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name',
-                        prefixIcon: Icon(Icons.person_outline),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Auth Test',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 48),
+                    // if it's the sign up page, we add extra fields.
+                    // these extra fields are 'Full Name' and 'Role'.
+                    if (isSignUpPage) ...[
+                      TextField(
+                        controller: _fullNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Full Name',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1F35),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Select Your Role',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ...UserRole.values.map(
+                              (role) => RadioListTile<UserRole>(
+                                title: Text(roleDetails[role]!['label']!),
+                                subtitle: Text(
+                                  roleDetails[role]!['description']!,
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                value: role,
+                                groupValue: _selectedRole,
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() => _selectedRole = value);
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1F35),
-                        borderRadius: BorderRadius.circular(12),
+                    TextField(
+                      controller: _passwordController,
+                      decoration: const InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: Icon(Icons.lock_outline),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Select Your Role',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          ...UserRole.values.map(
-                            (role) => RadioListTile<UserRole>(
-                              title: Text(roleDetails[role]!['label']!),
-                              subtitle: Text(
-                                roleDetails[role]!['description']!,
-                                style: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 12,
-                                ),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton(
+                      onPressed: isLoading
+                          ? null
+                          : (isSignUpPage ? _handleSignUp : _handleSignIn),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
                               ),
-                              value: role,
-                              groupValue: _selectedRole,
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() => _selectedRole = value);
-                                }
-                              },
+                            )
+                          : Text(
+                              isSignUpPage ? 'Sign Up' : 'Sign In',
+                              style: const TextStyle(fontSize: 16),
                             ),
-                          ),
-                        ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: isLoading
+                          ? null
+                          : () => setState(() => isSignUpPage = !isSignUpPage),
+                      child: Text(
+                        isSignUpPage
+                            ? 'Already have an account? Sign In'
+                            : 'Don\'t have an account? Sign Up',
+                        style: const TextStyle(color: Colors.blue),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock_outline),
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: isLoading
-                        ? null
-                        : (isSignUpPage ? _handleSignUp : _handleSignIn),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(
-                            isSignUpPage ? 'Sign Up' : 'Sign In',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: isLoading
-                        ? null
-                        : () => setState(() => isSignUpPage = !isSignUpPage),
-                    child: Text(
-                      isSignUpPage
-                          ? 'Already have an account? Sign In'
-                          : 'Don\'t have an account? Sign Up',
-                      style: const TextStyle(color: Colors.blue),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          );
+            );
           }
         },
       ),
@@ -344,4 +369,9 @@ class _AuthPageState extends State<AuthPage> {
     _fullNameController.dispose();
     super.dispose();
   }
+}
+
+bool isValidEmail(String emailText) {
+  final emailPattern = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  return emailPattern.hasMatch(emailText);
 }

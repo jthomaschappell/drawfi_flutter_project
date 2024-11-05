@@ -69,7 +69,8 @@ class _LendingPageState extends State<LendingPage> {
                   controller: _emailController,
                   label: 'Email',
                   hint: 'Enter your email',
-                  prefixIcon: const Icon(Icons.email_outlined, color: Colors.blue),
+                  prefixIcon:
+                      const Icon(Icons.email_outlined, color: Colors.blue),
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -77,10 +78,13 @@ class _LendingPageState extends State<LendingPage> {
                   label: 'Password',
                   hint: 'Enter your password',
                   obscureText: !_isPasswordVisible,
-                  prefixIcon: const Icon(Icons.lock_outline, color: Colors.blue),
+                  prefixIcon:
+                      const Icon(Icons.lock_outline, color: Colors.blue),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                      _isPasswordVisible
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                       color: Colors.blue,
                     ),
                     onPressed: () {
@@ -97,7 +101,8 @@ class _LendingPageState extends State<LendingPage> {
                   child: TextButton(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => const SignUpPage()),
+                        MaterialPageRoute(
+                            builder: (context) => const SignUpPage()),
                       );
                     },
                     child: const Text(
@@ -185,7 +190,8 @@ class _LendingPageState extends State<LendingPage> {
                         ),
                         TextButton(
                           onPressed: _showSignInSheet,
-                          child: const Text('Sign In', style: TextStyle(color: Colors.white)),
+                          child: const Text('Sign In',
+                              style: TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
@@ -219,7 +225,8 @@ class _LendingPageState extends State<LendingPage> {
                         _buildGradientButton(
                           'Get Started',
                           onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => const SignUpPage()),
+                            MaterialPageRoute(
+                                builder: (context) => const SignUpPage()),
                           ),
                         ),
                       ],
@@ -244,19 +251,22 @@ class _LendingPageState extends State<LendingPage> {
                         _buildFeatureCard(
                           icon: Icons.rocket_launch,
                           title: 'Fast Funding',
-                          description: 'Get construction funds within 24-48 hours of draw request approval',
+                          description:
+                              'Get construction funds within 24-48 hours of draw request approval',
                         ),
                         const SizedBox(height: 16),
                         _buildFeatureCard(
                           icon: Icons.auto_awesome,
                           title: 'Smart Automation',
-                          description: 'AI-powered draw management and approval process',
+                          description:
+                              'AI-powered draw management and approval process',
                         ),
                         const SizedBox(height: 16),
                         _buildFeatureCard(
                           icon: Icons.security,
                           title: 'Secure Platform',
-                          description: 'Bank-grade security with advanced encryption',
+                          description:
+                              'Bank-grade security with advanced encryption',
                         ),
                       ],
                     ),
@@ -299,11 +309,15 @@ class _LendingPageState extends State<LendingPage> {
 
                   // Stats Section
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 16.0),
                     padding: const EdgeInsets.all(24.0),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.blue.withOpacity(0.2), Colors.purple.withOpacity(0.2)],
+                        colors: [
+                          Colors.blue.withOpacity(0.2),
+                          Colors.purple.withOpacity(0.2)
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),

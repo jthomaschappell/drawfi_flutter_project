@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-      url: 'https://spndakpqcijkgdcicafp.supabase.co',
-      anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbmRha3BxY2lqa2dkY2ljYWZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA1ODI1NzEsImV4cCI6MjA0NjE1ODU3MX0.1xdfqEE64YgUbGMWWJue2iCvlRhgvzHwii8sNxNB2_o',
-      debug: true);
+    url: 'https://spndakpqcijkgdcicafp.supabase.co',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbmRha3BxY2lqa2dkY2ljYWZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA1ODI1NzEsImV4cCI6MjA0NjE1ODU3MX0.1xdfqEE64YgUbGMWWJue2iCvlRhgvzHwii8sNxNB2_o',
+  );
 
   runApp(const MyApp());
 }
@@ -29,6 +28,14 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.blue, width: 2),
+          ),
         ),
       ),
       home: const AuthPage(),
@@ -47,45 +54,76 @@ class _AuthPageState extends State<AuthPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _fullNameController = TextEditingController();
-  UserRole _selectedRole = UserRole.lender;
+  String _selectedRole = 'borrower';
   bool isLoading = false;
   bool isSignUp = false;
-  final _authService = AuthService();
+  final supabase = Supabase.instance.client;
 
-  final Map<UserRole, Map<String, String>> roleDetails = {
-    UserRole.lender: {
+  // Define available roles
+  final List<Map<String, dynamic>> roles = [
+    {
+      'value': 'borrower',
+      'label': 'Borrower',
+      'description': 'Looking for construction funding'
+    },
+    {
+      'value': 'lender',
       'label': 'Lender',
-      'description': 'Provide funding for construction projects'
+      'description': 'Providing construction funding'
     },
-    UserRole.contractor: {
+    {
+      'value': 'contractor',
       'label': 'Contractor',
-      'description': 'Manage and execute construction projects'
+      'description': 'Managing construction projects'
     },
-    UserRole.inspector: {
+    {
+      'value': 'inspector',
       'label': 'Inspector',
-      'description': 'Verify and approve construction progress'
+      'description': 'Verifying construction progress'
     },
-  };
+  ];
 
-  Future<void> _handleSignUp() async {
-    if (_emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        _fullNameController.text.isEmpty) {
+  Future<void> signIn() async {
+    setState(() => isLoading = true);
+    try {
+      await supabase.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+    setState(() => isLoading = false);
+  }
+
+  Future<void> signUp() async {
+    if (_fullNameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
+        const SnackBar(content: Text('Please enter your full name')),
       );
       return;
     }
 
     setState(() => isLoading = true);
-
     try {
-      await _authService.signUp(
+      final AuthResponse res = await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        fullName: _fullNameController.text.trim(),
-        role: _selectedRole,
       );
+
+      if (res.user == null) throw Exception('Sign up failed');
+
+      await supabase.from('users').insert({
+        'id': res.user!.id,
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text,
+        'role': _selectedRole,
+        'full_name': _fullNameController.text.trim(),
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -99,59 +137,24 @@ class _AuthPageState extends State<AuthPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => isLoading = false);
     }
+    setState(() => isLoading = false);
   }
 
-  Future<void> _handleSignIn() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
-
-    setState(() => isLoading = true);
-
-    try {
-      final userData = await _authService.signIn(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (mounted && userData != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Welcome back, ${userData['full_name']}!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => isLoading = false);
-    }
+  Future<void> signOut() async {
+    await supabase.auth.signOut();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: StreamBuilder<AuthState>(
-        stream: _authService.authStateChanges(),
+        stream: supabase.auth.onAuthStateChange,
         builder: (context, snapshot) {
           if (snapshot.data?.session != null) {
             return Center(
@@ -161,14 +164,14 @@ class _AuthPageState extends State<AuthPage> {
                   const Text(
                     'Welcome to Drawfi!',
                     style: TextStyle(
+                      color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: _authService.signOut,
+                    onPressed: signOut,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(
@@ -209,6 +212,7 @@ class _AuthPageState extends State<AuthPage> {
                         labelText: 'Full Name',
                         prefixIcon: Icon(Icons.person_outline),
                       ),
+                      style: const TextStyle(color: Colors.white),
                     ),
                     const SizedBox(height: 24),
                     Container(
@@ -228,29 +232,33 @@ class _AuthPageState extends State<AuthPage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          ...UserRole.values
-                              .map((role) => RadioListTile<UserRole>(
-                                    title: Text(roleDetails[role]!['label']!),
-                                    subtitle: Text(
-                                      roleDetails[role]!['description']!,
-                                      style: TextStyle(
-                                        color: Colors.grey[400],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    value: role,
-                                    groupValue: _selectedRole,
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        setState(() => _selectedRole = value);
-                                      }
-                                    },
-                                  )),
+                          ...roles.map((role) => RadioListTile<String>(
+                                title: Text(role['label']),
+                                subtitle: Text(
+                                  role['description'],
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                value: role['value'],
+                                groupValue: _selectedRole,
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() => _selectedRole = value);
+                                  }
+                                },
+                                activeColor: Colors.blue,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                              )),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 24),
                   ],
-                  const SizedBox(height: 24),
                   TextField(
                     controller: _emailController,
                     decoration: const InputDecoration(
@@ -258,6 +266,7 @@ class _AuthPageState extends State<AuthPage> {
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(color: Colors.white),
                   ),
                   const SizedBox(height: 24),
                   TextField(
@@ -267,38 +276,29 @@ class _AuthPageState extends State<AuthPage> {
                       prefixIcon: Icon(Icons.lock_outline),
                     ),
                     obscureText: true,
+                    style: const TextStyle(color: Colors.white),
                   ),
                   const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: isLoading
-                        ? null
-                        : (isSignUp ? _handleSignUp : _handleSignIn),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  if (isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else
+                    ElevatedButton(
+                      onPressed: isSignUp ? signUp : signIn,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        isSignUp ? 'Sign Up' : 'Sign In',
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
-                    child: isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(
-                            isSignUp ? 'Sign Up' : 'Sign In',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                  ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: isLoading
-                        ? null
-                        : () => setState(() => isSignUp = !isSignUp),
+                    onPressed: () => setState(() => isSignUp = !isSignUp),
                     child: Text(
                       isSignUp
                           ? 'Already have an account? Sign In'

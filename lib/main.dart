@@ -359,37 +359,31 @@ class _AuthPageState extends State<AuthPage> {
                         onPressed: () async {
                           print("The big button was pressed!");
 
-                          // try adding to the table. See if permissions are chill.
-                          // await supabase.from('draw_requests').insert({''})
+                          // grab something from the database.
                           try {
-                            await supabase.from('draw_requests').insert({
-                              'user_id': '479ef22c-a59f-4b82-84cd-6210dd38b55e',
-                              'amount_requested': 20.0
+                            final data =
+                                await supabase.from('draw_request').select();
+                            print(data);
+                          } on PostgrestException catch (e) {
+                            print("Error: $e");
+                          }
+
+                          // add something to the database.
+                          try {
+                            final response =
+                                await supabase.from('draw_request').insert({
+                              // 'id': 'f1c0875b-9ba8-4b92-ba2b-c345654',
+                              'user_id': 'f1c0875b-9ba8-4b92-ba2b-c93b7594f462',
+                              'amount_requested': 56
                             });
-                          } on PostgrestException catch (error) {
-                            print(
-                                "Error Code: ${error.code}. Error Message: ${error.message}");
+                          } on PostgrestException catch (e) {
+                            print("Error: $e");
                           }
                           /**
                            * TODO: 
-                           * 
+                           * Run it and run the big red button. 
+                           * I expect that we need other parameters. 
                            */
-
-                          /// user_id = 479ef22c-a59f-4b82-84cd-6210dd38b55e
-                          /// amount_requested = 20.0
-                          /// status: Status.pending
-                          ///
-
-                          DrawRequest d1 = DrawRequest(
-                            userId:
-                                "479ef22c-a59f-4b82-84cd-6210dd38b55e", // this is the user id for ben@franklin.com (fake)
-                            amountRequested: 20.0,
-                            status: Status.pending,
-                          );
-                          print("This is d1: $d1");
-
-                          /// TODO:
-                          /// Add the d1 draw request to the draw_requests table on Supabase.
                         },
                         child: const Text(
                           "Big Button",

@@ -13,36 +13,30 @@ class AuthService {
     required UserRole role, // Add role parameter
   }) async {
     try {
+      // communicates with Authentication backend.
       final AuthResponse response = await _supabase.auth.signUp(
         email: email,
         password: password,
         data: {
-          /**
-           * TODO: 
-           * I could be wrong, but I don't think this works. 
-           * Don't include this data in the signup thing. 
-           */
-          'full_name': fullName,
-          'role': role.name, // Include role in auth metadata
+          'full_name': fullName, // this becomes "Display Name" on Supabase.
         },
       );
-
       if (response.user == null) {
-        throw Exception('Sign up failed: No user returned');
+        throw Exception('Authentication sign up failed: No user returned');
       }
 
-      // Create user profile in users table with correct role enum
-      await _supabase.from('users').insert({
+      // Communicates with Database backend.
+      // Create user profile in user_profiles table with correct role enum
+      await _supabase.from('user_profiles').insert({
         'id': response.user!.id,
         'email': email,
         'password': password, // Note: Consider if you really need to store this
         'full_name': fullName,
-        'role': role.name, // This will match your database enum
+        'user_role': role.name, // This will match your database enum
       });
-
       return response.user;
     } catch (e) {
-      throw Exception('Sign up failed: $e');
+      throw Exception('Signup error: $e');
     }
   }
 
@@ -50,25 +44,24 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    // only lets the user in IF there are no exceptions thrown. 
     try {
       final AuthResponse response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
-      if (response.user == null)
+      if (response.user == null) {
         throw Exception('Sign in failed: No user returned');
-
-      // Get user data including role
+      }
       final userData = await _supabase
-          .from('users')
+          .from('user_profiles')
           .select()
           .eq('id', response.user!.id)
           .single();
-
       return userData;
     } catch (e) {
-      throw Exception('Sign in failed: $e');
+      throw Exception('Sign in error: $e');
     }
   }
 
@@ -82,7 +75,7 @@ class AuthService {
 
     try {
       final userData =
-          await _supabase.from('users').select().eq('id', user.id).single();
+          await _supabase.from('user_profiles').select().eq('id', user.id).single();
       return userData;
     } catch (e) {
       return null;
@@ -97,8 +90,8 @@ class AuthService {
   Future<UserRole?> getUserRole(String userId) async {
     try {
       final userData = await _supabase
-          .from('users')
-          .select('role')
+          .from('user_profiles')
+          .select('user_role')
           .eq('id', userId)
           .single();
 

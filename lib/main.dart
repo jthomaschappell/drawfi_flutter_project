@@ -111,11 +111,11 @@ class _AuthPageState extends State<AuthPage> {
       );
       return;
     }
-
     // Validation: Ensure password length is over 8.
     if (_passwordController.text.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password \must be at least 8 characters')),
+        const SnackBar(
+            content: Text('Password \must be at least 8 characters')),
       );
       return;
     }
@@ -127,12 +127,16 @@ class _AuthPageState extends State<AuthPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         fullName: _fullNameController.text.trim(),
+        // /**
+        //  * TODO:
+        //  * IDEA:
+        //  * Take the role out of the authService.signUp()
+        //  */
+        role: _selectedRole,
         /**
          * TODO: 
-         * IDEA: 
-         * Take the role out of the authService.signUp()
+         * Try adding something to the database without "data" parameters.
          */
-        role: _selectedRole,
       );
 
       if (mounted) {
@@ -151,6 +155,7 @@ class _AuthPageState extends State<AuthPage> {
             backgroundColor: Colors.red,
           ),
         );
+        print("Error: ${e.toString()}");
       }
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -160,7 +165,7 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> _handleSignIn() async {
     print("Sign in was called!");
 
-    // see if fields are empty. 
+    // see if fields are empty.
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
@@ -171,10 +176,12 @@ class _AuthPageState extends State<AuthPage> {
     setState(() => isLoading = true);
 
     try {
-      final userData = await _authService.signIn(
+      await _authService.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      // how do we restrict if there is an error. 
+      // signInWorked boolean??? 
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -183,6 +190,7 @@ class _AuthPageState extends State<AuthPage> {
             backgroundColor: Colors.red,
           ),
         );
+        print("Error: ${e.toString()}");
       }
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -195,8 +203,16 @@ class _AuthPageState extends State<AuthPage> {
       body: StreamBuilder<AuthState>(
         stream: _authService.authStateChanges(),
         builder: (context, snapshot) {
-          /// TODO:
-          /// Does this get rendered when we log in??
+          /// This gets rendered with a specific page when we log in.
+
+          /**
+           * TODO: 
+           * Instead of having an IF statement that checks the session, 
+           * we are going to have an if statement that checks: 
+           * - session (Auth)
+           * - database 
+           * Come back to this later. 
+           */
           if (snapshot.data?.session != null) {
             return Center(
               child: Column(
@@ -248,7 +264,6 @@ class _AuthPageState extends State<AuthPage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 48),
-
                     // if it's the sign up page, we add extra fields.
                     // these extra fields are 'Full Name' and 'Role'.
                     if (isSignUpPage) ...[
@@ -300,6 +315,7 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
                     ],
+
                     // these always render. For signup page OR login page.
                     const SizedBox(height: 24),
                     TextField(
@@ -361,7 +377,7 @@ class _AuthPageState extends State<AuthPage> {
                     Center(
                       child: ElevatedButton(
                         onPressed: () {
-                          bigTest();
+                          bigTestFunction();
                         },
                         child: const Text(
                           "Big Test Button",
@@ -379,9 +395,9 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  void bigTest() async {
+  void bigTestFunction() async {
     print("The big button was pressed!");
-    print("Hello Peter"); 
+    print("Hello Peter");
 
     // grab something from the database.
     try {

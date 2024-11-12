@@ -62,14 +62,18 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
+  // service connection.
+  final supabase = Supabase.instance.client;
+  final _authService = AuthService();
+
+  // form input boilerplate.
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _fullNameController = TextEditingController();
-  UserRole _selectedRole = UserRole.lender;
+
   bool isLoading = false;
   bool isSignUpPage = false;
-  final _authService = AuthService();
-  final supabase = Supabase.instance.client;
+  UserRole _selectedRole = UserRole.lender;
 
   final Map<UserRole, Map<String, String>> roleDetails = {
     UserRole.lender: {
@@ -89,7 +93,7 @@ class _AuthPageState extends State<AuthPage> {
   Future<void> _handleSignUp() async {
     print("Sign up was called!");
 
-    // Validation: Ensure all fields are filled in
+    // Validation: Ensure all fields are filled in.
     if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _fullNameController.text.trim().isEmpty) {
@@ -98,7 +102,7 @@ class _AuthPageState extends State<AuthPage> {
       );
       return;
     }
-
+    // Validation: Ensure email is valid.
     if (!isValidEmail(_emailController.text)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -108,7 +112,7 @@ class _AuthPageState extends State<AuthPage> {
       return;
     }
 
-    // Password strength validation (example: minimum 8 characters)
+    // Validation: Ensure password length is over 8.
     if (_passwordController.text.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password must be at least 8 characters')),
@@ -123,6 +127,11 @@ class _AuthPageState extends State<AuthPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         fullName: _fullNameController.text.trim(),
+        /**
+         * TODO: 
+         * IDEA: 
+         * Take the role out of the authService.signUp()
+         */
         role: _selectedRole,
       );
 
@@ -194,7 +203,7 @@ class _AuthPageState extends State<AuthPage> {
         stream: _authService.authStateChanges(),
         builder: (context, snapshot) {
           /// TODO:
-          /// When does this get rendered?
+          /// Does this get rendered when we log in??
           if (snapshot.data?.session != null) {
             return Center(
               child: Column(
@@ -297,6 +306,7 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                       ),
                     ],
+                    // these always render. For signup page OR login page.
                     const SizedBox(height: 24),
                     TextField(
                       controller: _emailController,
@@ -356,37 +366,11 @@ class _AuthPageState extends State<AuthPage> {
                     const SizedBox(height: 16),
                     Center(
                       child: ElevatedButton(
-                        onPressed: () async {
-                          print("The big button was pressed!");
-
-                          // grab something from the database.
-                          try {
-                            final data =
-                                await supabase.from('draw_request').select();
-                            print(data);
-                          } on PostgrestException catch (e) {
-                            print("Error: $e");
-                          }
-
-                          // add something to the database.
-                          try {
-                            final response =
-                                await supabase.from('draw_request').insert({
-                              // 'id': 'f1c0875b-9ba8-4b92-ba2b-c345654',
-                              'user_id': 'f1c0875b-9ba8-4b92-ba2b-c93b7594f462',
-                              'amount_requested': 56
-                            });
-                          } on PostgrestException catch (e) {
-                            print("Error: $e");
-                          }
-                          /**
-                           * TODO: 
-                           * Run it and run the big red button. 
-                           * I expect that we need other parameters. 
-                           */
+                        onPressed: () {
+                          bigTest();
                         },
                         child: const Text(
-                          "Big Button",
+                          "Big Test Button",
                           style: TextStyle(fontSize: 24),
                         ),
                       ),
@@ -399,6 +383,35 @@ class _AuthPageState extends State<AuthPage> {
         },
       ),
     );
+  }
+
+  void bigTest() async {
+    print("The big button was pressed!");
+    print("Hello Peter"); 
+
+    // grab something from the database.
+    try {
+      final data = await supabase.from('draw_request').select();
+      print(data);
+    } on PostgrestException catch (e) {
+      print("Error: $e");
+    }
+
+    // add something to the database.
+    try {
+      final response = await supabase.from('draw_request').insert({
+        // 'id': 'f1c0875b-9ba8-4b92-ba2b-c345654',
+        'user_id': 'f1c0875b-9ba8-4b92-ba2b-c93b7594f462',
+        'amount_requested': 56
+      });
+    } on PostgrestException catch (e) {
+      print("Error: $e");
+    }
+    /**
+     * TODO: 
+     * Run it and run the big red button. 
+     * I expect that we need other parameters. 
+     */
   }
 
   @override

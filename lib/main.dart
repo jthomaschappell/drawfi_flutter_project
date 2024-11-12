@@ -207,7 +207,7 @@ class _AuthPageState extends State<AuthPage> {
 
           /**
            * TODO: 
-           * Instead of having an IF statement that checks the session, 
+           * Instead of having an IF statement that checks the session, j
            * we are going to have an if statement that checks: 
            * - session (Auth)
            * - database 

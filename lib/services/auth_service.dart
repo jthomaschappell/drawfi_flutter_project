@@ -17,6 +17,11 @@ class AuthService {
         email: email,
         password: password,
         data: {
+          /**
+           * TODO: 
+           * I could be wrong, but I don't think this works. 
+           * Don't include this data in the signup thing. 
+           */
           'full_name': fullName,
           'role': role.name, // Include role in auth metadata
         },

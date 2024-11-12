@@ -115,7 +115,7 @@ class _AuthPageState extends State<AuthPage> {
     // Validation: Ensure password length is over 8.
     if (_passwordController.text.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 8 characters')),
+        const SnackBar(content: Text('Password \must be at least 8 characters')),
       );
       return;
     }
@@ -159,6 +159,8 @@ class _AuthPageState extends State<AuthPage> {
 
   Future<void> _handleSignIn() async {
     print("Sign in was called!");
+
+    // see if fields are empty. 
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
@@ -173,15 +175,6 @@ class _AuthPageState extends State<AuthPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-
-      if (mounted && userData != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Welcome back, ${userData['full_name']}!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -255,6 +248,7 @@ class _AuthPageState extends State<AuthPage> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 48),
+
                     // if it's the sign up page, we add extra fields.
                     // these extra fields are 'Full Name' and 'Role'.
                     if (isSignUpPage) ...[

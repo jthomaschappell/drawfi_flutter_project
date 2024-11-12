@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:tester/models/draw_request.dart';
+import 'package:tester/screens/lender_screen.dart';
 
 // project specific import
 import 'services/auth_service.dart';
@@ -180,8 +181,8 @@ class _AuthPageState extends State<AuthPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      // how do we restrict if there is an error. 
-      // signInWorked boolean??? 
+      // how do we restrict if there is an error.
+      // signInWorked boolean???
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -206,44 +207,25 @@ class _AuthPageState extends State<AuthPage> {
           /// This gets rendered with a specific page when we log in.
 
           /**
-           * TODO: 
+           * TODO: (BACKLOG)
            * Instead of having an IF statement that checks the session, j
            * we are going to have an if statement that checks: 
            * - session (Auth)
            * - database 
            * Come back to this later. 
            */
-          if (snapshot.data?.session != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Welcome to Drawfi!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _authService.signOut,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Sign Out'),
-                  ),
-                ],
-              ),
-            );
+          final snapshotDataSession = snapshot.data?.session;
+          if (snapshotDataSession != null) {
+            // print("The snapshot data session is $snapshotDataSession");
+            print("The session user id is ${snapshotDataSession.user.id}");
+            /**
+             * START HERE: 
+             * TODO: 
+             * Get me the user_profiles entry where the above id is the user_id there.
+             */
+
+            // if the user is a lender, then give them the lender screen
+            return const LenderScreen();
           }
 
           /// This block renders ONLY if the snapshot has no session data.

@@ -20,7 +20,7 @@ class _LenderScreenState extends State<LenderScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Text(
-            'Welcome to Drawfi, Person with a role!',
+            'Welcome to Drawfi, Lender!',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,

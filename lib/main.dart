@@ -211,12 +211,12 @@ class _AuthPageState extends State<AuthPage> {
            * Instead of having an IF statement that checks the session, j
            * we are going to have an if statement that checks: 
            * - session (Auth)
-           * - database 
+           * - database `
            * Come back to this later. 
            */
           final snapshotDataSession = snapshot.data?.session;
           if (snapshotDataSession != null) {
-            // print("The snapshot data session is $snapshotDataSession");
+            print("The snapshot data session is $snapshotDataSession");
             print("The session user id is ${snapshotDataSession.user.id}");
             /**
              * START HERE: 
@@ -226,6 +226,11 @@ class _AuthPageState extends State<AuthPage> {
 
             // if the user is a lender, then give them the lender screen
             return const LenderScreen();
+            /// if this person user id is a Lender, 
+            /// then return the lender screen. 
+            /// 
+            /// if the person user id is a GC, 
+            /// then return the GC screen. 
           }
 
           /// This block renders ONLY if the snapshot has no session data.
@@ -381,29 +386,29 @@ class _AuthPageState extends State<AuthPage> {
     print("The big button was pressed!");
     print("Hello Peter");
 
-    // grab something from the database.
-    try {
-      final data = await supabase.from('draw_request').select();
-      print(data);
-    } on PostgrestException catch (e) {
-      print("Error: $e");
-    }
+    // // grab something from the database.
+    // try {
+    //   final data = await supabase.from('draw_request').select();
+    //   print(data);
+    // } on PostgrestException catch (e) {
+    //   print("Error: $e");
+    // }
 
-    // add something to the database.
-    try {
-      final response = await supabase.from('draw_request').insert({
-        // 'id': 'f1c0875b-9ba8-4b92-ba2b-c345654',
-        'user_id': 'f1c0875b-9ba8-4b92-ba2b-c93b7594f462',
-        'amount_requested': 56
-      });
-    } on PostgrestException catch (e) {
-      print("Error: $e");
-    }
-    /**
-     * TODO: 
-     * Run it and run the big red button. 
-     * I expect that we need other parameters. 
-     */
+    // // add something to the database.
+    // try {
+    //   final response = await supabase.from('draw_request').insert({
+    //     // 'id': 'f1c0875b-9ba8-4b92-ba2b-c345654',
+    //     'user_id': 'f1c0875b-9ba8-4b92-ba2b-c93b7594f462',
+    //     'amount_requested': 56
+    //   });
+    // } on PostgrestException catch (e) {
+    //   print("Error: $e");
+    // }
+    // /**
+    //  * TODO: 
+    //  * Run it and run the big red button. 
+    //  * I expect that we need other parameters. 
+    //  */
   }
 
   @override

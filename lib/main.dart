@@ -226,11 +226,12 @@ class _AuthPageState extends State<AuthPage> {
 
             // if the user is a lender, then give them the lender screen
             return const LenderScreen();
-            /// if this person user id is a Lender, 
-            /// then return the lender screen. 
-            /// 
-            /// if the person user id is a GC, 
-            /// then return the GC screen. 
+
+            /// if this person user id is a Lender,
+            /// then return the lender screen.
+            ///
+            /// if the person user id is a GC,
+            /// then return the GC screen.
           }
 
           /// This block renders ONLY if the snapshot has no session data.
@@ -385,30 +386,36 @@ class _AuthPageState extends State<AuthPage> {
   void bigTestFunction() async {
     print("The big button was pressed!");
     print("Hello Peter");
+    const dataName = "Caspar Weinberger";
 
-    // // grab something from the database.
-    // try {
-    //   final data = await supabase.from('draw_request').select();
-    //   print(data);
-    // } on PostgrestException catch (e) {
-    //   print("Error: $e");
-    // }
+    final data = await supabase
+        .from('user_profiles')
+        .select('user_role')
+        .eq('full_name', dataName);
+    print("Data is $data");
+    // TODO:
+    // I want to print just inspector.
+    print("This is the user role:");
+    final myUserRole = data[0]['user_role'];
+    print(myUserRole);
+    print("${myUserRole.runtimeType}");
 
-    // // add something to the database.
-    // try {
-    //   final response = await supabase.from('draw_request').insert({
-    //     // 'id': 'f1c0875b-9ba8-4b92-ba2b-c345654',
-    //     'user_id': 'f1c0875b-9ba8-4b92-ba2b-c93b7594f462',
-    //     'amount_requested': 56
-    //   });
-    // } on PostgrestException catch (e) {
-    //   print("Error: $e");
-    // }
-    // /**
-    //  * TODO: 
-    //  * Run it and run the big red button. 
-    //  * I expect that we need other parameters. 
-    //  */
+    if (myUserRole == 'inspector') {
+      print("$dataName is an inspector.");
+    } else {
+      print("This person: $dataName is NOT an inspector.");
+    }
+
+    /**
+     * DONE: 
+     * I expect the data to be:
+     *  the user_role of 'israel', which is lender. 
+     * 
+     * TODO: 
+     * I expect the data to be:
+     *  the user_role of 'Allan Pinkerton', which is inspector. 
+     */
+    // select the user_role at
   }
 
   @override

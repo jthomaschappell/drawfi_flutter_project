@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:tester/models/draw_request.dart';
+import 'package:tester/screens/draw_request_screen.dart';
 import 'package:tester/screens/lender_screen.dart';
 
 // project specific import
@@ -29,8 +30,8 @@ void main() async {
   );
 
   runApp(
-    const MyApp(),
-  );
+      // this is the regular one.
+      const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -225,7 +226,8 @@ class _AuthPageState extends State<AuthPage> {
              */
 
             // if the user is a lender, then give them the lender screen
-            return const LenderScreen();
+            // return const LenderScreen();
+            return const DrawRequestScreen();
           }
 
           /// This block renders ONLY if the snapshot has no session data.

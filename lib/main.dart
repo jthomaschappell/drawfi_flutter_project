@@ -205,35 +205,17 @@ class _AuthPageState extends State<AuthPage> {
         stream: _authService.authStateChanges(),
         builder: (context, snapshot) {
           /// This gets rendered with a specific page when we log in.
-
-          /**
-           * TODO: (BACKLOG)
-           * Instead of having an IF statement that checks the session, j
-           * we are going to have an if statement that checks: 
-           * - session (Auth)
-           * - database `
-           * Come back to this later. 
-           */
           final snapshotDataSession = snapshot.data?.session;
           if (snapshotDataSession != null) {
-            print("The snapshot data session is $snapshotDataSession");
-            print("The session user id is ${snapshotDataSession.user.id}");
-            /**
-             * START HERE: 
-             * TODO: 
-             * Get me the user_profiles entry where the above id is the user_id there.
-             */
-
-            // if the user is a lender, then give them the lender screen
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
             return const LenderScreen();
-
-            /// if this person user id is a Lender,
-            /// then return the lender screen.
-            ///
-            /// if the person user id is a GC,
-            /// then return the GC screen.
           }
-
+          /**
+           * TODO: 
+           * Turn this into a separate page for better clarity. 
+           */
           /// This block renders ONLY if the snapshot has no session data.
           else {
             return SafeArea(
@@ -383,39 +365,73 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
+  // Future<bool> _doesProfileExist(String userId) async {
+  //   try {
+  //     final response = await supabase.from('user_profiles').select('id');
+  //   }
+  // }
+
+  // Future<bool> _doesProfileExist(String userId) async {
+  //   try {
+  //     // Just count rows - fastest way to check existence
+  //     final response = await supabase
+  //         .from('user_profiles')
+  //         .select('id')
+  //         .eq('id', userId)
+  //         .limit(1);
+
+  //   } catch (e) {
+  //     // Log the error but return false - keeping with the simple approach
+  //     print('Error checking profile existence: $e');
+  //     return false;
+  //   }
+  // }
+
   void bigTestFunction() async {
     print("The big button was pressed!");
     print("Hello Peter");
-    const dataName = "Caspar Weinberger";
 
-    final data = await supabase
-        .from('user_profiles')
-        .select('user_role')
-        .eq('full_name', dataName);
-    print("Data is $data");
-    // TODO:
-    // I want to print just inspector.
-    print("This is the user role:");
-    final myUserRole = data[0]['user_role'];
-    print(myUserRole);
-    print("${myUserRole.runtimeType}");
-
-    if (myUserRole == 'inspector') {
-      print("$dataName is an inspector.");
-    } else {
-      print("This person: $dataName is NOT an inspector.");
+    try {
+      /**
+       * TODO: 
+       * I expect that this will give me the single item that is Allan Pinkerton's entry. 
+       */
+      const dataName = "Gaston";
+      final data = await supabase
+          .from('user_profiles')
+          .select('user_role')
+          .eq('full_name', dataName)
+          .limit(1)
+          .single()
+          ;
+      // print("Data is $data");
+      // print("The user role is ${data['user_role']}"); 
+      if (data.isEmpty) {
+        print("The data was empty!");
+      }
+    } catch (e) {
+      print("Error: $e");
     }
 
-    /**
-     * DONE: 
-     * I expect the data to be:
-     *  the user_role of 'israel', which is lender. 
-     * 
-     * TODO: 
-     * I expect the data to be:
-     *  the user_role of 'Allan Pinkerton', which is inspector. 
-     */
-    // select the user_role at
+    // const dataName = "Caspar Weinberger";
+
+    // final data = await supabase
+    //     .from('user_profiles')
+    //     .select('user_role')
+    //     .eq('full_name', dataName);
+    // print("Data is $data");
+    // // TODO:
+    // // I want to print just inspector.
+    // print("This is the user role:");
+    // final dataUserRole = data[0]['user_role'];
+    // print(dataUserRole);
+    // print("${dataUserRole.runtimeType}");
+
+    // if (dataUserRole == 'inspector') {
+    //   print("$dataName is an inspector.");
+    // } else {
+    //   print("This person: $dataName is NOT an inspector.");
+    // }
   }
 
   @override

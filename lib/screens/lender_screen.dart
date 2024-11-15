@@ -16,65 +16,157 @@ class LenderScreen extends StatefulWidget {
 class _LenderScreenState extends State<LenderScreen> {
   final authService = AuthService();
   final supabase = Supabase.instance.client;
+  Map<String, dynamic>? userProfile;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final data = await supabase
+          .from('user_profiles')
+          .select()
+          .eq('id', widget.user.id)
+          .limit(1)
+          .single();
+
+      setState(() {
+        userProfile = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error loading user profile: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  String get welcomeMessage {
+    if (userProfile == null) return 'Welcome!';
+
+    // Assuming your table has 'first_name' and 'last_name' fields
+    // Adjust the field names based on your actual database structure
+    String fullName = [userProfile!['full_name'] ?? '']
+        .where((name) => name.isNotEmpty)
+        .join(' ');
+
+    // If no name is available, return a default message
+    return fullName.isEmpty ? 'Welcome!' : 'Welcome, $fullName!';
+  }
 
   @override
   Widget build(BuildContext context) {
-    print("This is the widget user passed in: ${widget.user}");
-    print("The user id: ${widget.user.id}");
-    
+    return Scaffold(
+      backgroundColor: Colors.green[200], // Lighter green
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Column(
+                        children: [
+                          Text(
+                            welcomeMessage,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          if (userProfile != null) ...[
+                            _buildProfileCard(),
+                            const SizedBox(height: 20),
+                          ],
+                          ElevatedButton(
+                            onPressed: authService.signOut,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Sign Out'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
 
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            'Welcome to DrawFi, lender!!',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+  Widget _buildProfileCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Profile Information',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: authService.signOut,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 32,
-                vertical: 16,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Sign Out'),
-          ),
-        ],
+            const Divider(),
+            ...userProfile!.entries.map((entry) {
+              // Skip null values and empty strings
+              if (entry.value == null || entry.value.toString().isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        _formatFieldName(entry.key),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        entry.value.toString(),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
 
-  Future<String?> _getUserRole(String userId) async {
-    try {
-      final data = await supabase
-          .from('user_profiles')
-          .select('user_role')
-          .eq('id', userId)
-          .limit(1)
-          .single();
-      print("Data: $data");
-      print("Data role: ${data['user_role']}");
-      /**
-       * TODO: 
-       * Press the button and see that the data is: 
-       * I think that it's the data for Chretien. 
-       */
-
-      return data['user_role'];
-    } catch (e) {
-      print("Error: $e");
-      return null;
-    }
+  String _formatFieldName(String name) {
+    // Convert snake_case to Title Case
+    return name
+        .split('_')
+        .map((word) => word[0].toUpperCase() + word.substring(1))
+        .join(' ');
   }
 }

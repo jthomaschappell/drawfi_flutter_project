@@ -48,21 +48,19 @@ class _LenderScreenState extends State<LenderScreen> {
 
   String get welcomeMessage {
     if (userProfile == null) return 'Welcome!';
-
-    // Assuming your table has 'first_name' and 'last_name' fields
     // Adjust the field names based on your actual database structure
     String fullName = [userProfile!['full_name'] ?? '']
         .where((name) => name.isNotEmpty)
         .join(' ');
 
     // If no name is available, return a default message
-    return fullName.isEmpty ? 'Welcome!' : 'Welcome, $fullName!';
+    return fullName.isEmpty ? 'Welcome!' : 'Welcome, Lender: $fullName!';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.green[200], // Lighter green
+      backgroundColor: const Color.fromARGB(200, 61, 90, 128),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -94,7 +92,7 @@ class _LenderScreenState extends State<LenderScreen> {
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 32,
                                 vertical: 16,
-                              ),
+                              ), 
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),

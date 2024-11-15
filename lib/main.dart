@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:tester/models/draw_request.dart';
-import 'package:tester/screens/gc_screen.dart';
+import 'package:tester/screens/contractor_screen.dart';
 import 'package:tester/screens/inspector_screen.dart';
 import 'package:tester/screens/lender_screen.dart';
 
@@ -230,15 +230,24 @@ class _AuthPageState extends State<AuthPage> {
 
                   // display a different screen based on the role of the user.
                   if (profileSnapshot.data == 'contractor') {
-                    return const GcScreen();
+                    // return const ContractorHomeScreen();
+                    return ContractorScreen(user: snapshotDataSession.user);
+                    /**
+                     * TODO: 
+                     * Check out Chretien's contractor screen. 
+                     */
                   } else if (profileSnapshot.data == 'lender') {
                     // return LenderScreen(user: snapshotDataSession.user);
                     return LenderScreen(
                       user: snapshotDataSession.user,
                     );
                   } else if (profileSnapshot.data == 'inspector') {
-                    return const InspectorScreen();
+                    return InspectorScreen(user: snapshotDataSession.user,);
                   } else {
+                    /**
+                     * TODO:
+                     * Test all 3 screens. 
+                     */
                     print("The enum is invalid.");
                     return const ErrorScreen();
                   }

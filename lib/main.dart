@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:tester/models/draw_request.dart';
 import 'package:tester/screens/contractor_screen.dart';
 import 'package:tester/screens/inspector_screen.dart';
 import 'package:tester/screens/lender_screen.dart';
@@ -116,7 +115,7 @@ class _AuthPageState extends State<AuthPage> {
     if (_passwordController.text.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Password \must be at least 8 characters')),
+            content: Text('Password must be at least 8 characters')),
       );
       return;
     }
@@ -200,8 +199,6 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
-    String works = "7f73c0c5-e038-495a-b7ff-ebe6ffd992dd";
-    String fails = "7f73c0c5-e038-495a";
     return Scaffold(
       body: StreamBuilder<AuthState>(
         stream: _authService.authStateChanges(),
@@ -209,10 +206,10 @@ class _AuthPageState extends State<AuthPage> {
           /// This gets rendered with a specific page when we log in.
           final snapshotDataSession = snapshot.data?.session;
           if (snapshotDataSession != null) {
-            return FutureBuilder<String?>(
+            return FutureBuilder<Map<String, dynamic>?>(
               // Get the user id.
               // This is useful for getting the user_role from user_profiles table.
-              future: _getUserRole(snapshotDataSession.user.id),
+              future: _getUserProfile(snapshotDataSession.user.id),
               builder: (context, profileSnapshot) {
                 if (profileSnapshot.connectionState ==
                     ConnectionState.waiting) {
@@ -220,37 +217,31 @@ class _AuthPageState extends State<AuthPage> {
                     child: CircularProgressIndicator(),
                   );
                 }
-                // if there is no entry, it is null.
-                // null prints this error message.
-                if (profileSnapshot.data == null) {
-                  print("Profile snapshot data is null.");
-                  return const ErrorScreen();
-                } else {
-                  print("The data is ${profileSnapshot.data}");
+                final userProfile = profileSnapshot.data;
+                // print(userProfile);
+                final userRole = userProfile!['user_role'];
 
-                  // display a different screen based on the role of the user.
-                  if (profileSnapshot.data == 'contractor') {
-                    // return const ContractorHomeScreen();
-                    return ContractorScreen(user: snapshotDataSession.user);
-                    /**
-                     * TODO: 
-                     * Check out Chretien's contractor screen. 
-                     */
-                  } else if (profileSnapshot.data == 'lender') {
-                    // return LenderScreen(user: snapshotDataSession.user);
-                    return LenderScreen(
-                      user: snapshotDataSession.user,
-                    );
-                  } else if (profileSnapshot.data == 'inspector') {
-                    return InspectorScreen(user: snapshotDataSession.user,);
-                  } else {
-                    /**
-                     * TODO:
-                     * Test all 3 screens. 
-                     */
-                    print("The enum is invalid.");
-                    return const ErrorScreen();
-                  }
+                // display a different screen based on the role of the user.
+                if (userRole == 'contractor') {
+                  return ContractorScreen(
+                    userProfile: userProfile,
+                  );
+                } else if (userRole == 'lender') {
+                  return LenderScreen(
+                    userProfile: userProfile,
+                  );
+                } else if (userRole == 'inspector') {
+                  return InspectorScreen(
+                    userProfile: userProfile,
+                  );
+                } else {
+                  print("The enum is invalid.");
+                  return const ErrorScreen();
+                  /**
+                   * TODO: 
+                   * Test that all is the same after 
+                   * this new refactoring. 
+                   */
                 }
               },
             );
@@ -405,43 +396,18 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  Future<String?> _getUserRole(String userId) async {
+  Future<Map<String, dynamic>?> _getUserProfile(String userId) async {
     try {
       final data = await supabase
           .from('user_profiles')
-          .select('user_role')
+          .select()
           .eq('id', userId)
           .limit(1)
           .single();
-      print("Data: $data");
-      print("Data role: ${data['user_role']}");
-      /**
-       * TODO: 
-       * Press the button and see that the data is: 
-       * I think that it's the data for Chretien. 
-       */
-
-      return data['user_role'];
+      return data;
     } catch (e) {
       print("Error: $e");
       return null;
-    }
-  }
-
-  Future<bool> _doesProfileExist(String userId) async {
-    try {
-      final data = await supabase
-          .from('user_profiles')
-          .select('user_role')
-          .eq('id', userId)
-          .limit(1)
-          .single();
-      print("Data: $data");
-
-      return true;
-    } catch (e) {
-      print("Error: $e");
-      return false;
     }
   }
 
@@ -449,9 +415,9 @@ class _AuthPageState extends State<AuthPage> {
     print("The big button was pressed!");
     print("Hello Peter");
     print("Hello Doc Ock");
-    String works = "7f73c0c5-e038-495a-b7ff-ebe6ffd992dd";
+    String works = "4a47abba-3c39-47bd-b0f3-b7aa2b4fad82";
     String fails = "7f73c0c5-e038-495a";
-    String? muffins = await _getUserRole(works);
+    final muffins = await _getUserProfile(fails);
     if (muffins == null) {
       print("It's null!");
     } else {

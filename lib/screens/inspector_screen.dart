@@ -1,117 +1,83 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/services/auth_service.dart';
 
-class InspectorScreen extends StatefulWidget {
-  final User user;
+class InspectorScreen extends StatelessWidget {
+  final Map<String, dynamic> userProfile;
+  
   const InspectorScreen({
     super.key,
-    required this.user,
+    required this.userProfile,
   });
 
-  @override
-  State<InspectorScreen> createState() => _InspectorScreenState();
-}
-
-class _InspectorScreenState extends State<InspectorScreen> {
-  final authService = AuthService();
-  final supabase = Supabase.instance.client;
-  Map<String, dynamic>? userProfile;
-  bool isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserProfile();
-  }
-
-  Future<void> _loadUserProfile() async {
-    try {
-      final data = await supabase
-          .from('user_profiles')
-          .select()
-          .eq('id', widget.user.id)
-          .limit(1)
-          .single();
-
-      setState(() {
-        userProfile = data;
-        isLoading = false;
-      });
-    } catch (e) {
-      print("Error loading user profile: $e");
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
   String get welcomeMessage {
-    if (userProfile == null) return 'Welcome!';
-
-    // Assuming your table has 'first_name' and 'last_name' fields
-    // Adjust the field names based on your actual database structure
-    String fullName = [userProfile!['full_name'] ?? '']
-        .where((name) => name.isNotEmpty)
-        .join(' ');
-
-    // If no name is available, return a default message
-    return fullName.isEmpty ? 'Welcome!' : 'Welcome, Inspector: $fullName!';
+    String fullName = userProfile['full_name'] ?? '';
+    String userRole = userProfile['user_role'] ?? '';
+    
+    if (fullName.isEmpty) return 'Welcome!';
+    return 'Welcome, ${userRole.capitalize()}: $fullName!';
   }
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
+
     return Scaffold(
       backgroundColor: const Color.fromARGB(200, 224, 251, 252),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(
-                      child: Column(
-                        children: [
-                          Text(
-                            welcomeMessage,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          if (userProfile != null) ...[
-                            _buildProfileCard(),
-                            const SizedBox(height: 20),
-                          ],
-                          ElevatedButton(
-                            onPressed: authService.signOut,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 16,
-                              ), 
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('Sign Out'),
-                          ),
-                        ],
+                    Text(
+                      welcomeMessage,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildProfileCard(context),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: authService.signOut,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Sign Out'),
                     ),
                   ],
                 ),
               ),
-            ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(BuildContext context) {
+    // Define the order and display names of fields
+    final fieldDisplayOrder = [
+      'full_name',
+      'email',
+      'user_role',
+      'id',
+      'created_at',
+      'updated_at',
+    ];
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -127,11 +93,19 @@ class _InspectorScreenState extends State<InspectorScreen> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const Divider(),
-            ...userProfile!.entries.map((entry) {
-              // Skip null values and empty strings
-              if (entry.value == null || entry.value.toString().isEmpty) {
+            ...fieldDisplayOrder.map((fieldName) {
+              final value = userProfile[fieldName];
+              if (value == null || value.toString().isEmpty) {
                 return const SizedBox.shrink();
               }
+
+              // Format datetime fields
+              String displayValue = value.toString();
+              if (fieldName.contains('_at')) {
+                final dateTime = DateTime.parse(value.toString());
+                displayValue = '${dateTime.toLocal()}'.split('.')[0];
+              }
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Row(
@@ -140,7 +114,7 @@ class _InspectorScreenState extends State<InspectorScreen> {
                     Expanded(
                       flex: 2,
                       child: Text(
-                        _formatFieldName(entry.key),
+                        _formatFieldName(fieldName),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                         ),
@@ -148,9 +122,7 @@ class _InspectorScreenState extends State<InspectorScreen> {
                     ),
                     Expanded(
                       flex: 3,
-                      child: Text(
-                        entry.value.toString(),
-                      ),
+                      child: Text(displayValue),
                     ),
                   ],
                 ),
@@ -163,10 +135,17 @@ class _InspectorScreenState extends State<InspectorScreen> {
   }
 
   String _formatFieldName(String name) {
-    // Convert snake_case to Title Case
     return name
         .split('_')
         .map((word) => word[0].toUpperCase() + word.substring(1))
         .join(' ');
+  }
+}
+
+// Extension to capitalize strings
+extension StringExtension on String {
+  String capitalize() {
+    if (isEmpty) return this;
+    return '${this[0].toUpperCase()}${substring(1)}';
   }
 }

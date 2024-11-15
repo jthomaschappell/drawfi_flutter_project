@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:tester/models/draw_request.dart';
+import 'package:tester/screens/gc_screen.dart';
+import 'package:tester/screens/inspector_screen.dart';
 import 'package:tester/screens/lender_screen.dart';
 
 // project specific import
@@ -200,6 +202,8 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    String works = "7f73c0c5-e038-495a-b7ff-ebe6ffd992dd";
+    String fails = "7f73c0c5-e038-495a";
     return Scaffold(
       body: StreamBuilder<AuthState>(
         stream: _authService.authStateChanges(),
@@ -207,10 +211,51 @@ class _AuthPageState extends State<AuthPage> {
           /// This gets rendered with a specific page when we log in.
           final snapshotDataSession = snapshot.data?.session;
           if (snapshotDataSession != null) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
-            return const LenderScreen();
+            return FutureBuilder<String?>(
+              // Get the user id.
+              // This is useful for getting the user_role from user_profiles table.
+              future: _getUserRole(snapshotDataSession.user.id),
+              builder: (context, profileSnapshot) {
+                if (profileSnapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+                // if there is no entry, it is null. 
+                // null prints this error message. 
+                if (profileSnapshot.data == null) {
+                  print("Profile snapshot data is null.");
+                  return const ErrorScreen();
+                } else {
+                  // COMING SOON TO A THEATER NEAR YOU:
+                  // Based on the user_role, it goes to a different screen.
+
+                  /**
+                   * TODO: 
+                   * 
+                   * Test inspector screen
+                   * Test contractor screen
+                   * Test lender screen. 
+                   * 
+                   * 
+                   */
+
+                  print("The data is ${profileSnapshot.data}");
+                  // if (profileSnapshot.data['user_role'] == ')
+                  if (profileSnapshot.data == 'contractor') {
+                    return const GcScreen();
+                  } else if (profileSnapshot.data == 'lender') {
+                    return const LenderScreen();
+                  } else if (profileSnapshot.data == 'inspector') {
+                    return const InspectorScreen();
+                  } else {
+                    print("The enum is invalid.");
+                    return const ErrorScreen();
+                  }
+                }
+              },
+            );
           }
           /**
            * TODO: 
@@ -365,73 +410,58 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  // Future<bool> _doesProfileExist(String userId) async {
-  //   try {
-  //     final response = await supabase.from('user_profiles').select('id');
-  //   }
-  // }
+  Future<String?> _getUserRole(String userId) async {
+    try {
+      final data = await supabase
+          .from('user_profiles')
+          .select('user_role')
+          .eq('id', userId)
+          .limit(1)
+          .single();
+      print("Data: $data");
+      print("Data role: ${data['user_role']}");
+      /**
+       * TODO: 
+       * Press the button and see that the data is: 
+       * I think that it's the data for Chretien. 
+       */
 
-  // Future<bool> _doesProfileExist(String userId) async {
-  //   try {
-  //     // Just count rows - fastest way to check existence
-  //     final response = await supabase
-  //         .from('user_profiles')
-  //         .select('id')
-  //         .eq('id', userId)
-  //         .limit(1);
+      return data['user_role'];
+    } catch (e) {
+      print("Error: $e");
+      return null;
+    }
+  }
 
-  //   } catch (e) {
-  //     // Log the error but return false - keeping with the simple approach
-  //     print('Error checking profile existence: $e');
-  //     return false;
-  //   }
-  // }
+  Future<bool> _doesProfileExist(String userId) async {
+    try {
+      final data = await supabase
+          .from('user_profiles')
+          .select('user_role')
+          .eq('id', userId)
+          .limit(1)
+          .single();
+      print("Data: $data");
+
+      return true;
+    } catch (e) {
+      print("Error: $e");
+      return false;
+    }
+  }
 
   void bigTestFunction() async {
     print("The big button was pressed!");
     print("Hello Peter");
-
-    try {
-      /**
-       * TODO: 
-       * I expect that this will give me the single item that is Allan Pinkerton's entry. 
-       */
-      const dataName = "Gaston";
-      final data = await supabase
-          .from('user_profiles')
-          .select('user_role')
-          .eq('full_name', dataName)
-          .limit(1)
-          .single()
-          ;
-      // print("Data is $data");
-      // print("The user role is ${data['user_role']}"); 
-      if (data.isEmpty) {
-        print("The data was empty!");
-      }
-    } catch (e) {
-      print("Error: $e");
+    print("Hello Doc Ock");
+    String works = "7f73c0c5-e038-495a-b7ff-ebe6ffd992dd";
+    String fails = "7f73c0c5-e038-495a";
+    String? muffins = await _getUserRole(works);
+    if (muffins == null) {
+      print("It's null!");
+    } else {
+      print("It's not null!");
     }
-
-    // const dataName = "Caspar Weinberger";
-
-    // final data = await supabase
-    //     .from('user_profiles')
-    //     .select('user_role')
-    //     .eq('full_name', dataName);
-    // print("Data is $data");
-    // // TODO:
-    // // I want to print just inspector.
-    // print("This is the user role:");
-    // final dataUserRole = data[0]['user_role'];
-    // print(dataUserRole);
-    // print("${dataUserRole.runtimeType}");
-
-    // if (dataUserRole == 'inspector') {
-    //   print("$dataName is an inspector.");
-    // } else {
-    //   print("This person: $dataName is NOT an inspector.");
-    // }
   }
 
   @override
@@ -440,6 +470,46 @@ class _AuthPageState extends State<AuthPage> {
     _passwordController.dispose();
     _fullNameController.dispose();
     super.dispose();
+  }
+}
+
+class ErrorScreen extends StatelessWidget {
+  const ErrorScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = AuthService();
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                "There was an error!",
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: authService.signOut,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Sign Out'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

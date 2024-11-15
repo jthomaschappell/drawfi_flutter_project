@@ -228,11 +228,14 @@ class _AuthPageState extends State<AuthPage> {
                 } else {
                   print("The data is ${profileSnapshot.data}");
 
-                  // display a different screen based on the role of the user. 
+                  // display a different screen based on the role of the user.
                   if (profileSnapshot.data == 'contractor') {
                     return const GcScreen();
                   } else if (profileSnapshot.data == 'lender') {
-                    return const LenderScreen();
+                    // return LenderScreen(user: snapshotDataSession.user);
+                    return LenderScreen(
+                      user: snapshotDataSession.user,
+                    );
                   } else if (profileSnapshot.data == 'inspector') {
                     return const InspectorScreen();
                   } else {

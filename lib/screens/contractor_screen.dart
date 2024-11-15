@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tester/services/auth_service.dart';
+import 'package:tester/screens/draw_request_screen.dart';
 
 class ContractorScreen extends StatelessWidget {
   final Map<String, dynamic> userProfile;
@@ -22,44 +23,37 @@ class ContractorScreen extends StatelessWidget {
     final authService = AuthService();
 
     return Scaffold(
-      backgroundColor: const Color.fromARGB(200, 224, 251, 252),
+      backgroundColor: const Color.fromARGB(200, 255, 186, 8),
+      appBar: AppBar(
+        title: const Text('Contractor Dashboard'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: authService.signOut,
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: Column(
-                  children: [
-                    Text(
-                      welcomeMessage,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildProfileCard(context),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: authService.signOut,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Sign Out'),
-                    ),
-                  ],
+              Text(
+                welcomeMessage,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
+                textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 20),
+              _buildProfileCard(context),
+              const SizedBox(height: 20),
+              _buildQuickActionsCard(context),
             ],
           ),
         ),
@@ -128,6 +122,51 @@ class ContractorScreen extends StatelessWidget {
                 ),
               );
             }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsCard(BuildContext context) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            const Text(
+              'Quick Actions',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DrawRequestScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('New Draw Request'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ],
         ),
       ),

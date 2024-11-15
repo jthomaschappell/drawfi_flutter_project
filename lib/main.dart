@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:tester/models/draw_request.dart';
-import 'package:tester/screens/gc_screen.dart';
-import 'package:tester/screens/inspector_screen.dart';
 import 'package:tester/screens/lender_screen.dart';
 
 // project specific import
@@ -30,9 +28,7 @@ void main() async {
     debug: true,
   );
 
-  runApp(
-    const MyApp(),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -211,55 +207,18 @@ class _AuthPageState extends State<AuthPage> {
           /// This gets rendered with a specific page when we log in.
           final snapshotDataSession = snapshot.data?.session;
           if (snapshotDataSession != null) {
-            return FutureBuilder<String?>(
-              // Get the user id.
-              // This is useful for getting the user_role from user_profiles table.
-              future: _getUserRole(snapshotDataSession.user.id),
-              builder: (context, profileSnapshot) {
-                if (profileSnapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-                // if there is no entry, it is null. 
-                // null prints this error message. 
-                if (profileSnapshot.data == null) {
-                  print("Profile snapshot data is null.");
-                  return const ErrorScreen();
-                } else {
-                  // COMING SOON TO A THEATER NEAR YOU:
-                  // Based on the user_role, it goes to a different screen.
+            // print("The snapshot data session is $snapshotDataSession");
+            print("The session user id is ${snapshotDataSession.user.id}");
+            /**
+             * START HERE: 
+             * TODO: 
+             * Get me the user_profiles entry where the above id is the user_id there.
+             */
 
-                  /**
-                   * DONE: 
-                   * Test inspector screen: Allan Pinkerton: 
-                   * Test contractor screen: 
-                   * Test lender screen. 
-                   * 
-                   * 
-                   */
-
-                  print("The data is ${profileSnapshot.data}");
-                  // if (profileSnapshot.data['user_role'] == ')
-                  if (profileSnapshot.data == 'contractor') {
-                    return const GcScreen();
-                  } else if (profileSnapshot.data == 'lender') {
-                    return const LenderScreen();
-                  } else if (profileSnapshot.data == 'inspector') {
-                    return const InspectorScreen();
-                  } else {
-                    print("The enum is invalid.");
-                    return const ErrorScreen();
-                  }
-                }
-              },
-            );
+            // if the user is a lender, then give them the lender screen
+            return const LenderScreen();
           }
-          /**
-           * TODO: 
-           * Turn this into a separate page for better clarity. 
-           */
+
           /// This block renders ONLY if the snapshot has no session data.
           else {
             return SafeArea(

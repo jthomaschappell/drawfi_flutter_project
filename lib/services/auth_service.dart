@@ -30,7 +30,6 @@ class AuthService {
       await _supabase.from('user_profiles').insert({
         'id': response.user!.id,
         'email': email,
-        'password': password, // Note: Consider if you really need to store this
         'full_name': fullName,
         'user_role': role.name, // This will match your database enum
       });

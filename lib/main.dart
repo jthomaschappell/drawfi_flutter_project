@@ -232,10 +232,9 @@ class _AuthPageState extends State<AuthPage> {
                   // Based on the user_role, it goes to a different screen.
 
                   /**
-                   * TODO: 
-                   * 
-                   * Test inspector screen
-                   * Test contractor screen
+                   * DONE: 
+                   * Test inspector screen: Allan Pinkerton: 
+                   * Test contractor screen: 
                    * Test lender screen. 
                    * 
                    * 

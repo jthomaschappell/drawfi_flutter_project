@@ -13,19 +13,21 @@ class PaymentApplicationForm extends StatefulWidget {
 class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
   final _formKey = GlobalKey<FormState>();
   final _supabase = Supabase.instance.client;
-  
-  // Form controllers
+
+  // Form controllers for payment application
   final _projectNameController = TextEditingController();
+  final _ownerController = TextEditingController();
+  final _contractorNameController = TextEditingController();
+  final _architectController = TextEditingController();
   final _applicationNumberController = TextEditingController();
   final _periodToController = TextEditingController();
   final _architectProjectNumberController = TextEditingController();
   final _contractDateController = TextEditingController();
   final _invoiceNumberController = TextEditingController();
   final _originalContractSumController = TextEditingController();
-  final _netChangeOrdersController = TextEditingController();
   final _totalCompletedStoredController = TextEditingController();
-  final _retainageController = TextEditingController();
   final _previousCertificatesController = TextEditingController();
+  final _balanceToDrawController = TextEditingController();
 
   // Line items
   List<LineItem> lineItems = [];
@@ -43,7 +45,9 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildBasicInfo(),
+              _buildProjectInfo(),
+              const SizedBox(height: 24),
+              _buildParticipantInfo(),
               const SizedBox(height: 24),
               _buildFinancialInfo(),
               const SizedBox(height: 24),
@@ -57,14 +61,15 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
     );
   }
 
-  Widget _buildBasicInfo() {
+  Widget _buildProjectInfo() {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Basic Information', style: Theme.of(context).textTheme.titleLarge),
+            Text('Project Information',
+                style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
             TextFormField(
               controller: _projectNameController,
@@ -72,8 +77,7 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
                 labelText: 'Project Name *',
                 border: OutlineInputBorder(),
               ),
-              validator: (value) =>
-                  value?.isEmpty ?? true ? 'Required' : null,
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
             ),
             const SizedBox(height: 16),
             Row(
@@ -92,6 +96,20 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: TextFormField(
+                    controller: _architectProjectNumberController,
+                    decoration: const InputDecoration(
+                      labelText: 'Architect Project Number',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
                     controller: _periodToController,
                     decoration: const InputDecoration(
                       labelText: 'Period To *',
@@ -106,14 +124,80 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
                         lastDate: DateTime(2100),
                       );
                       if (date != null) {
-                        _periodToController.text = DateFormat('yyyy-MM-dd').format(date);
+                        _periodToController.text =
+                            DateFormat('yyyy-MM-dd').format(date);
                       }
                     },
                     validator: (value) =>
                         value?.isEmpty ?? true ? 'Required' : null,
                   ),
                 ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _contractDateController,
+                    decoration: const InputDecoration(
+                      labelText: 'Contract Date',
+                      border: OutlineInputBorder(),
+                    ),
+                    readOnly: true,
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (date != null) {
+                        _contractDateController.text =
+                            DateFormat('yyyy-MM-dd').format(date);
+                      }
+                    },
+                  ),
+                ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParticipantInfo() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Project Participants',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _ownerController,
+              decoration: const InputDecoration(
+                labelText: 'Owner *',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _contractorNameController,
+              decoration: const InputDecoration(
+                labelText: 'Contractor Name *',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _architectController,
+              decoration: const InputDecoration(
+                labelText: 'Architect *',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
             ),
           ],
         ),
@@ -128,7 +212,8 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Financial Information', style: Theme.of(context).textTheme.titleLarge),
+            Text('Financial Information',
+                style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
             TextFormField(
               controller: _originalContractSumController,
@@ -142,14 +227,13 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
                 FilteringTextInputFormatter.digitsOnly,
                 CurrencyInputFormatter(),
               ],
-              validator: (value) =>
-                  value?.isEmpty ?? true ? 'Required' : null,
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(
-              controller: _netChangeOrdersController,
+              controller: _balanceToDrawController,
               decoration: const InputDecoration(
-                labelText: 'Net Change Orders',
+                labelText: 'Balance to Draw *',
                 prefixText: '\$',
                 border: OutlineInputBorder(),
               ),
@@ -158,6 +242,7 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
                 FilteringTextInputFormatter.digitsOnly,
                 CurrencyInputFormatter(),
               ],
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
             ),
           ],
         ),
@@ -175,7 +260,8 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Line Items', style: Theme.of(context).textTheme.titleLarge),
+                Text('Line Items',
+                    style: Theme.of(context).textTheme.titleLarge),
                 ElevatedButton.icon(
                   onPressed: _addLineItem,
                   icon: const Icon(Icons.add),
@@ -228,9 +314,9 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
               children: [
                 Expanded(
                   child: TextFormField(
-                    controller: item.scheduledValueController,
+                    controller: item.adjustedAllocationController,
                     decoration: const InputDecoration(
-                      labelText: 'Scheduled Value',
+                      labelText: 'Adjusted Allocation',
                       prefixText: '\$',
                       border: OutlineInputBorder(),
                     ),
@@ -244,9 +330,9 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextFormField(
-                    controller: item.workCompletedController,
+                    controller: item.constructionAllocationController,
                     decoration: const InputDecoration(
-                      labelText: 'Work Completed',
+                      labelText: 'Construction Allocation',
                       prefixText: '\$',
                       border: OutlineInputBorder(),
                     ),
@@ -255,6 +341,22 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
                       FilteringTextInputFormatter.digitsOnly,
                       CurrencyInputFormatter(),
                     ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('Inspection Complete'),
+                    value: item.inspection,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        item.inspection = value ?? false;
+                      });
+                    },
                   ),
                 ),
               ],
@@ -298,16 +400,21 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
           .from('payment_applications')
           .insert({
             'project_name': _projectNameController.text,
+            'owner': _ownerController.text,
+            'contractor_name': _contractorNameController.text,
+            'architect': _architectController.text,
             'application_number': _applicationNumberController.text,
             'period_to': _periodToController.text,
             'architect_project_number': _architectProjectNumberController.text,
             'contract_date': _contractDateController.text,
             'invoice_number': _invoiceNumberController.text,
-            'original_contract_sum': _parseCurrency(_originalContractSumController.text),
-            'net_change_orders': _parseCurrency(_netChangeOrdersController.text),
-            'total_completed_stored': _parseCurrency(_totalCompletedStoredController.text),
-            'retainage': _parseCurrency(_retainageController.text),
-            'previous_certificates': _parseCurrency(_previousCertificatesController.text),
+            'original_contract_sum':
+                _parseCurrency(_originalContractSumController.text),
+            'total_completed_stored':
+                _parseCurrency(_totalCompletedStoredController.text),
+            'previous_certificates':
+                _parseCurrency(_previousCertificatesController.text),
+            'balance_to_draw': _parseCurrency(_balanceToDrawController.text),
             'status': 'draft',
             'user_id': _supabase.auth.currentUser!.id,
           })
@@ -320,8 +427,11 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
           'payment_application_id': applicationResponse['id'],
           'item_number': item.itemNumber,
           'description': item.descriptionController.text,
-          'scheduled_value': _parseCurrency(item.scheduledValueController.text),
-          'work_completed_current': _parseCurrency(item.workCompletedController.text),
+          'adjusted_allocation':
+              _parseCurrency(item.adjustedAllocationController.text),
+          'construction_allocation':
+              _parseCurrency(item.constructionAllocationController.text),
+          'inspection': item.inspection,
         });
       }
 
@@ -346,16 +456,18 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
   @override
   void dispose() {
     _projectNameController.dispose();
+    _ownerController.dispose();
+    _contractorNameController.dispose();
+    _architectController.dispose();
     _applicationNumberController.dispose();
     _periodToController.dispose();
     _architectProjectNumberController.dispose();
     _contractDateController.dispose();
     _invoiceNumberController.dispose();
     _originalContractSumController.dispose();
-    _netChangeOrdersController.dispose();
     _totalCompletedStoredController.dispose();
-    _retainageController.dispose();
     _previousCertificatesController.dispose();
+    _balanceToDrawController.dispose();
     for (var item in lineItems) {
       item.dispose();
     }
@@ -366,13 +478,14 @@ class _PaymentApplicationFormState extends State<PaymentApplicationForm> {
 class LineItem {
   final String itemNumber = DateTime.now().millisecondsSinceEpoch.toString();
   final descriptionController = TextEditingController();
-  final scheduledValueController = TextEditingController();
-  final workCompletedController = TextEditingController();
+  final adjustedAllocationController = TextEditingController();
+  final constructionAllocationController = TextEditingController();
+  bool inspection = false;
 
   void dispose() {
     descriptionController.dispose();
-    scheduledValueController.dispose();
-    workCompletedController.dispose();
+    adjustedAllocationController.dispose();
+    constructionAllocationController.dispose();
   }
 }
 

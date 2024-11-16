@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tester/services/auth_service.dart';
-import 'package:tester/screens/draw_request_screen.dart';
+import 'package:tester/screens/payment_application_form.dart';
 
 class ContractorScreen extends StatelessWidget {
   final Map<String, dynamic> userProfile;
@@ -151,7 +151,7 @@ class ContractorScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const DrawRequestScreen(),
+                    builder: (context) => const PaymentApplicationForm(),
                   ),
                 );
               },

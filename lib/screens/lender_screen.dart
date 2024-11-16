@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tester/services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LenderScreen extends StatelessWidget {
   final Map<String, dynamic> userProfile;
@@ -43,7 +44,30 @@ class LenderScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                     _buildProfileCard(context),
                     const SizedBox(height: 20),
-                    _buildDrawRequestButton(context),
+                    // Add Draw Requests button here
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DrawRequestsView(
+                              userProfile: userProfile,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('View Draw Requests'),
+                    ),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: authService.signOut,
@@ -61,53 +85,6 @@ class LenderScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDrawRequestButton(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DrawRequestsView(userProfile: userProfile),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            children: [
-              const Icon(
-                Icons.description,
-                size: 48,
-                color: Colors.blue,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'View Draw Requests',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Review and manage payment applications',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -198,7 +175,7 @@ extension StringExtension on String {
   }
 }
 
-// Create a new widget for the Draw Requests view
+// Add DrawRequestsView below
 class DrawRequestsView extends StatefulWidget {
   final Map<String, dynamic> userProfile;
 
@@ -212,6 +189,8 @@ class DrawRequestsView extends StatefulWidget {
 }
 
 class _DrawRequestsViewState extends State<DrawRequestsView> {
+  final _supabase = Supabase.instance.client;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,13 +200,148 @@ class _DrawRequestsViewState extends State<DrawRequestsView> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: const SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          // Add your DrawRequestsView content here
-          // This is where you'll implement the payment applications view
-        ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _loadPaymentApplications(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          final applications = snapshot.data ?? [];
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: applications.length,
+            itemBuilder: (context, index) {
+              final app = applications[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: ListTile(
+                  title: Text('Application #${app['application_number']}'),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(app['project_name']),
+                      Text('Contractor: ${app['contractor_name']}'),
+                      Text('Amount: \$${app['current_payment_due']}'),
+                    ],
+                  ),
+                  trailing: _buildStatusChip(app['status']),
+                  onTap: () => _showDetails(app),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
+  }
+
+  Widget _buildStatusChip(String status) {
+    Color color;
+    switch (status) {
+      case 'approved':
+        color = Colors.green;
+        break;
+      case 'rejected':
+        color = Colors.red;
+        break;
+      default:
+        color = Colors.orange;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(color: color),
+      ),
+    );
+  }
+
+  void _showDetails(Map<String, dynamic> application) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Application #${application['application_number']}'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Project: ${application['project_name']}'),
+              Text('Contractor: ${application['contractor_name']}'),
+              Text('Owner: ${application['owner']}'),
+              Text('Amount: \$${application['current_payment_due']}'),
+              const SizedBox(height: 16),
+              if (application['status'] == 'submitted')
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () =>
+                          _updateStatus(application['id'], 'approved'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
+                      child: const Text('Approve'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () =>
+                          _updateStatus(application['id'], 'rejected'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      child: const Text('Reject'),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateStatus(String id, String status) async {
+    try {
+      await _supabase
+          .from('payment_applications')
+          .update({'status': status}).eq('id', id);
+
+      setState(() {});
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Application ${status.toUpperCase()}')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadPaymentApplications() async {
+    final response = await _supabase
+        .from('payment_applications')
+        .select()
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
   }
 }

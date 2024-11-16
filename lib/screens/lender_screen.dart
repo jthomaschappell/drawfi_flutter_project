@@ -3,7 +3,7 @@ import 'package:tester/services/auth_service.dart';
 
 class LenderScreen extends StatelessWidget {
   final Map<String, dynamic> userProfile;
-  
+
   const LenderScreen({
     super.key,
     required this.userProfile,
@@ -12,7 +12,7 @@ class LenderScreen extends StatelessWidget {
   String get welcomeMessage {
     String fullName = userProfile['full_name'] ?? '';
     String userRole = userProfile['user_role'] ?? '';
-    
+
     if (fullName.isEmpty) return 'Welcome!';
     return 'Welcome, ${userRole.capitalize()}: $fullName!';
   }
@@ -43,6 +43,8 @@ class LenderScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                     _buildProfileCard(context),
                     const SizedBox(height: 20),
+                    _buildDrawRequestButton(context),
+                    const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: authService.signOut,
                       style: ElevatedButton.styleFrom(
@@ -67,8 +69,55 @@ class LenderScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDrawRequestButton(BuildContext context) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DrawRequestsView(userProfile: userProfile),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            children: [
+              const Icon(
+                Icons.description,
+                size: 48,
+                color: Colors.blue,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'View Draw Requests',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Review and manage payment applications',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileCard(BuildContext context) {
-    // Define the order and display names of fields
+    // Your existing _buildProfileCard implementation
     final fieldDisplayOrder = [
       'full_name',
       'email',
@@ -99,7 +148,6 @@ class LenderScreen extends StatelessWidget {
                 return const SizedBox.shrink();
               }
 
-              // Format datetime fields
               String displayValue = value.toString();
               if (fieldName.contains('_at')) {
                 final dateTime = DateTime.parse(value.toString());
@@ -142,10 +190,44 @@ class LenderScreen extends StatelessWidget {
   }
 }
 
-// Extension to capitalize strings
+// Keep your existing StringExtension
 extension StringExtension on String {
   String capitalize() {
     if (isEmpty) return this;
     return '${this[0].toUpperCase()}${substring(1)}';
+  }
+}
+
+// Create a new widget for the Draw Requests view
+class DrawRequestsView extends StatefulWidget {
+  final Map<String, dynamic> userProfile;
+
+  const DrawRequestsView({
+    super.key,
+    required this.userProfile,
+  });
+
+  @override
+  State<DrawRequestsView> createState() => _DrawRequestsViewState();
+}
+
+class _DrawRequestsViewState extends State<DrawRequestsView> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(200, 224, 251, 252),
+      appBar: AppBar(
+        title: const Text('Draw Requests'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: const SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          // Add your DrawRequestsView content here
+          // This is where you'll implement the payment applications view
+        ),
+      ),
+    );
   }
 }

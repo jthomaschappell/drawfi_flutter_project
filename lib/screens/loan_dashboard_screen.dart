@@ -8,12 +8,26 @@ class LoanDashboardScreen extends StatefulWidget {
 }
 
 class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
+  Widget _buildSearchBar() {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: 'Search by name, loan #, etc...',
+        prefixIcon: const Icon(Icons.search),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTopNav() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      height: 55.0,
       decoration: BoxDecoration(
         color: Colors.grey[400],
-        borderRadius: BorderRadiusDirectional.circular(12),
+        borderRadius: BorderRadiusDirectional.circular(
+          12.0,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.only(
@@ -42,6 +56,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Column(
         children: [
           Padding(
@@ -54,14 +69,41 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             child: _buildTopNav(),
           ),
           Expanded(
-            child: Row(
-              children: [
-                Container(
-                  width: 250,
-                  color: Colors.grey[200],
-                ), // Placeholder sidebar
-                const Expanded(child: Center(child: Text('Main Content'))),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16, bottom: 16.0),
+              child: Row(
+                children: [
+                  // side bar.
+                  Container(
+                    width: 250,
+                    decoration: BoxDecoration(
+                      // color: Colors.grey[200],
+                      // color: const Color(0xFFD32F2F),
+                      // color: Colors("D4D4D4"),
+                      // color: const Color(0x00d4d4d4),
+                      borderRadius: BorderRadiusDirectional.circular(
+                        12.0,
+                      ),
+                      border: Border.all(
+                        color: Colors.black,
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+
+                  // main content
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'Main Content',
+                        style: TextStyle(
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

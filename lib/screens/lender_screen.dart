@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tester/screens/loan_dashboard_screen.dart';
 import 'package:tester/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -67,6 +68,33 @@ class LenderScreen extends StatelessWidget {
                         ),
                       ),
                       child: const Text('View Draw Requests'),
+                    ),
+                    const SizedBox(
+                      height: 8.0,
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        
+                        print("The 'view loan dashboard' was pressed");
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoanDashboardScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('View Loan Dashboard'),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(

@@ -48,7 +48,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-
 bool isValidEmail(String emailText) {
   final emailPattern = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
   return emailPattern.hasMatch(emailText);

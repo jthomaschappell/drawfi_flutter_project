@@ -20,6 +20,55 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
+  Widget _buildSideBar() {
+    // side bar.
+    return Container(
+      width: 250,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadiusDirectional.circular(
+          12.0,
+        ),
+        border: Border.all(
+          color: Colors.black,
+          width: 0.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          _buildSearchBar(),
+          const SizedBox(height: 8.0),
+          // TODO: Big T construction.
+          // TODO:
+          // const Center(
+          const Text(
+            "BIG T CONSTRUCTION",
+            // TODO: Pull this from the database. Like "user_profiles".
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 36.0,
+            ),
+          ),
+          const SizedBox(
+            height: 16.0,
+          ),
+          const Text(
+            "Thomas Chappell",
+            style: TextStyle(color: Colors.black),
+          ),
+          const Row(
+            children: [
+              // START HERE: 
+              // TODO: Put in row items here. 
+            ],
+          ),
+          // ),
+        ],
+      ),
+      // TODO:
+      // @Chretien add the additional fields on the side bar.
+    );
+  }
+
   Widget _buildTopNav() {
     return Container(
       height: 55.0,
@@ -73,24 +122,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
               padding: const EdgeInsets.only(left: 16, bottom: 16.0),
               child: Row(
                 children: [
-                  // side bar.
-                  Container(
-                    width: 250,
-                    decoration: BoxDecoration(
-                      // color: Colors.grey[200],
-                      // color: const Color(0xFFD32F2F),
-                      // color: Colors("D4D4D4"),
-                      // color: const Color(0x00d4d4d4),
-                      borderRadius: BorderRadiusDirectional.circular(
-                        12.0,
-                      ),
-                      border: Border.all(
-                        color: Colors.black,
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-
+                  _buildSideBar(),
                   // main content
                   const Expanded(
                     child: Center(

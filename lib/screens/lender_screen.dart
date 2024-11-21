@@ -74,9 +74,7 @@ class LenderScreen extends StatelessWidget {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        
                         print("The 'view loan dashboard' was pressed");
-
                         Navigator.push(
                           context,
                           MaterialPageRoute(

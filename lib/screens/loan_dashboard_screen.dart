@@ -42,7 +42,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           // const Center(
           const Text(
             "BIG T CONSTRUCTION",
-            // TODO: Pull this from the database. Like "user_profiles".
+            // TODO: Pull this from the database. Like "user_profiles". 
             style: TextStyle(
               color: Colors.black,
               fontSize: 36.0,

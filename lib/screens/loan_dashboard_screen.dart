@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// TODO:
+/// Should we have this "DrawRequest" data structure in another part of the code?
 class DrawRequest {
   final String lineItem;
   final bool inspected;
@@ -71,9 +73,9 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
         style: const TextStyle(fontSize: 14),
         decoration: InputDecoration(
           hintText: 'Search by name, loan #, etc...',
-          hintStyle: TextStyle(
+          hintStyle: const TextStyle(
             fontSize: 14,
-            color: const Color.fromARGB(255, 107, 7, 7),
+            color: Color.fromARGB(255, 107, 7, 7),
           ),
           prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey[600]),
           border: OutlineInputBorder(
@@ -122,6 +124,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
+                      color: Colors.black87,
                     ),
                   ),
                 ],
@@ -133,6 +136,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
+                color: Colors.black87,
               ),
             ),
           ],
@@ -159,6 +163,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
+                color: Colors.black87,
               ),
             ),
           ),
@@ -168,6 +173,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
+              color: Colors.black87,
             ),
           ),
         ],
@@ -193,6 +199,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
           ),
           const Text(
@@ -200,6 +207,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w500,
+              color: Colors.black87,
             ),
           ),
           const SizedBox(height: 8),
@@ -262,6 +270,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
         ),
       ),

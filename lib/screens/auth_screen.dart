@@ -6,6 +6,8 @@ import 'package:tester/screens/error_screen.dart';
 import 'package:tester/screens/inspector_screen.dart';
 import 'package:tester/screens/lender_screen.dart';
 import 'package:tester/services/auth_service.dart';
+import 'package:flutter/material.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -369,5 +371,302 @@ class _AuthScreenState extends State<AuthScreen> {
     _passwordController.dispose();
     _fullNameController.dispose();
     super.dispose();
+  }
+}
+
+class DashboardScreen extends StatelessWidget {
+  final Map<String, dynamic> userProfile;
+
+  const DashboardScreen({
+    super.key,
+    required this.userProfile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          // Top Navigation Bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _NavItem(
+                  label: 'Home',
+                  isSelected: true,
+                  onTap: () {},
+                ),
+                _NavItem(
+                  label: 'Notifications',
+                  isSelected: false,
+                  onTap: () {},
+                ),
+                _NavItem(
+                  label: 'User Config',
+                  isSelected: false,
+                  onTap: () {},
+                ),
+                _NavItem(
+                  label: 'Settings',
+                  isSelected: false,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Main Content
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left Panel
+                  Expanded(
+                    flex: 2,
+                    child: _LeftPanel(userProfile: userProfile),
+                  ),
+                  const SizedBox(width: 16),
+
+                  // Right Panel with Progress Indicators and Table
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      children: [
+                        // Progress Indicators Row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _ProgressCard(
+                                title: 'Amount Disbursed',
+                                percentage: 0.45,
+                                color: Colors.pink,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _ProgressCard(
+                                title: 'Project Completion',
+                                percentage: 0.50,
+                                color: Colors.purple,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        // Table
+                        Expanded(
+                          child: _DrawTable(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onTap,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.blue : Colors.black54,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+}
+
+class _LeftPanel extends StatelessWidget {
+  final Map<String, dynamic> userProfile;
+
+  const _LeftPanel({required this.userProfile});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Search Bar
+        TextField(
+          decoration: InputDecoration(
+            hintText: 'Search by name, loan #, etc...',
+            prefixIcon: const Icon(Icons.search),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Company Info Card
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'BIG T Construction',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const Text('Thomas Chappell'),
+                const Text('678-999-8212'),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Action Buttons
+        _ActionButton(
+          number: '2',
+          label: 'Draw Requests',
+          onTap: () {},
+        ),
+        const SizedBox(height: 8),
+        _ActionButton(
+          number: '6',
+          label: 'Inspections',
+          onTap: () {},
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final String number;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    required this.number,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                shape: BoxShape.circle,
+              ),
+              child: Text(number),
+            ),
+            const SizedBox(width: 16),
+            Text(label),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProgressCard extends StatelessWidget {
+  final String title;
+  final double percentage;
+  final Color color;
+
+  const _ProgressCard({
+    required this.title,
+    required this.percentage,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircularPercentIndicator(
+              radius: 30.0,
+              lineWidth: 8.0,
+              percent: percentage,
+              progressColor: color,
+              backgroundColor: color.withOpacity(0.2),
+              center: Text('${(percentage * 100).toInt()}%'),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DrawTable extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: SingleChildScrollView(
+        child: DataTable(
+          columns: const [
+            DataColumn(label: Text('Line Item')),
+            DataColumn(label: Text('INSP')),
+            DataColumn(label: Text('Draw 1')),
+            DataColumn(label: Text('Draw 2')),
+            DataColumn(label: Text('Draw 3')),
+          ],
+          rows: List.generate(
+            8,
+            (index) => DataRow(
+              cells: [
+                DataCell(Text('Item ${index + 1}')),
+                const DataCell(Text('-')),
+                const DataCell(Text('-')),
+                const DataCell(Text('-')),
+                const DataCell(Text('-')),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

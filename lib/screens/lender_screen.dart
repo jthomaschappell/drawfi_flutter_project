@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tester/screens/loan_dashboard_screen.dart';
 import 'package:tester/screens/new_project_screen.dart';
-import 'package:tester/services/auth_service.dart';
-import 'package:tester/screens/new_project_screen.dart';
 
-// Add the SVG string constant
 const String _logoSvg = '''
 <svg width="1531" height="1531" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
@@ -94,221 +91,33 @@ class _LenderScreenState extends State<LenderScreen> {
       initials: 'SP',
       color: const Color(0xFFE11D48), // Pink
     ),
-    RecentLoan(
-      id: '3',
-      companyName: 'Big T Construction',
-      address: '2601 N. University Ave',
-      location: 'Provo, UT',
-      disbursed: 0.81,
-      actions: 2,
-      status: 'On Track',
-      initials: 'BT',
-      color: const Color(0xFF16A34A), // Green
-    ),
   ];
 
-  void _showNotifications() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Notifications'),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Mark all as read'),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 300,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildNotificationItem(
-                'New Draw Request',
-                'Foundation work draw request submitted',
-                '2 hours ago',
-              ),
-              _buildNotificationItem(
-                'Inspection Complete',
-                'Framing inspection has been completed',
-                '1 day ago',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNotificationItem(String title, String message, String time) {
-    return ListTile(
-      leading: const Icon(Icons.circle_notifications, color: Color(0xFF2563EB)),
-      title: Text(title),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            message,
-            style: TextStyle(color: Colors.grey[600]),
-          ),
-          Text(
-            time,
-            style: TextStyle(color: Colors.grey[500], fontSize: 12),
-          ),
-        ],
-      ),
-      contentPadding: EdgeInsets.zero,
-    );
-  }
-
-  void _showSettings() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Settings'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildSettingsItem(
-              'Email Notifications',
-              Icons.notifications,
-              trailing: Switch(
-                value: true,
-                onChanged: (value) {},
-                activeColor: const Color(0xFF2563EB),
-              ),
-            ),
-            _buildSettingsItem(
-              'Dark Mode',
-              Icons.dark_mode,
-              trailing: Switch(
-                value: false,
-                onChanged: (value) {},
-                activeColor: const Color(0xFF2563EB),
-              ),
-            ),
-            _buildSettingsItem(
-              'Language',
-              Icons.language,
-              trailing: DropdownButton<String>(
-                value: 'English',
-                items: ['English', 'Spanish', 'French']
-                    .map((lang) => DropdownMenuItem(
-                          value: lang,
-                          child: Text(lang),
-                        ))
-                    .toList(),
-                onChanged: (value) {},
-                underline: const SizedBox(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsItem(String title, IconData icon, {Widget? trailing}) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey[600]),
-      title: Text(title),
-      trailing: trailing,
-      contentPadding: EdgeInsets.zero,
-    );
+  void _onNavItemTap(int index) {
+    setState(() {
+      _selectedNavIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor:
+          const Color(0xFFF5F5F5), // Grey background for the main content
       body: Column(
         children: [
-          // Updated Navigation Bar with Logo
+          // Top Bar
           Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                bottom: BorderSide(
-                  color: Colors.grey[200]!,
-                  width: 1,
-                ),
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            color: Colors.white, // TopBar remains white
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
-                // Add logo here
-                Padding(
-                  padding: const EdgeInsets.only(right: 32),
-                  child: SvgPicture.string(
-                    _logoSvg,
-                    height: 40,
-                    width: 40,
-                  ),
-                ),
-                _buildNavButton(
-                  'Home',
-                  isSelected: _selectedNavIndex == 0,
-                  onTap: () => setState(() => _selectedNavIndex = 0),
-                ),
-                const SizedBox(width: 32),
-                _buildNavButton(
-                  'Notifications',
-                  isSelected: _selectedNavIndex == 1,
-                  hasNotification: true,
-                  onTap: () {
-                    setState(() => _selectedNavIndex = 1);
-                    _showNotifications();
-                  },
-                ),
-                const SizedBox(width: 32),
-                _buildNavButton(
-                  'Loans',
-                  isSelected: _selectedNavIndex == 2,
-                  onTap: () {
-                    setState(() => _selectedNavIndex = 2);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoanDashboardScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 32),
-                _buildNavButton(
-                  'Settings',
-                  isSelected: _selectedNavIndex == 3,
-                  onTap: () {
-                    setState(() => _selectedNavIndex = 3);
-                    _showSettings();
-                  },
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () async {
-                    final authService = AuthService();
-                    await authService.signOut();
-                  },
-                  icon: const Icon(Icons.logout),
-                  tooltip: 'Sign Out',
-                  color: Colors.grey[600],
-                ),
+                SvgPicture.string(_logoSvg, height: 40, width: 40),
+                const SizedBox(width: 16),
+                _buildNavItem(Icons.home_outlined, 0),
+                _buildNavItem(Icons.notifications_outlined, 1),
+                _buildNavItem(Icons.apartment_outlined, 2),
+                _buildNavItem(Icons.settings_outlined, 3),
               ],
             ),
           ),
@@ -319,50 +128,86 @@ class _LenderScreenState extends State<LenderScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Hi ${widget.userProfile['full_name']?.split(' ')[0] ?? 'Hannah'},',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hi ${widget.userProfile['full_name'] ?? 'Hannah'},',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '36', // The number
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight:
+                                        FontWeight.bold, // Make the number bold
+                                    color: Color(0xFF1A1A1A),
+                                  ),
+                                ),
+                                TextSpan(
+                                  text:
+                                      ' Active Projects', // The rest of the text
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight:
+                                        FontWeight.w400, // Regular weight
+                                    color: Color(0xFF666666),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const NewProjectScreen(),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.add, size: 20),
+                        label: const Text('New Project'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
-                      _buildNewProjectButton(),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  // Active Projects Counter
-                  Row(
-                    children: [
-                      Text(
-                        '${recentLoans.length}',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A1A1A),
-                          height: 1,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Icon(Icons.grid_view, color: Colors.grey[600], size: 24),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // Search Bar
                   Container(
                     height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
                     child: TextField(
                       controller: _searchController,
                       onChanged: (value) =>
                           setState(() => _searchQuery = value),
+                      style: const TextStyle(color: Colors.black),
                       decoration: const InputDecoration(
                         hintText: 'Search by name, loan #, etc...',
                         hintStyle: TextStyle(
@@ -374,16 +219,14 @@ class _LenderScreenState extends State<LenderScreen> {
                           color: Color(0xFF666666),
                           size: 20,
                         ),
+                        fillColor: Colors.white,
+                        filled: true,
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 16,
-                        ),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 8),
                       ),
                     ),
                   ),
                   const SizedBox(height: 32),
-                  // Recently Opened Section
                   const Text(
                     'Recently Opened',
                     style: TextStyle(
@@ -393,13 +236,11 @@ class _LenderScreenState extends State<LenderScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Loan Cards
-                  ...recentLoans
-                      .where((loan) => loan.companyName
-                          .toLowerCase()
-                          .contains(_searchQuery.toLowerCase()))
-                      .map((loan) => _buildLoanCard(loan))
-                      .toList(),
+                  Column(
+                    children: recentLoans
+                        .map((loan) => _buildLoanCard(loan))
+                        .toList(),
+                  ),
                 ],
               ),
             ),
@@ -409,208 +250,166 @@ class _LenderScreenState extends State<LenderScreen> {
     );
   }
 
-  Widget _buildNavButton(
-    String title, {
-    bool isSelected = false,
-    bool hasNotification = false,
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? const Color(0xFF2563EB) : Colors.transparent,
-              width: 2,
-            ),
+  Widget _buildLoanCard(RecentLoan loan) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoanDashboardScreen(loanId: loan.id),
           ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
         ),
         child: Row(
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected
-                    ? const Color(0xFF2563EB)
-                    : const Color(0xFF666666),
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                color: loan.color,
+                borderRadius: BorderRadius.circular(8),
               ),
-            ),
-            if (hasNotification) ...[
-              const SizedBox(width: 8),
-              Container(
-                width: 18,
-                height: 18,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    '1',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
+              child: Center(
+                child: Text(
+                  loan.initials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    loan.companyName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${loan.address}, ${loan.location}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Disbursed',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    '${(loan.disbursed * 100).toInt()}%',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Actions',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    '${loan.actions}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Status',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    loan.status,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: loan.status == 'On Track'
+                          ? const Color(0xFF16A34A)
+                          : Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNewProjectButton() {
-    return ElevatedButton.icon(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const NewProjectScreen(),
-          ),
-        );
-      },
-      icon: const Icon(Icons.add, size: 20),
-      label: const Text('New Project'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor:
-            const Color(0xFF6366F1), // Updated to match Figma design
-        foregroundColor: Colors.white,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        textStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoanCard(RecentLoan loan) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const LoanDashboardScreen(),
+  Widget _buildNavItem(IconData icon, int index) {
+    final isSelected = index == _selectedNavIndex;
+    return GestureDetector(
+      onTap: () => _onNavItemTap(index),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF6366F1) : Colors.grey[600],
+              size: 24,
             ),
-          );
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Company Badge
+            if (isSelected)
               Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: loan.color,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    loan.initials,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                margin: const EdgeInsets.only(top: 4),
+                height: 2,
+                width: 20,
+                color: const Color(0xFF6366F1),
               ),
-              const SizedBox(width: 16),
-              // Company Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loan.companyName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF1A1A1A),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      loan.address,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF666666),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      loan.location,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF666666),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Stats
-              _buildStat('Disbursed', '${(loan.disbursed * 100).toInt()}%'),
-              const SizedBox(width: 32),
-              _buildStat('Actions', loan.actions.toString()),
-              const SizedBox(width: 32),
-              _buildStat('Status', loan.status, isStatus: true),
-              const SizedBox(width: 16),
-              Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
-            ],
-          ),
+          ],
         ),
       ),
     );
-  }
-
-  Widget _buildStat(String label, String value, {bool isStatus = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF666666),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isStatus ? const Color(0xFF16A34A) : const Color(0xFF1A1A1A),
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 }

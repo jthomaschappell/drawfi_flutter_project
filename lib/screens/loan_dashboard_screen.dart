@@ -50,7 +50,7 @@ class DrawRequest {
 }
 
 class LoanDashboardScreen extends StatefulWidget {
-  const LoanDashboardScreen({super.key});
+  const LoanDashboardScreen({super.key, required String loanId});
 
   @override
   State<LoanDashboardScreen> createState() => _LoanDashboardScreenState();

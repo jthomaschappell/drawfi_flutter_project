@@ -1,6 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tester/screens/loan_dashboard_screen.dart';
+import 'package:tester/screens/new_project_screen.dart';
 import 'package:tester/services/auth_service.dart';
+import 'package:tester/screens/new_project_screen.dart';
+
+// Add the SVG string constant
+const String _logoSvg = '''
+<svg width="1531" height="1531" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
+  <ellipse cx="528" cy="429.5" rx="136.5" ry="136" transform="rotate(-90 528 429.5)" fill="white"/>
+  <circle cx="528" cy="1103" r="136" transform="rotate(-90 528 1103)" fill="white"/>
+  <circle cx="1001" cy="773" r="136" fill="white"/>
+  <ellipse cx="528" cy="774" rx="29" ry="28" fill="white"/>
+  <ellipse cx="808" cy="494" rx="29" ry="28" fill="white"/>
+  <ellipse cx="808" cy="1038.5" rx="29" ry="29.5" fill="white"/>
+  <defs>
+    <linearGradient id="paint0_linear_82_170" x1="1485.07" y1="0.00010633" x2="30.6199" y2="1485.07" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF1970"/>
+      <stop offset="0.145" stop-color="#E81766"/>
+      <stop offset="0.307358" stop-color="#DB12AF"/>
+      <stop offset="0.43385" stop-color="#BF09D5"/>
+      <stop offset="0.556871" stop-color="#A200FA"/>
+      <stop offset="0.698313" stop-color="#6500E9"/>
+      <stop offset="0.855" stop-color="#3C17DB"/>
+      <stop offset="1" stop-color="#2800D7"/>
+    </linearGradient>
+  </defs>
+</svg>
+''';
 
 class RecentLoan {
   final String id;
@@ -210,7 +238,7 @@ class _LenderScreenState extends State<LenderScreen> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Navigation Bar
+          // Updated Navigation Bar with Logo
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -224,6 +252,15 @@ class _LenderScreenState extends State<LenderScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Row(
               children: [
+                // Add logo here
+                Padding(
+                  padding: const EdgeInsets.only(right: 32),
+                  child: SvgPicture.string(
+                    _logoSvg,
+                    height: 40,
+                    width: 40,
+                  ),
+                ),
                 _buildNavButton(
                   'Home',
                   isSelected: _selectedNavIndex == 0,
@@ -432,13 +469,18 @@ class _LenderScreenState extends State<LenderScreen> {
   Widget _buildNewProjectButton() {
     return ElevatedButton.icon(
       onPressed: () {
-        // TODO: Implement new project creation
-        debugPrint('New Project button pressed');
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const NewProjectScreen(),
+          ),
+        );
       },
       icon: const Icon(Icons.add, size: 20),
       label: const Text('New Project'),
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF2563EB),
+        backgroundColor:
+            const Color(0xFF6366F1), // Updated to match Figma design
         foregroundColor: Colors.white,
         elevation: 0,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

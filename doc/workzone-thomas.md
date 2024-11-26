@@ -145,4 +145,3 @@ CREATE POLICY inspector_create_reports ON inspection_reports
 
 ## #2. Only contractors can create draw requests, and only for their loans. 
 
-Muffins and puffins

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tester/screens/draw_request_form.dart';
 import 'package:tester/screens/draw_request_screen.dart';
 import 'package:tester/services/auth_service.dart';
 // import 'package:tester/screens/draw_request_form.dart';
@@ -163,12 +164,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    // builder: (context) => DrawRequestForm(),
-                    builder: (context) => const DrawRequestScreen(),
-                    /**
-                     * TODO: 
-                     * Fix this red line. 
-                     */
+                    builder: (context) => const DrawRequestForm(),
                   ),
                 );
               },

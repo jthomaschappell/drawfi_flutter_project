@@ -145,3 +145,13 @@ CREATE POLICY inspector_create_reports ON inspection_reports
 
 ## #2. Only contractors can create draw requests, and only for their loans. 
 
+CREATE POLICY contractor_create_draw_requests ON draw_requests
+    FOR INSERT
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM construction_loans 
+            WHERE loan_id = draw_requests.loan_id
+            AND contractor_id = auth.uid()
+        )
+    );
+

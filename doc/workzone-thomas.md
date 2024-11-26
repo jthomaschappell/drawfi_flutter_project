@@ -129,3 +129,20 @@ CREATE POLICY inspector_create_reports ON inspection_reports
         )
     );
 ```
+
+
+------------------------
+
+# RLS POLICIES AND TESTING: 
+   
+## #1. Users can only view loans that they're involved with. 
+
+- Lenders can only view loans that they're involved with (donald trump)
+- Borrower can only view loans that they're involved with (Miles Morales)
+- Inspector can only view loans that they're involved with (Allan Pinkerton)
+- Contractor can only view loans that they're involved with (Chretien Banza)
+
+
+## #2. Only contractors can create draw requests, and only for their loans. 
+
+Muffins and puffins

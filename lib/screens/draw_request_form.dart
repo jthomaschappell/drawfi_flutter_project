@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DrawRequestForm extends StatefulWidget {
-  final Map<String, dynamic> userProfile;
+  // final Map<String, dynamic> userProfile;
 
   const DrawRequestForm({
     super.key,
-    required this.userProfile,
+    // required this.userProfile,
   });
 
   @override

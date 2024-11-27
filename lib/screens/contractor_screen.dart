@@ -3,11 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/screens/draw_request_form.dart';
 import 'package:tester/screens/draw_request_screen.dart';
 import 'package:tester/services/auth_service.dart';
-// import 'package:tester/screens/draw_request_form.dart';
-/**
- * TODO: 
- * Figure out what happened to the draw_request_form. I think it wasn't pushed.   
- */
 
 class ContractorScreen extends StatefulWidget {
   final Map<String, dynamic> userProfile;

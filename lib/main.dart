@@ -8,8 +8,8 @@ void main() async {
   await dotenv.load();
   final supabaseUrl = dotenv.env['SUPABASE_URL'];
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
-  print("This is the supabase url: $supabaseUrl");
-  print("This is the supabase anon key: $supabaseAnonKey");
+  // print("This is the supabase url: $supabaseUrl");
+  // print("This is the supabase anon key: $supabaseAnonKey");
 
   // Check if any required environment variables are null
   if (supabaseUrl == null || supabaseAnonKey == null) {

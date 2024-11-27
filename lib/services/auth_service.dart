@@ -1,7 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Define role enum to match database
-enum UserRole { lender, contractor, inspector }
+enum UserRole { lender, contractor, inspector, borrower }
 
 class AuthService {
   final _supabase = Supabase.instance.client;
@@ -43,7 +43,7 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    // only lets the user in IF there are no exceptions thrown. 
+    // only lets the user in IF there are no exceptions thrown.
     try {
       final AuthResponse response = await _supabase.auth.signInWithPassword(
         email: email,
@@ -54,9 +54,9 @@ class AuthService {
         throw Exception('Sign in failed: No user returned');
       }
       final userData = await _supabase
-          .from('user_profiles')
+          .from('users')
           .select()
-          .eq('id', response.user!.id)
+          .eq('user_id', response.user!.id)
           .single();
       return userData;
     } catch (e) {
@@ -73,8 +73,11 @@ class AuthService {
     if (user == null) return null;
 
     try {
-      final userData =
-          await _supabase.from('user_profiles').select().eq('id', user.id).single();
+      final userData = await _supabase
+          .from('users')
+          .select()
+          .eq('user_id', user.id)
+          .single();
       return userData;
     } catch (e) {
       return null;
@@ -85,18 +88,53 @@ class AuthService {
     return _supabase.auth.onAuthStateChange;
   }
 
-  // Helper method to get user role
   Future<UserRole?> getUserRole(String userId) async {
     try {
-      final userData = await _supabase
-          .from('user_profiles')
-          .select('user_role')
-          .eq('id', userId)
-          .single();
+      // Check each table for the user's ID
+      try {
+        await _supabase
+            .from('borrowers')
+            .select('id')
+            .eq('borrower_id', userId)
+            .single();
+        return UserRole.borrower;
+      } catch (_) {
+        print("The id was not found in borrowers.");
+      }
 
-      return UserRole.values.firstWhere(
-        (role) => role.name == userData['role'],
-      );
+      try {
+        await _supabase
+            .from('lenders')
+            .select('id')
+            .eq('lender_id', userId)
+            .single();
+        return UserRole.lender;
+      } catch (_) {
+        print("The id was not found in lenders.");
+      }
+
+      try {
+        await _supabase
+            .from('contractors')
+            .select('id')
+            .eq('contractor_id', userId)
+            .single();
+        return UserRole.contractor;
+      } catch (_) {
+        print("The id was not found in contractors.");
+      }
+
+      try {
+        await _supabase
+            .from('inspectors')
+            .select('id')
+            .eq('inspector_id', userId)
+            .single();
+        return UserRole.inspector;
+      } catch (_) {
+        print("The id was not found in inspectors.");
+      }
+      return null;
     } catch (e) {
       return null;
     }

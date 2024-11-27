@@ -18,6 +18,10 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     setState(() => _isSubmitting = true);
     try {
       final userId = supabase.auth.currentUser?.id;
+      /**
+       * TODO: 
+       * Make this create a correct draw request with the correct form. 
+       */
       await supabase.from('draw_request').insert({
         'user_id': userId,
         'amount_requested': double.parse(_amountController.text),
@@ -42,8 +46,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      appBar: AppBar(title: const Text('New Draw Request')),
+      appBar: AppBar(title: const Text('New Draw Request for Loan ')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

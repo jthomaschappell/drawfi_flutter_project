@@ -1067,22 +1067,6 @@ class ProjectDetailsModal extends StatelessWidget {
     );
   }
 
-//   Future<Widget> buildLoanInfo() async {
-//   final loan = await Supabase.instance.client
-//       .from('construction_loans')
-//       .select()
-//       .eq('id', '31a98faf-c77c-4d1f-b7d4-2aa12546b3ba')
-//       .single();
-
-//   return Column(
-//     crossAxisAlignment: CrossAxisAlignment.start,
-//     children: [
-//       Text('Amount: \$${loan['amount']}'),
-//       Text('Muffin: ${loan['start_date']}'),
-//     ],
-//   );
-// }
-
   Future<Map<String, dynamic>> getLoanInfo(String loanId) async {
     final loan = await Supabase.instance.client
         .from('construction_loans')

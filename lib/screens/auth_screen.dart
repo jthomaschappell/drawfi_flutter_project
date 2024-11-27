@@ -338,9 +338,9 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<Map<String, dynamic>?> _getUserProfile(String userId) async {
     try {
       final data = await supabase
-          .from('user_profiles')
+          .from('users')
           .select()
-          .eq('id', userId)
+          .eq('user_id', userId)
           .limit(1)
           .single();
       return data;
@@ -441,7 +441,7 @@ class DashboardScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         // Progress Indicators Row
-                        Row(
+                        const Row(
                           children: [
                             Expanded(
                               child: _ProgressCard(
@@ -450,7 +450,7 @@ class DashboardScreen extends StatelessWidget {
                                 color: Colors.pink,
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            SizedBox(width: 16),
                             Expanded(
                               child: _ProgressCard(
                                 title: 'Project Completion',

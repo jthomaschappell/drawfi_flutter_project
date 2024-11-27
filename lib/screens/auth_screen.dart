@@ -6,7 +6,6 @@ import 'package:tester/screens/error_screen.dart';
 import 'package:tester/screens/inspector_screen.dart';
 import 'package:tester/screens/lender_screen.dart';
 import 'package:tester/services/auth_service.dart';
-import 'package:flutter/material.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 
 class AuthScreen extends StatefulWidget {

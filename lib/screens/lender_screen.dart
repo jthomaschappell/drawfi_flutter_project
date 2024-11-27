@@ -857,6 +857,10 @@ class ProjectDetailsModal extends StatelessWidget {
   }
 
   Widget _buildOverviewTab() {
+
+    String theLoanId = '31a98faf-c77c-4d1f-b7d4-2aa12546b3ba';
+
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -876,6 +880,8 @@ class ProjectDetailsModal extends StatelessWidget {
             project.disbursed,
             const Color(0xFF059669),
           ),
+          const SizedBox(height: 24),
+          buildLoanInfoWidget(theLoanId),
           const SizedBox(height: 24),
 
           // Stats Grid
@@ -1056,6 +1062,63 @@ class ProjectDetailsModal extends StatelessWidget {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+//   Future<Widget> buildLoanInfo() async {
+//   final loan = await Supabase.instance.client
+//       .from('construction_loans')
+//       .select()
+//       .eq('id', '31a98faf-c77c-4d1f-b7d4-2aa12546b3ba')
+//       .single();
+
+//   return Column(
+//     crossAxisAlignment: CrossAxisAlignment.start,
+//     children: [
+//       Text('Amount: \$${loan['amount']}'),
+//       Text('Muffin: ${loan['start_date']}'),
+//     ],
+//   );
+// }
+
+  Future<Map<String, dynamic>> getLoanInfo(String loanId) async {
+    final loan = await Supabase.instance.client
+        .from('construction_loans')
+        .select()
+        .eq('loan_id', loanId)
+        .single();
+    /**
+     * Hey Chretien 
+     * this is a useful function (called getLoanInfo()) that anyone can use to get construction_loan info. 
+     * If you want to make a new function to get draw_request info, you can copy paste this and then change the query to match the new table.
+     *  */ 
+    // final loanData = await getLoanInfo();
+    // print(loanData['total_amount']);
+    // print(loanData['start_date']);
+    return loan;
+  }
+
+  Widget buildLoanInfoWidget(String loanId) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: getLoanInfo(loanId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Placeholder();
+
+        final loan = snapshot.data!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Amount: \$${loan['total_amount']}',
+              style: const TextStyle(color: Colors.black),
+            ),
+            Text(
+              'Start Date: ${loan['start_date']}',
+              style: const TextStyle(color: Colors.black),
+            ),
+          ],
         );
       },
     );

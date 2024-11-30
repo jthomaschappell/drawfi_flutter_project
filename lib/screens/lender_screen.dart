@@ -586,7 +586,9 @@ class _LenderScreenState extends State<LenderScreen> {
                                   decoration: InputDecoration(
                                     hintText: 'Search by name, loan #, etc...',
                                     hintStyle: TextStyle(
-                                      color: Colors.black.withOpacity(0.4),
+                                      color: const Color.fromARGB(
+                                              255, 255, 255, 255)
+                                          .withOpacity(0.4),
                                       fontSize: 14,
                                     ),
                                     prefixIcon: Icon(
@@ -857,9 +859,7 @@ class ProjectDetailsModal extends StatelessWidget {
   }
 
   Widget _buildOverviewTab() {
-
     String theLoanId = '31a98faf-c77c-4d1f-b7d4-2aa12546b3ba';
-
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -1093,7 +1093,7 @@ class ProjectDetailsModal extends StatelessWidget {
      * Hey Chretien 
      * this is a useful function (called getLoanInfo()) that anyone can use to get construction_loan info. 
      * If you want to make a new function to get draw_request info, you can copy paste this and then change the query to match the new table.
-     *  */ 
+     *  */
     // final loanData = await getLoanInfo();
     // print(loanData['total_amount']);
     // print(loanData['start_date']);

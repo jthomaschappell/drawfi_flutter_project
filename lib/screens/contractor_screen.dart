@@ -1,13 +1,21 @@
+// File: contractor_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tester/screens/draw_request_screen.dart';
-import 'package:tester/services/auth_service.dart';
 
 class ContractorScreen extends StatelessWidget {
   final Map<String, dynamic> userProfile;
 
   const ContractorScreen({
     super.key,
-    required this.userProfile,
+    this.userProfile = const {
+      'full_name': 'John Doe',
+      'email': 'johndoe@example.com',
+      'user_role': 'contractor',
+      'id': '12345',
+      'created_at': '2024-01-01T00:00:00',
+      'updated_at': '2024-11-01T12:00:00',
+    },
   });
 
   String get welcomeMessage {
@@ -20,18 +28,53 @@ class ContractorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = AuthService();
-
     return Scaffold(
-      backgroundColor: const Color.fromARGB(200, 255, 186, 8),
+      backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        title: const Text('Contractor Dashboard'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.deepPurpleAccent,
         elevation: 0,
+        title: Row(
+          children: [
+            SvgPicture.string(
+              '''
+              <svg width="40" height="40" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
+              <ellipse cx="528" cy="429.5" rx="136.5" ry="136" transform="rotate(-90 528 429.5)" fill="white"/>
+              <circle cx="528" cy="1103" r="136" transform="rotate(-90 528 1103)" fill="white"/>
+              <circle cx="1001" cy="773" r="136" fill="white"/>
+              <ellipse cx="528" cy="774" rx="29" ry="28" fill="white"/>
+              <ellipse cx="808" cy="494" rx="29" ry="28" fill="white"/>
+              <ellipse cx="808" cy="1038.5" rx="29" ry="29.5" fill="white"/>
+              <defs>
+              <linearGradient id="paint0_linear_82_170" x1="1485.07" y1="0.00010633" x2="30.6199" y2="1485.07" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FF1970"/>
+              <stop offset="0.145" stop-color="#E81766"/>
+              <stop offset="0.307358" stop-color="#DB12AF"/>
+              <stop offset="0.43385" stop-color="#BF09D5"/>
+              <stop offset="0.556871" stop-color="#A200FA"/>
+              <stop offset="0.698313" stop-color="#6500E9"/>
+              <stop offset="0.855" stop-color="#3C17DB"/>
+              <stop offset="1" stop-color="#2800D7"/>
+              </linearGradient>
+              </defs>
+              </svg>
+              ''',
+              height: 40,
+              width: 40,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Contractor Dashboard',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: authService.signOut,
+            onPressed: () {
+              // Handle logout action
+            },
           ),
         ],
       ),
@@ -41,28 +84,59 @@ class ContractorScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                welcomeMessage,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                textAlign: TextAlign.center,
+                color: Colors.deepPurpleAccent,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    welcomeMessage,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
-              _buildProfileCard(context),
+              _buildProfileCard(),
               const SizedBox(height: 20),
               _buildQuickActionsCard(context),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        selectedItemColor: Colors.deepPurpleAccent,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle),
+            label: 'New Draw',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_circle),
+            label: 'Profile',
+          ),
+        ],
+        onTap: (index) {
+          // Handle navigation
+        },
+      ),
     );
   }
 
-  Widget _buildProfileCard(BuildContext context) {
-    // Define the order and display names of fields
+  Widget _buildProfileCard() {
     final fieldDisplayOrder = [
       'full_name',
       'email',
@@ -78,13 +152,13 @@ class ContractorScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Profile Information',
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Divider(),
             ...fieldDisplayOrder.map((fieldName) {
@@ -93,7 +167,6 @@ class ContractorScreen extends StatelessWidget {
                 return const SizedBox.shrink();
               }
 
-              // Format datetime fields
               String displayValue = value.toString();
               if (fieldName.contains('_at')) {
                 final dateTime = DateTime.parse(value.toString());
@@ -109,9 +182,7 @@ class ContractorScreen extends StatelessWidget {
                       flex: 2,
                       child: Text(
                         _formatFieldName(fieldName),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                     Expanded(
@@ -135,15 +206,12 @@ class ContractorScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
             const Text(
               'Quick Actions',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -165,6 +233,7 @@ class ContractorScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                backgroundColor: Colors.deepPurpleAccent,
               ),
             ),
           ],
@@ -181,7 +250,6 @@ class ContractorScreen extends StatelessWidget {
   }
 }
 
-// Extension to capitalize strings
 extension StringExtension on String {
   String capitalize() {
     if (isEmpty) return this;

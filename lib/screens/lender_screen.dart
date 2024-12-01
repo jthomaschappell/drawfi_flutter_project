@@ -57,6 +57,28 @@ class Project {
     required this.updates,
     required this.documents,
   });
+
+  factory Project.fromSupabase(Map<String, dynamic> data) {
+    final drawCount = data['draw_count'] as int? ?? 0;
+    final maxDraws = 10; // Assuming 10 draws is 100% completion
+    final completionPercentage = (drawCount / maxDraws) * 100;
+
+    return Project(
+      id: data['loan_id'] as String,
+      companyInitials:
+          (data['contractor_id'] as String).substring(0, 2).toUpperCase(),
+      companyName: data['description'] as String? ?? 'Unknown Project',
+      location: 'Location TBD',
+      disbursed: data['total_amount']?.toDouble() ?? 0.0,
+      completed: completionPercentage,
+      draws: drawCount,
+      inspections: 0, // Placeholder
+      status: 'On track', // You can implement your own status logic
+      lastUpdated: DateTime.parse(data['updated_at'] as String),
+      updates: [], // Placeholder
+      documents: [], // Placeholder
+    );
+  }
 }
 
 class ProjectUpdate {
@@ -71,6 +93,15 @@ class ProjectUpdate {
     required this.timestamp,
     required this.details,
   });
+
+  factory ProjectUpdate.fromSupabase(Map<String, dynamic> data) {
+    return ProjectUpdate(
+      action: data['action'] as String? ?? '',
+      user: data['user'] as String? ?? '',
+      timestamp: DateTime.parse(data['timestamp'] as String),
+      details: data['details'] as String? ?? '',
+    );
+  }
 }
 
 class ProjectDocument {
@@ -91,6 +122,18 @@ class ProjectDocument {
     required this.status,
     required this.url,
   });
+
+  factory ProjectDocument.fromSupabase(Map<String, dynamic> data) {
+    return ProjectDocument(
+      id: data['id'] as String? ?? '',
+      name: data['name'] as String? ?? '',
+      type: data['type'] as String? ?? '',
+      uploadDate: DateTime.parse(data['upload_date'] as String),
+      uploadedBy: data['uploaded_by'] as String? ?? '',
+      status: data['status'] as String? ?? '',
+      url: data['url'] as String? ?? '',
+    );
+  }
 }
 
 // Custom Widgets
@@ -335,56 +378,40 @@ class _LenderScreenState extends State<LenderScreen> {
   }
 
   Future<void> _loadProjects() async {
-    setState(() => _isLoading = true);
+    try {
+      setState(() => _isLoading = true);
 
-    // Simulated API call with mock data
-    await Future.delayed(const Duration(milliseconds: 800));
+      // Query the construction_loans table
+      final response = await Supabase.instance.client
+          .from('construction_loans')
+          .select()
+          .order('updated_at', ascending: false);
 
-    final mockProjects = List.generate(
-      10,
-      (index) => Project(
-        id: 'PRJ-${1000 + index}',
-        companyInitials: 'KD',
-        companyName: 'KDK Construction ${index + 1}',
-        location: 'American Fork, UT',
-        disbursed: 50.0 + (index * 5),
-        completed: 50.0 + (index * 3),
-        draws: 3,
-        inspections: 2,
-        status: index % 3 == 0
-            ? 'On track'
-            : index % 3 == 1
-                ? 'At risk'
-                : 'Behind',
-        lastUpdated: DateTime.now().subtract(Duration(days: index)),
-        updates: List.generate(
-          3,
-          (i) => ProjectUpdate(
-            action: 'Updated project status',
-            user: 'JD',
-            timestamp: DateTime.now().subtract(Duration(hours: i * 2)),
-            details: 'Updated project completion percentage',
+      // Convert the response data to List<Project>
+      final projects = (response as List<dynamic>)
+          .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
+          .toList();
+
+      setState(() {
+        _projects = projects;
+        _isLoading = false;
+      });
+    } catch (error) {
+      print('Error loading projects: $error');
+      setState(() {
+        _isLoading = false;
+        _projects = [];
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading projects: ${error.toString()}'),
+            backgroundColor: Colors.red,
           ),
-        ),
-        documents: List.generate(
-          4,
-          (i) => ProjectDocument(
-            id: 'DOC-${1000 + i}',
-            name: 'Document ${i + 1}',
-            type: i % 2 == 0 ? 'PDF' : 'Image',
-            uploadDate: DateTime.now().subtract(Duration(days: i)),
-            uploadedBy: 'John Doe',
-            status: 'Active',
-            url: 'https://example.com/doc${i + 1}',
-          ),
-        ),
-      ),
-    );
-
-    setState(() {
-      _projects = mockProjects;
-      _isLoading = false;
-    });
+        );
+      }
+    }
   }
 
   void _filterProjects() {

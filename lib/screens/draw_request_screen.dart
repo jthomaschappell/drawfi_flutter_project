@@ -49,7 +49,6 @@ class CostCategory {
       );
 }
 
-// Main Screen
 class DrawRequestScreen extends StatefulWidget {
   const DrawRequestScreen({super.key});
 
@@ -61,6 +60,8 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _inviteEmailController = TextEditingController();
+  final _invitePhoneController = TextEditingController();
   final supabase = Supabase.instance.client;
 
   DateTime? _submissionDate;
@@ -69,6 +70,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
   String _status = 'Pending';
   bool _isLoading = true;
   bool _isSubmitting = false;
+  int _selectedIndex = 0;
 
   List<ConstructionLoan> _loans = [];
   List<CostCategory> _categories = [];
@@ -82,7 +84,6 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
 
   Future<void> _fetchInitialData() async {
     try {
-      // Fetch loans and categories
       final loansResponse = await supabase
           .from('construction_loans')
           .select()
@@ -90,8 +91,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
 
       final categoriesResponse = await supabase
           .from('cost_categories')
-          .select(
-              'category_id, category_name') // Adjusted to match the actual column names
+          .select('category_id, category_name')
           .order('category_name');
 
       if (mounted) {
@@ -107,12 +107,70 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading data: $e')),
-        );
+        _showErrorSnackbar('Error loading data: $e');
         Navigator.pop(context);
       }
     }
+  }
+
+  void _showInviteDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Invite Project Members'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _inviteEmailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                hintText: 'Enter email address',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _invitePhoneController,
+              decoration: const InputDecoration(
+                labelText: 'Phone (Optional)',
+                hintText: 'Enter phone number',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: 'Role',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(
+                    value: 'contractor', child: Text('Contractor')),
+                DropdownMenuItem(value: 'inspector', child: Text('Inspector')),
+              ],
+              onChanged: (value) {},
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // TODO: Implement invitation logic
+              _showSuccessSnackbar('Invitation sent successfully');
+              Navigator.pop(context);
+            },
+            child: const Text('Send Invite'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _submitDrawRequest() async {
@@ -122,11 +180,8 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
 
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception('User not authenticated');
-      }
+      if (userId == null) throw Exception('User not authenticated');
 
-      // Validate required fields
       if (_selectedLoanId == null ||
           _submissionDate == null ||
           _periodTo == null ||
@@ -134,7 +189,6 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
         throw Exception('Please fill in all required fields');
       }
 
-      // Insert draw request
       final drawRequestData = {
         'user_id': userId,
         'loan_id': _selectedLoanId,
@@ -151,12 +205,10 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
           .select()
           .single();
 
-      // Insert line items
       if (_lineItems.isNotEmpty) {
         final drawRequestId = drawRequestResponse['id'] as String?;
-        if (drawRequestId == null) {
+        if (drawRequestId == null)
           throw Exception('Failed to get draw request ID');
-        }
 
         final lineItemsData = _lineItems
             .map((item) => {
@@ -169,20 +221,36 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Draw request submitted successfully')),
-        );
+        _showSuccessSnackbar('Draw request submitted successfully');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error submitting request: $e')),
-        );
+        _showErrorSnackbar('Error submitting request: $e');
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  void _showSuccessSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -194,9 +262,27 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('New Draw Request'),
+        backgroundColor: Colors.white,
         elevation: 0,
+        title: const Text(
+          'New Draw Request',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: CircleAvatar(
+              backgroundColor: Colors.deepPurple.shade100,
+              child: const Text('IS'),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -207,22 +293,74 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
             children: [
               _buildFormFields(),
               const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _showInviteDialog,
+                icon: const Icon(Icons.person_add),
+                label: const Text('Invite Project Members'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                  backgroundColor: Colors.deepPurple,
+                ),
+              ),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitDrawRequest,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.deepPurple,
                 ),
                 child: _isSubmitting
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Text('Submit Request'),
               ),
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.deepPurple,
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          setState(() => _selectedIndex = index);
+          // Handle navigation based on index
+          switch (index) {
+            case 0: // Home
+              break;
+            case 1: // Projects
+              break;
+            case 2: // Notifications
+              break;
+            case 3: // Settings
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.business),
+            label: 'Projects',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Notifications',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
       ),
     );
   }
@@ -236,7 +374,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
           decoration: const InputDecoration(
             labelText: 'Select Loan *',
             border: OutlineInputBorder(),
+            labelStyle: TextStyle(color: Colors.black),
           ),
+          style: const TextStyle(color: Colors.black),
           items: _loans
               .map((loan) => DropdownMenuItem(
                     value: loan.id,
@@ -253,8 +393,10 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
             labelText: 'Amount (\$) *',
             prefixIcon: Icon(Icons.attach_money),
             border: OutlineInputBorder(),
+            labelStyle: TextStyle(color: Colors.black),
           ),
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(color: Colors.black),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           validator: (value) {
             if (value == null || value.isEmpty) {
               return 'Please enter an amount';
@@ -266,6 +408,16 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
           },
         ),
         const SizedBox(height: 16),
+        TextFormField(
+          controller: _descriptionController,
+          decoration: const InputDecoration(
+            labelText: 'Description',
+            border: OutlineInputBorder(),
+            labelStyle: TextStyle(color: Colors.black),
+          ),
+          style: const TextStyle(color: Colors.black),
+          maxLines: 3,
+        ),
       ],
     );
   }
@@ -274,6 +426,8 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
   void dispose() {
     _amountController.dispose();
     _descriptionController.dispose();
+    _inviteEmailController.dispose();
+    _invitePhoneController.dispose();
     super.dispose();
   }
 }

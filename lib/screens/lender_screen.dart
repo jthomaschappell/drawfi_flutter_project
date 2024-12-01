@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tester/screens/Notifications_Screen.dart';
+import 'package:tester/screens/projects_screen.dart';
+import 'package:tester/screens/settings_screen.dart';
 
 // Constants
 const String appLogo = '''
@@ -459,29 +462,47 @@ class _LenderScreenState extends State<LenderScreen> {
                 ),
                 const SizedBox(width: 24),
 
-                // Navigation
-                NavigationIconButton(
-                  icon: Icons.home_outlined,
-                  isSelected: _selectedNavIndex == 0,
-                  onTap: () => setState(() => _selectedNavIndex = 0),
-                  label: 'Home',
-                ),
                 NavigationIconButton(
                   icon: Icons.notifications_outlined,
                   isSelected: _selectedNavIndex == 1,
-                  onTap: () => setState(() => _selectedNavIndex = 1),
+                  onTap: () {
+                    setState(() => _selectedNavIndex = 1);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen()),
+                    );
+                  },
                   label: 'Notifications',
                 ),
+
                 NavigationIconButton(
                   icon: Icons.grid_view_outlined,
                   isSelected: _selectedNavIndex == 2,
-                  onTap: () => setState(() => _selectedNavIndex = 2),
+                  onTap: () => setState(() {
+                    _selectedNavIndex = 2;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const ProjectsScreen()),
+                    );
+                  }),
                   label: 'Projects',
                 ),
+
                 NavigationIconButton(
                   icon: Icons.settings_outlined,
                   isSelected: _selectedNavIndex == 3,
-                  onTap: () => setState(() => _selectedNavIndex = 3),
+                  onTap: () => setState(() {
+                    _selectedNavIndex = 3;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(
+                                userProfile: {},
+                              )),
+                    );
+                  }),
                   label: 'Settings',
                 ),
 

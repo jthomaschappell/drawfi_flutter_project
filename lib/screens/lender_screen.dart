@@ -630,28 +630,40 @@ class _LenderScreenState extends State<LenderScreen> {
                         Container(
                           height: 48,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors
+                                .white, // Set the container background color to white
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                            border: Border.all(
+                                color: const Color(
+                                    0xFFE5E7EB)), // Light gray border
                           ),
                           child: Row(
                             children: [
                               Expanded(
                                 child: TextField(
                                   controller: _searchController,
+                                  style: const TextStyle(
+                                    color: Colors
+                                        .black, // Set input text color to black
+                                    fontSize: 14,
+                                  ),
                                   decoration: InputDecoration(
                                     hintText: 'Search by name, loan #, etc...',
-                                    hintStyle: TextStyle(
-                                      color: const Color.fromARGB(
-                                              255, 255, 255, 255)
-                                          .withOpacity(0.4),
+                                    hintStyle: const TextStyle(
+                                      color: Colors
+                                          .black, // Black letters for the hint text
                                       fontSize: 14,
+                                      backgroundColor: Colors
+                                          .white, // White background for hint text
                                     ),
-                                    prefixIcon: Icon(
+                                    prefixIcon: const Icon(
                                       Icons.search,
-                                      color: Colors.black.withOpacity(0.4),
+                                      color: Colors.black, // Black search icon
                                       size: 20,
                                     ),
+                                    filled: true,
+                                    fillColor: Colors
+                                        .white, // White background for the hint field
                                     border: InputBorder.none,
                                     contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16,

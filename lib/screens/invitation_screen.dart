@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:file_picker/file_picker.dart';
 
 class InvitationScreen extends StatefulWidget {
   const InvitationScreen({super.key});
@@ -31,28 +30,80 @@ class _InvitationScreenState extends State<InvitationScreen> {
   }
 
   void _sendInvitation() {
-    // Add logic for sending an email or SMS with the invitation link
     final contractorEmail = _contractorEmailController.text;
     final inspectorEmail = _inspectorEmailController.text;
-    final note = _noteController.text;
 
     if (contractorEmail.isEmpty || inspectorEmail.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all required fields.'),
-          backgroundColor: Colors.redAccent,
+        SnackBar(
+          content: const Text('Please fill in all required fields.'),
+          backgroundColor: Colors.red[400],
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
         ),
       );
       return;
     }
 
-    // Mock sending logic
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content:
             Text('Invitation sent to $contractorEmail and $inspectorEmail'),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.green[400],
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: Colors.white,
+            hintStyle: TextStyle(color: Colors.grey[400]),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF6500E9), width: 2),
+            ),
+            contentPadding: const EdgeInsets.all(16),
+          ),
+        ),
+      ],
     );
   }
 
@@ -61,15 +112,18 @@ class _InvitationScreenState extends State<InvitationScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         title: const Text(
           'Invite to Project',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(CupertinoIcons.back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -78,72 +132,30 @@ class _InvitationScreenState extends State<InvitationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Contractor Email',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            CupertinoTextField(
+            _buildTextField(
               controller: _contractorEmailController,
-              placeholder: 'Enter contractor email',
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
+              label: 'Contractor Email',
+              hint: 'Enter contractor email',
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Inspector Email',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            CupertinoTextField(
+            _buildTextField(
               controller: _inspectorEmailController,
-              placeholder: 'Enter inspector email',
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
+              label: 'Inspector Email',
+              hint: 'Enter inspector email',
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Notes',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            CupertinoTextField(
+            _buildTextField(
               controller: _noteController,
-              placeholder: 'Write a note for the invitation...',
-              padding: const EdgeInsets.all(16),
+              label: 'Notes',
+              hint: 'Write a note for the invitation...',
               maxLines: 4,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
             ),
             const SizedBox(height: 24),
             const Text(
               'Upload Files',
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
                 color: Colors.black87,
               ),
             ),
@@ -154,20 +166,20 @@ class _InvitationScreenState extends State<InvitationScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Choose Files',
                       style: TextStyle(
-                        color: Colors.black87,
+                        color: Colors.grey[600],
                         fontSize: 14,
                       ),
                     ),
-                    const Icon(CupertinoIcons.folder_open, color: Colors.grey),
+                    Icon(Icons.cloud_upload_outlined, color: Colors.grey[600]),
                   ],
                 ),
               ),
@@ -176,13 +188,20 @@ class _InvitationScreenState extends State<InvitationScreen> {
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: _uploadedFiles
-                      .map((file) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
+                      .map((file) => Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[200]!),
+                            ),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
+                                Icon(Icons.insert_drive_file_outlined,
+                                    color: Colors.grey[600], size: 20),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     file.name,
@@ -191,8 +210,8 @@ class _InvitationScreenState extends State<InvitationScreen> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(CupertinoIcons.delete,
-                                      color: Colors.redAccent),
+                                  icon: Icon(Icons.close,
+                                      color: Colors.grey[600], size: 20),
                                   onPressed: () {
                                     setState(() {
                                       _uploadedFiles.remove(file);
@@ -208,12 +227,22 @@ class _InvitationScreenState extends State<InvitationScreen> {
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
-              child: CupertinoButton.filled(
+              height: 48,
+              child: ElevatedButton(
                 onPressed: _sendInvitation,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6500E9),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
                 child: const Text(
                   'Send Invitation',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -221,6 +250,14 @@ class _InvitationScreenState extends State<InvitationScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _contractorEmailController.dispose();
+    _inspectorEmailController.dispose();
+    _noteController.dispose();
+    super.dispose();
   }
 }
 

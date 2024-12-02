@@ -23,6 +23,8 @@ class Project {
       status: data['status'] ?? 'Unknown',
     );
   }
+
+  static fromSupabase(data) {}
 }
 
 class ProjectsScreen extends StatefulWidget {

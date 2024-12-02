@@ -58,6 +58,38 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  void _handleForgotPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showErrorSnackbar('Please enter your email address');
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      await supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'io.supabase.flutter://reset-callback/',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Password reset link sent to $email'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackbar('Failed to send reset link: ${e.toString()}');
+      }
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
   Widget _buildAuthScreen(bool isSmallScreen) {
     return SafeArea(
       child: SingleChildScrollView(
@@ -110,6 +142,22 @@ class _AuthScreenState extends State<AuthScreen> {
                 label: 'Password',
                 obscureText: true,
               ),
+              if (!isSignUpPage) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: isLoading ? null : _handleForgotPassword,
+                    child: Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               if (isSignUpPage) ...[
                 const SizedBox(height: 24),
                 _buildRoleSelector(),

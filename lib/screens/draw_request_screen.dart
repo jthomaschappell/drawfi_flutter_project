@@ -1,52 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
 
-// Models
-class DrawRequestLineItem {
+class DrawLineItem {
   String categoryName;
-  double budgetedAmount;
+  List<double?> draws;
 
-  DrawRequestLineItem({
+  DrawLineItem({
     required this.categoryName,
-    required this.budgetedAmount,
+    required this.draws,
   });
-
-  Map<String, dynamic> toJson() => {
-        'category_name': categoryName,
-        'budgeted_amount': budgetedAmount,
-      };
-}
-
-class ConstructionLoan {
-  final String id;
-  final String description;
-
-  ConstructionLoan({
-    required this.id,
-    required this.description,
-  });
-
-  factory ConstructionLoan.fromJson(Map<String, dynamic> json) =>
-      ConstructionLoan(
-        id: json['loan_id'] as String? ?? '',
-        description: json['description'] as String? ?? 'Unknown Loan',
-      );
-}
-
-class CostCategory {
-  final String id;
-  final String name;
-
-  CostCategory({
-    required this.id,
-    required this.name,
-  });
-
-  factory CostCategory.fromJson(Map<String, dynamic> json) => CostCategory(
-        id: json['category_id'] as String? ?? '',
-        name: json['category_name'] as String? ?? 'Unknown Category',
-      );
 }
 
 class DrawRequestScreen extends StatefulWidget {
@@ -57,377 +20,340 @@ class DrawRequestScreen extends StatefulWidget {
 }
 
 class _DrawRequestScreenState extends State<DrawRequestScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _amountController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _inviteEmailController = TextEditingController();
-  final _invitePhoneController = TextEditingController();
-  final supabase = Supabase.instance.client;
+  final _currencyFormat = NumberFormat("#,##0.00", "en_US");
+  final _noteController = TextEditingController();
+  final _categoryController = TextEditingController();
 
-  DateTime? _submissionDate;
-  DateTime? _periodTo;
-  String? _selectedLoanId;
-  String _status = 'Pending';
-  bool _isLoading = true;
-  bool _isSubmitting = false;
-  int _selectedIndex = 0;
-
-  List<ConstructionLoan> _loans = [];
-  List<CostCategory> _categories = [];
-  List<DrawRequestLineItem> _lineItems = [];
+  List<DrawLineItem> _lineItems = [];
+  List<PlatformFile> _uploadedFiles = [];
+  int _drawCount = 4;
 
   @override
-  void initState() {
-    super.initState();
-    _fetchInitialData();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
+        title: const Text(
+          'Draw Request Form',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionTitle('Request Summary'),
+            const SizedBox(height: 8),
+            Expanded(child: _buildTable()),
+            const SizedBox(height: 16),
+            _buildSectionTitle('Notes'),
+            const SizedBox(height: 8),
+            _buildNotesField(),
+            const SizedBox(height: 16),
+            _buildSectionTitle('Attachments'),
+            const SizedBox(height: 8),
+            _buildFileUploadSection(),
+            const Spacer(),
+            _buildFooterButtons(),
+          ],
+        ),
+      ),
+    );
   }
 
-  Future<void> _fetchInitialData() async {
-    try {
-      final loansResponse = await supabase
-          .from('construction_loans')
-          .select()
-          .order('created_at');
-
-      final categoriesResponse = await supabase
-          .from('cost_categories')
-          .select('category_id, category_name')
-          .order('category_name');
-
-      if (mounted) {
-        setState(() {
-          _loans = (loansResponse as List<dynamic>)
-              .map((loan) => ConstructionLoan.fromJson(loan))
-              .toList();
-          _categories = (categoriesResponse as List<dynamic>)
-              .map((category) => CostCategory.fromJson(category))
-              .toList();
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackbar('Error loading data: $e');
-        Navigator.pop(context);
-      }
-    }
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+    );
   }
 
-  void _showInviteDialog() {
+  Widget _buildTable() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[400]!),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+      ),
+      child: Column(
+        children: [
+          _buildTableHeader(),
+          ..._buildDataRows(),
+          _buildAddLineItemButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableHeader() {
+    return Container(
+      decoration: const BoxDecoration(color: Colors.grey),
+      child: Row(
+        children: [
+          _buildHeaderCell('Line Item', flex: 2),
+          ...List.generate(
+              _drawCount, (i) => _buildHeaderCell('Draw ${i + 1}')),
+          _buildHeaderCell('INSP'),
+          _buildHeaderCell('Remain'),
+          _buildHeaderCell('Total'),
+          _buildHeaderCell('Actions'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderCell(String text, {int flex = 1}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildDataRows() {
+    return _lineItems.asMap().entries.map((entry) {
+      final index = entry.key;
+      final item = entry.value;
+      return Container(
+        color: index % 2 == 0 ? Colors.grey[100] : Colors.white,
+        child: Row(
+          children: [
+            _buildLabelCell(item.categoryName, flex: 2),
+            ...List.generate(_drawCount, (i) => _buildInputCell(index, i)),
+            _buildInputCell(index, _drawCount), // INSP
+            _buildReadOnlyCell(index, _drawCount + 1), // Remain
+            _buildReadOnlyCell(index, _drawCount + 2), // Total
+            _buildRemoveButton(index),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildLabelCell(String text, {int flex = 1}) {
+    return Expanded(
+      flex: flex,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text(
+          text,
+          style: const TextStyle(color: Colors.black),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputCell(int itemIndex, int drawIndex) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: TextField(
+          textAlign: TextAlign.right,
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            isDense: true,
+          ),
+          onChanged: (value) => _updateValue(itemIndex, drawIndex, value),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyCell(int itemIndex, int index) {
+    final value = _lineItems[itemIndex].draws[index] ?? 0;
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text(
+          _currencyFormat.format(value),
+          style: const TextStyle(color: Colors.black),
+          textAlign: TextAlign.right,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRemoveButton(int index) {
+    return Expanded(
+      child: IconButton(
+        icon: const Icon(Icons.remove_circle, color: Colors.red),
+        onPressed: () {
+          setState(() {
+            _lineItems.removeAt(index);
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildAddLineItemButton() {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: ElevatedButton.icon(
+        onPressed: _addLineItem,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Line Item'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotesField() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[400]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(8),
+      child: TextField(
+        controller: _noteController,
+        maxLines: 3,
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: 'Add any additional notes...',
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFileUploadSection() {
+    return Column(
+      children: [
+        ElevatedButton.icon(
+          onPressed: _pickFiles,
+          icon: const Icon(Icons.upload),
+          label: const Text('Upload Files'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_uploadedFiles.isNotEmpty)
+          ..._uploadedFiles.map((file) => ListTile(
+                leading: const Icon(Icons.attach_file),
+                title: Text(file.name),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () {
+                    setState(() {
+                      _uploadedFiles.remove(file);
+                    });
+                  },
+                ),
+              )),
+      ],
+    );
+  }
+
+  Widget _buildFooterButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        ElevatedButton(
+          onPressed: _saveDraft,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.grey,
+          ),
+          child: const Text('Save Draft'),
+        ),
+        ElevatedButton(
+          onPressed: _submitDrawRequest,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+          ),
+          child: const Text('Submit'),
+        ),
+      ],
+    );
+  }
+
+  void _addLineItem() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Invite Project Members'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _inviteEmailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                hintText: 'Enter email address',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _invitePhoneController,
-              decoration: const InputDecoration(
-                labelText: 'Phone (Optional)',
-                hintText: 'Enter phone number',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Role',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                    value: 'contractor', child: Text('Contractor')),
-                DropdownMenuItem(value: 'inspector', child: Text('Inspector')),
-              ],
-              onChanged: (value) {},
-            ),
-          ],
+        title: const Text('Add Line Item'),
+        content: TextField(
+          controller: _categoryController,
+          decoration: const InputDecoration(
+            labelText: 'Category Name',
+          ),
+          autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () {
-              // TODO: Implement invitation logic
-              _showSuccessSnackbar('Invitation sent successfully');
-              Navigator.pop(context);
+              if (_categoryController.text.isNotEmpty) {
+                setState(() {
+                  _lineItems.add(DrawLineItem(
+                    categoryName: _categoryController.text,
+                    draws: List.filled(_drawCount + 3, 0),
+                  ));
+                });
+                _categoryController.clear();
+                Navigator.pop(context);
+              }
             },
-            child: const Text('Send Invite'),
+            child: const Text('Add'),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _submitDrawRequest() async {
-    if (!_formKey.currentState!.validate()) return;
+  void _updateValue(int itemIndex, int drawIndex, String value) {
+    setState(() {
+      _lineItems[itemIndex].draws[drawIndex] = double.tryParse(value) ?? 0;
+    });
+  }
 
-    setState(() => _isSubmitting = true);
-
-    try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) throw Exception('User not authenticated');
-
-      if (_selectedLoanId == null ||
-          _submissionDate == null ||
-          _periodTo == null ||
-          _amountController.text.isEmpty) {
-        throw Exception('Please fill in all required fields');
-      }
-
-      final drawRequestData = {
-        'user_id': userId,
-        'loan_id': _selectedLoanId,
-        'amount_requested': double.tryParse(_amountController.text) ?? 0.0,
-        'submission_date': _submissionDate!.toIso8601String(),
-        'period_to': _periodTo!.toIso8601String(),
-        'status': _status,
-        'description': _descriptionController.text.trim(),
-      };
-
-      final drawRequestResponse = await supabase
-          .from('draw_requests')
-          .insert(drawRequestData)
-          .select()
-          .single();
-
-      if (_lineItems.isNotEmpty) {
-        final drawRequestId = drawRequestResponse['id'] as String?;
-        if (drawRequestId == null)
-          throw Exception('Failed to get draw request ID');
-
-        final lineItemsData = _lineItems
-            .map((item) => {
-                  ...item.toJson(),
-                  'draw_request_id': drawRequestId,
-                })
-            .toList();
-
-        await supabase.from('draw_request_line_items').insert(lineItemsData);
-      }
-
-      if (mounted) {
-        _showSuccessSnackbar('Draw request submitted successfully');
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackbar('Error submitting request: $e');
-      }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+  void _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+    if (result != null) {
+      setState(() {
+        _uploadedFiles = result.files;
+      });
     }
   }
 
-  void _showSuccessSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  void _saveDraft() {
+    // Save draft logic
   }
 
-  void _showErrorSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'New Draw Request',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: CircleAvatar(
-              backgroundColor: Colors.deepPurple.shade100,
-              child: const Text('IS'),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildFormFields(),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _showInviteDialog,
-                icon: const Icon(Icons.person_add),
-                label: const Text('Invite Project Members'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                  backgroundColor: Colors.deepPurple,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : _submitDrawRequest,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.deepPurple,
-                ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Submit Request'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.deepPurple,
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() => _selectedIndex = index);
-          // Handle navigation based on index
-          switch (index) {
-            case 0: // Home
-              break;
-            case 1: // Projects
-              break;
-            case 2: // Notifications
-              break;
-            case 3: // Settings
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.business),
-            label: 'Projects',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notifications',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFormFields() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        DropdownButtonFormField<String>(
-          value: _selectedLoanId,
-          decoration: const InputDecoration(
-            labelText: 'Select Loan *',
-            border: OutlineInputBorder(),
-            labelStyle: TextStyle(color: Colors.black),
-          ),
-          style: const TextStyle(color: Colors.black),
-          items: _loans
-              .map((loan) => DropdownMenuItem(
-                    value: loan.id,
-                    child: Text(loan.description),
-                  ))
-              .toList(),
-          onChanged: (value) => setState(() => _selectedLoanId = value),
-          validator: (value) => value == null ? 'Please select a loan' : null,
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _amountController,
-          decoration: const InputDecoration(
-            labelText: 'Amount (\$) *',
-            prefixIcon: Icon(Icons.attach_money),
-            border: OutlineInputBorder(),
-            labelStyle: TextStyle(color: Colors.black),
-          ),
-          style: const TextStyle(color: Colors.black),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter an amount';
-            }
-            if (double.tryParse(value) == null) {
-              return 'Please enter a valid number';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _descriptionController,
-          decoration: const InputDecoration(
-            labelText: 'Description',
-            border: OutlineInputBorder(),
-            labelStyle: TextStyle(color: Colors.black),
-          ),
-          style: const TextStyle(color: Colors.black),
-          maxLines: 3,
-        ),
-      ],
-    );
-  }
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    _descriptionController.dispose();
-    _inviteEmailController.dispose();
-    _invitePhoneController.dispose();
-    super.dispose();
+  void _submitDrawRequest() {
+    // Submit logicqflutter run
   }
 }

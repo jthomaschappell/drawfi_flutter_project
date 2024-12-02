@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/screens/Notifications_Screen.dart';
+import 'package:tester/screens/invitation_screen.dart';
 import 'package:tester/screens/projects_screen.dart';
 import 'package:tester/screens/settings_screen.dart';
 
@@ -598,7 +599,14 @@ class _LenderScreenState extends State<LenderScreen> {
                             ),
                             // New Project Button
                             ElevatedButton.icon(
-                              onPressed: () => _showNewProjectModal(),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          const InvitationScreen()),
+                                );
+                              },
                               icon: const Icon(Icons.add, size: 20),
                               label: const Text('New Project'),
                               style: ElevatedButton.styleFrom(

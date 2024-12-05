@@ -26,13 +26,18 @@ class AuthService {
       }
 
       // Communicates with Database backend.
-      // Create user profile in user_profiles table with correct role enum
-      await _supabase.from('user_profiles').insert({
-        'id': response.user!.id,
+      
+      // Create user in the users table 
+      // Create a borrower, lender, etc. based on the role. 
+
+      // TODO: 
+      // See if you can sign up and it creates a user in the users table. 
+
+      await _supabase.from('users').insert({
+        'user_id': response.user!.id,
         'email': email,
-        'full_name': fullName,
-        'user_role': role.name, // This will match your database enum
-      });
+        'name': fullName
+      }); 
       return response.user;
     } catch (e) {
       throw Exception('Signup error: $e');
@@ -94,7 +99,7 @@ class AuthService {
       try {
         await _supabase
             .from('borrowers')
-            .select('id')
+            .select('borrower_id')
             .eq('borrower_id', userId)
             .single();
         return UserRole.borrower;
@@ -105,7 +110,7 @@ class AuthService {
       try {
         await _supabase
             .from('lenders')
-            .select('id')
+            .select('lender_id')
             .eq('lender_id', userId)
             .single();
         return UserRole.lender;
@@ -116,7 +121,7 @@ class AuthService {
       try {
         await _supabase
             .from('contractors')
-            .select('id')
+            .select('contractor_id')
             .eq('contractor_id', userId)
             .single();
         return UserRole.contractor;
@@ -127,7 +132,7 @@ class AuthService {
       try {
         await _supabase
             .from('inspectors')
-            .select('id')
+            .select('inspector_id')
             .eq('inspector_id', userId)
             .single();
         return UserRole.inspector;

@@ -161,8 +161,19 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: CircularProgressIndicator(),
                   );
                 }
+
+                if (profileSnapshot.hasError || profileSnapshot.data == null) {
+                  return const Center(
+                    child: Text("Error loading user profile"),
+                  );
+                }
                 final userProfile = profileSnapshot.data;
-                // print(userProfile);
+                /**
+                 * TODO: 
+                 * START HERE: 
+                 * Figure out what order of changes needs to happen
+                 * on this auth_screen. 
+                 */
                 final userRole = userProfile!['user_role'];
 
                 // display a different screen based on the role of the user.
@@ -351,17 +362,25 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void bigTestFunction() async {
-    print("The big button was pressed!");
-    print("Hello Peter");
-    print("Hello Doc Ock");
-    String works = "4a47abba-3c39-47bd-b0f3-b7aa2b4fad82";
-    String fails = "7f73c0c5-e038-495a";
-    final muffins = await _getUserProfile(fails);
-    if (muffins == null) {
-      print("It's null!");
-    } else {
-      print("It's not null!");
-    }
+    print("The big button was pressed");
+    // String testId = '5a0743c7-d601-4ab6-8196-15b108a32102';
+    String testId = '89eb74f0-6282-44a3-b724-ee5ee96f2669';
+    final myRole = await _authService.getUserRole(testId);
+    // this user id 5a0743c7-d601-4ab6-8196-15b108a32102 is
+    // Donald Trump who is a lender user role.
+    print("The user role is $myRole");
+
+    //   print("The big button was pressed!");
+    //   print("Hello Peter");
+    //   print("Hello Doc Ock");
+    //   String works = "4a47abba-3c39-47bd-b0f3-b7aa2b4fad82";
+    //   String fails = "7f73c0c5-e038-495a";
+    //   final muffins = await _getUserProfile(fails);
+    //   if (muffins == null) {
+    //     print("It's null!");
+    //   } else {
+    //     print("It's not null!");
+    //   }
   }
 
   @override

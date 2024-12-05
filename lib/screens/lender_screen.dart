@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tester/screens/Notifications_Screen.dart';
+import 'package:tester/screens/invitation_screen.dart';
+import 'package:tester/screens/projects_screen.dart';
+import 'package:tester/screens/settings_screen.dart';
 
 // Constants
 const String appLogo = '''
@@ -57,6 +61,28 @@ class Project {
     required this.updates,
     required this.documents,
   });
+
+  factory Project.fromSupabase(Map<String, dynamic> data) {
+    final drawCount = data['draw_count'] as int? ?? 0;
+    final maxDraws = 10; // Assuming 10 draws is 100% completion
+    final completionPercentage = (drawCount / maxDraws) * 100;
+
+    return Project(
+      id: data['loan_id'] as String,
+      companyInitials:
+          (data['contractor_id'] as String).substring(0, 2).toUpperCase(),
+      companyName: data['description'] as String? ?? 'Unknown Project',
+      location: 'Location TBD',
+      disbursed: data['total_amount']?.toDouble() ?? 0.0,
+      completed: completionPercentage,
+      draws: drawCount,
+      inspections: 0, // Placeholder
+      status: 'On track', // You can implement your own status logic
+      lastUpdated: DateTime.parse(data['updated_at'] as String),
+      updates: [], // Placeholder
+      documents: [], // Placeholder
+    );
+  }
 }
 
 class ProjectUpdate {
@@ -71,6 +97,15 @@ class ProjectUpdate {
     required this.timestamp,
     required this.details,
   });
+
+  factory ProjectUpdate.fromSupabase(Map<String, dynamic> data) {
+    return ProjectUpdate(
+      action: data['action'] as String? ?? '',
+      user: data['user'] as String? ?? '',
+      timestamp: DateTime.parse(data['timestamp'] as String),
+      details: data['details'] as String? ?? '',
+    );
+  }
 }
 
 class ProjectDocument {
@@ -91,6 +126,18 @@ class ProjectDocument {
     required this.status,
     required this.url,
   });
+
+  factory ProjectDocument.fromSupabase(Map<String, dynamic> data) {
+    return ProjectDocument(
+      id: data['id'] as String? ?? '',
+      name: data['name'] as String? ?? '',
+      type: data['type'] as String? ?? '',
+      uploadDate: DateTime.parse(data['upload_date'] as String),
+      uploadedBy: data['uploaded_by'] as String? ?? '',
+      status: data['status'] as String? ?? '',
+      url: data['url'] as String? ?? '',
+    );
+  }
 }
 
 // Custom Widgets
@@ -335,56 +382,40 @@ class _LenderScreenState extends State<LenderScreen> {
   }
 
   Future<void> _loadProjects() async {
-    setState(() => _isLoading = true);
+    try {
+      setState(() => _isLoading = true);
 
-    // Simulated API call with mock data
-    await Future.delayed(const Duration(milliseconds: 800));
+      // Query the construction_loans table
+      final response = await Supabase.instance.client
+          .from('construction_loans')
+          .select()
+          .order('updated_at', ascending: false);
 
-    final mockProjects = List.generate(
-      10,
-      (index) => Project(
-        id: 'PRJ-${1000 + index}',
-        companyInitials: 'KD',
-        companyName: 'KDK Construction ${index + 1}',
-        location: 'American Fork, UT',
-        disbursed: 50.0 + (index * 5),
-        completed: 50.0 + (index * 3),
-        draws: 3,
-        inspections: 2,
-        status: index % 3 == 0
-            ? 'On track'
-            : index % 3 == 1
-                ? 'At risk'
-                : 'Behind',
-        lastUpdated: DateTime.now().subtract(Duration(days: index)),
-        updates: List.generate(
-          3,
-          (i) => ProjectUpdate(
-            action: 'Updated project status',
-            user: 'JD',
-            timestamp: DateTime.now().subtract(Duration(hours: i * 2)),
-            details: 'Updated project completion percentage',
+      // Convert the response data to List<Project>
+      final projects = (response as List<dynamic>)
+          .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
+          .toList();
+
+      setState(() {
+        _projects = projects;
+        _isLoading = false;
+      });
+    } catch (error) {
+      print('Error loading projects: $error');
+      setState(() {
+        _isLoading = false;
+        _projects = [];
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading projects: ${error.toString()}'),
+            backgroundColor: Colors.red,
           ),
-        ),
-        documents: List.generate(
-          4,
-          (i) => ProjectDocument(
-            id: 'DOC-${1000 + i}',
-            name: 'Document ${i + 1}',
-            type: i % 2 == 0 ? 'PDF' : 'Image',
-            uploadDate: DateTime.now().subtract(Duration(days: i)),
-            uploadedBy: 'John Doe',
-            status: 'Active',
-            url: 'https://example.com/doc${i + 1}',
-          ),
-        ),
-      ),
-    );
-
-    setState(() {
-      _projects = mockProjects;
-      _isLoading = false;
-    });
+        );
+      }
+    }
   }
 
   void _filterProjects() {
@@ -432,29 +463,47 @@ class _LenderScreenState extends State<LenderScreen> {
                 ),
                 const SizedBox(width: 24),
 
-                // Navigation
-                NavigationIconButton(
-                  icon: Icons.home_outlined,
-                  isSelected: _selectedNavIndex == 0,
-                  onTap: () => setState(() => _selectedNavIndex = 0),
-                  label: 'Home',
-                ),
                 NavigationIconButton(
                   icon: Icons.notifications_outlined,
                   isSelected: _selectedNavIndex == 1,
-                  onTap: () => setState(() => _selectedNavIndex = 1),
+                  onTap: () {
+                    setState(() => _selectedNavIndex = 1);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen()),
+                    );
+                  },
                   label: 'Notifications',
                 ),
+
                 NavigationIconButton(
                   icon: Icons.grid_view_outlined,
                   isSelected: _selectedNavIndex == 2,
-                  onTap: () => setState(() => _selectedNavIndex = 2),
+                  onTap: () => setState(() {
+                    _selectedNavIndex = 2;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const ProjectsScreen()),
+                    );
+                  }),
                   label: 'Projects',
                 ),
+
                 NavigationIconButton(
                   icon: Icons.settings_outlined,
                   isSelected: _selectedNavIndex == 3,
-                  onTap: () => setState(() => _selectedNavIndex = 3),
+                  onTap: () => setState(() {
+                    _selectedNavIndex = 3;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(
+                                userProfile: {},
+                              )),
+                    );
+                  }),
                   label: 'Settings',
                 ),
 
@@ -550,7 +599,14 @@ class _LenderScreenState extends State<LenderScreen> {
                             ),
                             // New Project Button
                             ElevatedButton.icon(
-                              onPressed: () => _showNewProjectModal(),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          const InvitationScreen()),
+                                );
+                              },
                               icon: const Icon(Icons.add, size: 20),
                               label: const Text('New Project'),
                               style: ElevatedButton.styleFrom(
@@ -574,26 +630,40 @@ class _LenderScreenState extends State<LenderScreen> {
                         Container(
                           height: 48,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors
+                                .white, // Set the container background color to white
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE5E7EB)),
+                            border: Border.all(
+                                color: const Color(
+                                    0xFFE5E7EB)), // Light gray border
                           ),
                           child: Row(
                             children: [
                               Expanded(
                                 child: TextField(
                                   controller: _searchController,
+                                  style: const TextStyle(
+                                    color: Colors
+                                        .black, // Set input text color to black
+                                    fontSize: 14,
+                                  ),
                                   decoration: InputDecoration(
                                     hintText: 'Search by name, loan #, etc...',
-                                    hintStyle: TextStyle(
-                                      color: Colors.black.withOpacity(0.4),
+                                    hintStyle: const TextStyle(
+                                      color: Colors
+                                          .black, // Black letters for the hint text
                                       fontSize: 14,
+                                      backgroundColor: Colors
+                                          .white, // White background for hint text
                                     ),
-                                    prefixIcon: Icon(
+                                    prefixIcon: const Icon(
                                       Icons.search,
-                                      color: Colors.black.withOpacity(0.4),
+                                      color: Colors.black, // Black search icon
                                       size: 20,
                                     ),
+                                    filled: true,
+                                    fillColor: Colors
+                                        .white, // White background for the hint field
                                     border: InputBorder.none,
                                     contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 16,
@@ -857,9 +927,7 @@ class ProjectDetailsModal extends StatelessWidget {
   }
 
   Widget _buildOverviewTab() {
-
     String theLoanId = '31a98faf-c77c-4d1f-b7d4-2aa12546b3ba';
-
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -1077,7 +1145,7 @@ class ProjectDetailsModal extends StatelessWidget {
      * Hey Chretien 
      * this is a useful function (called getLoanInfo()) that anyone can use to get construction_loan info. 
      * If you want to make a new function to get draw_request info, you can copy paste this and then change the query to match the new table.
-     *  */ 
+     *  */
     // final loanData = await getLoanInfo();
     // print(loanData['total_amount']);
     // print(loanData['start_date']);

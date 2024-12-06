@@ -26,7 +26,7 @@ const String _logoSvg = '''
 ''';
 
 class NewProjectScreen extends StatefulWidget {
-  const NewProjectScreen({Key? key}) : super(key: key);
+  const NewProjectScreen({super.key});
 
   @override
   State<NewProjectScreen> createState() => _NewProjectScreenState();
@@ -111,7 +111,7 @@ class _NewProjectScreenState extends State<NewProjectScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Hi Hannah,',
+                        'Hi This file is not being used,',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w600,

@@ -407,13 +407,15 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<Map<String, dynamic>?> _getUserProfile(String userId) async {
     try {
-      print("Fetching profile for userId: $userId");
+      print(
+          "Fetching profile for userId (happens inside of _getUserProfile): $userId");
 
       // Get basic user info
       final userResponse =
           await supabase.from('users').select().eq('user_id', userId).single();
 
-      print("Basic user info: $userResponse");
+      print(
+          "(Inside of getUserProfile, we grab this from the 'users' table) Basic user info: $userResponse");
 
       if (userResponse == null) {
         print("No user found");
@@ -428,7 +430,7 @@ class _AuthScreenState extends State<AuthScreen> {
             .select()
             .eq('lender_id', userId)
             .single();
-        print("Found lender role");
+        print("Found lender role (inside function getUserProfile)");
         return {...userResponse, 'user_role': 'lender'};
       } catch (e) {
         // Not a lender, continue checking
@@ -441,7 +443,7 @@ class _AuthScreenState extends State<AuthScreen> {
             .select()
             .eq('contractor_id', userId)
             .single();
-        print("Found contractor role");
+        print("Found contractor role (inside function getUserProfile)");
         return {...userResponse, 'user_role': 'contractor'};
       } catch (e) {
         // Not a contractor, continue checking
@@ -454,7 +456,7 @@ class _AuthScreenState extends State<AuthScreen> {
             .select()
             .eq('inspector_id', userId)
             .single();
-        print("Found inspector role");
+        print("Found inspector role (inside function getUserProfile)");
         return {...userResponse, 'user_role': 'inspector'};
       } catch (e) {
         // Not an inspector
@@ -462,10 +464,11 @@ class _AuthScreenState extends State<AuthScreen> {
       }
 
       // If no role found, return user info with null role
-      print("No role found in any table");
+      print("No role found in any table (inside function getUserProfile)");
       return {...userResponse, 'user_role': null};
     } catch (e) {
-      print("Error fetching user profile: $e");
+      print(
+          "Error fetching user profile: $e. (inside function getUserProfile)");
       return null;
     }
   }
@@ -551,6 +554,8 @@ class _AuthScreenState extends State<AuthScreen> {
               'updated_at': now,
             });
             break;
+          case UserRole.borrower:
+          // TODO: Handle this case.
         }
 
         // 4. Sign out after successful registration
@@ -583,7 +588,7 @@ class _AuthScreenState extends State<AuthScreen> {
         );
 
         if (res.user == null) throw Exception('Login failed');
-        print("Successfully signed in user: ${res.user!.id}");
+        print("Successfully signed in user (Auth list): ${res.user!.id}");
       }
     } catch (e) {
       print("Error in auth process: $e");

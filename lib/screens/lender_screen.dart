@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/screens/Notifications_Screen.dart';
 import 'package:tester/screens/invitation_screen.dart';
+import 'package:tester/screens/loan_dashboard_screen.dart';
 import 'package:tester/screens/projects_screen.dart';
 import 'package:tester/screens/settings_screen.dart';
 
@@ -350,9 +351,9 @@ class LenderScreen extends StatefulWidget {
   final Map<String, dynamic> userProfile;
 
   const LenderScreen({
-    Key? key,
+    super.key,
     required this.userProfile,
-  }) : super(key: key);
+  });
 
   @override
   State<LenderScreen> createState() => _LenderScreenState();
@@ -439,6 +440,7 @@ class _LenderScreenState extends State<LenderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // userProfile
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: Column(
@@ -531,8 +533,37 @@ class _LenderScreenState extends State<LenderScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () async {
+                          print("The user profile button was pressed");
+                          print(
+                            "The user profile full name is ${widget.userProfile['name']}",
+                          );
+                          // DONE: Get all of the user profile data
+                          print("The user profile is ${widget.userProfile}");
+                          final userId = widget.userProfile['user_id'];
+                          print("The user profile ID is $userId");
+                          // TODO: Get all of the loan data for this specific user.
+                          final response = await supabase
+                              .from('construction_loans')
+                              .select();
+                              // .eq('lender_id', userId);
+                          print(
+                            "This is the data for all loans: $response",
+                          );
+                          /**
+                           * START HERE: 
+                           * TODO: 
+                           * The response is showing up as an empty list. 
+                           * What might be going on? 
+                           */
+                        },
+                        child: const Text(
+                          "Get user profile data button",
+                        ),
+                      ),
                       Text(
-                        widget.userProfile['full_name'] ?? 'Hannah Smith',
+                        widget.userProfile['name'] ?? '',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -568,7 +599,7 @@ class _LenderScreenState extends State<LenderScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Hi ${widget.userProfile['first_name'] ?? 'Hannah'},',
+                                  'Hi ${widget.userProfile['name'] ?? 'No name found'},',
                                   style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w600,
@@ -647,16 +678,16 @@ class _LenderScreenState extends State<LenderScreen> {
                                         .black, // Set input text color to black
                                     fontSize: 14,
                                   ),
-                                  decoration: InputDecoration(
+                                  decoration: const InputDecoration(
                                     hintText: 'Search by name, loan #, etc...',
-                                    hintStyle: const TextStyle(
+                                    hintStyle: TextStyle(
                                       color: Colors
                                           .black, // Black letters for the hint text
                                       fontSize: 14,
                                       backgroundColor: Colors
                                           .white, // White background for hint text
                                     ),
-                                    prefixIcon: const Icon(
+                                    prefixIcon: Icon(
                                       Icons.search,
                                       color: Colors.black, // Black search icon
                                       size: 20,
@@ -665,7 +696,7 @@ class _LenderScreenState extends State<LenderScreen> {
                                     fillColor: Colors
                                         .white, // White background for the hint field
                                     border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(
+                                    contentPadding: EdgeInsets.symmetric(
                                       horizontal: 16,
                                       vertical: 14,
                                     ),

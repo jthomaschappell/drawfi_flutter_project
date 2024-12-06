@@ -383,9 +383,14 @@ class _AuthScreenState extends State<AuthScreen> {
         }
 
         final userProfile = profileSnapshot.data;
-        if (userProfile == null) return const ErrorScreen();
+        print("Profile snapshot data is ${profileSnapshot.data}");
 
-        switch (userProfile['user_role']) {
+        if (userProfile == null) {
+          print("User profile is null");
+          return const ErrorScreen();
+        }
+
+        switch (userProfile['user_role']?.toString().toLowerCase() ?? '') {
           case 'contractor':
             return ContractorScreen(userProfile: userProfile);
           case 'lender':
@@ -393,6 +398,7 @@ class _AuthScreenState extends State<AuthScreen> {
           case 'inspector':
             return InspectorScreen(userProfile: userProfile);
           default:
+            print("Unknown role: ${userProfile['user_role']}");
             return const ErrorScreen();
         }
       },
@@ -401,12 +407,63 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<Map<String, dynamic>?> _getUserProfile(String userId) async {
     try {
-      return await supabase
-          .from('user_profiles')
-          .select()
-          .eq('id', userId)
-          .limit(1)
-          .single();
+      print("Fetching profile for userId: $userId");
+
+      // Get basic user info
+      final userResponse =
+          await supabase.from('users').select().eq('user_id', userId).single();
+
+      print("Basic user info: $userResponse");
+
+      if (userResponse == null) {
+        print("No user found");
+        return null;
+      }
+
+      // Determine role by checking each table
+      try {
+        // Check lenders table
+        final lenderCheck = await supabase
+            .from('lenders')
+            .select()
+            .eq('lender_id', userId)
+            .single();
+        print("Found lender role");
+        return {...userResponse, 'user_role': 'lender'};
+      } catch (e) {
+        // Not a lender, continue checking
+      }
+
+      try {
+        // Check contractors table
+        final contractorCheck = await supabase
+            .from('contractors')
+            .select()
+            .eq('contractor_id', userId)
+            .single();
+        print("Found contractor role");
+        return {...userResponse, 'user_role': 'contractor'};
+      } catch (e) {
+        // Not a contractor, continue checking
+      }
+
+      try {
+        // Check inspectors table
+        final inspectorCheck = await supabase
+            .from('inspectors')
+            .select()
+            .eq('inspector_id', userId)
+            .single();
+        print("Found inspector role");
+        return {...userResponse, 'user_role': 'inspector'};
+      } catch (e) {
+        // Not an inspector
+        print("No role found for user");
+      }
+
+      // If no role found, return user info with null role
+      print("No role found in any table");
+      return {...userResponse, 'user_role': null};
     } catch (e) {
       print("Error fetching user profile: $e");
       return null;
@@ -425,21 +482,126 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       if (isSignUpPage) {
-        await _authService.signUp(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          fullName: _fullNameController.text.trim(),
-          role: _selectedRole,
-        );
+        // 1. Create auth user
+        print("Attempting to create new user");
+        final AuthResponse res = await supabase.auth.signUp(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            data: {
+              'full_name': _fullNameController.text.trim(),
+            });
+
+        if (res.user == null) throw Exception('User creation failed');
+
+        final userId = res.user!.id;
+        final now = DateTime.now().toIso8601String();
+
+        // 2. Create user profile (with user_role field now)
+        await supabase.from('users').insert({
+          'user_id': userId,
+          'name': _fullNameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'user_role': _selectedRole
+              .toString()
+              .split('.')
+              .last
+              .toLowerCase(), // Added this line
+          'created_at': now,
+          'updated_at': now,
+        });
+
+// Create user_profile (keep this part as is)
+        await supabase.from('user_profiles').insert({
+          'id': userId,
+          'full_name': _fullNameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'user_role': _selectedRole.toString().split('.').last.toLowerCase(),
+          'created_at': now,
+          'updated_at': now,
+        });
+
+        // 3. Insert into role-specific table based on role
+        switch (_selectedRole) {
+          case UserRole.lender:
+            await supabase.from('lenders').insert({
+              'lender_id': userId,
+              'name': _fullNameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'created_at': now,
+              'updated_at': now,
+            });
+            break;
+
+          case UserRole.contractor:
+            await supabase.from('contractors').insert({
+              'contractor_id': userId,
+              'name': _fullNameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'created_at': now,
+              'updated_at': now,
+            });
+            break;
+
+          case UserRole.inspector:
+            await supabase.from('inspectors').insert({
+              'inspector_id': userId,
+              'name': _fullNameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'created_at': now,
+              'updated_at': now,
+            });
+            break;
+        }
+
+        // 4. Sign out after successful registration
+        await supabase.auth.signOut();
+
+        // 5. Clear form fields
+        _emailController.clear();
+        _passwordController.clear();
+        _fullNameController.clear();
+
+        // 6. Switch to sign in page
+        if (mounted) {
+          setState(() {
+            isSignUpPage = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registration successful! Please sign in.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } else {
-        await _authService.signIn(
+        // Handle sign in
+        print("Attempting to sign in user: ${_emailController.text.trim()}");
+        final AuthResponse res = await supabase.auth.signInWithPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+
+        if (res.user == null) throw Exception('Login failed');
+        print("Successfully signed in user: ${res.user!.id}");
       }
     } catch (e) {
+      print("Error in auth process: $e");
       if (mounted) {
-        _showErrorSnackbar(e.toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.toString(),
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red.shade400,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => isLoading = false);
@@ -447,6 +609,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _showErrorSnackbar(String message) {
+    print("ERROR MESSAGE: $message");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -470,9 +633,4 @@ class _AuthScreenState extends State<AuthScreen> {
     _fullNameController.dispose();
     super.dispose();
   }
-}
-
-// Helper function to validate email format
-bool isValidEmail(String email) {
-  return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
 }

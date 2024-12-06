@@ -532,7 +532,7 @@ class _LenderScreenState extends State<LenderScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        widget.userProfile['full_name'] ?? 'Hannah Smith',
+                        widget.userProfile['full_name'] ?? 'Marc Smith',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -568,7 +568,7 @@ class _LenderScreenState extends State<LenderScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Hi ${widget.userProfile['first_name'] ?? 'Hannah'},',
+                                  'Hi ${widget.userProfile['first_name'] ?? 'marc'},',
                                   style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w600,

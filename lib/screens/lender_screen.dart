@@ -45,6 +45,7 @@ class Project {
   final int inspections;
   final String status;
   final DateTime lastUpdated;
+  final DateTime startDate;
   final List<ProjectUpdate> updates;
   final List<ProjectDocument> documents;
 
@@ -59,6 +60,7 @@ class Project {
     required this.inspections,
     required this.status,
     required this.lastUpdated,
+    required this.startDate,
     required this.updates,
     required this.documents,
   });
@@ -68,20 +70,26 @@ class Project {
     final maxDraws = 10; // Assuming 10 draws is 100% completion
     final completionPercentage = (drawCount / maxDraws) * 100;
 
+    final totalAmount = (data['total_amount'] is int)
+        ? (data['total_amount'] as int).toDouble()
+        : data['total_amount']?.toDouble() ?? 0.0;
+
     return Project(
       id: data['loan_id'] as String,
       companyInitials:
-          (data['contractor_id'] as String).substring(0, 2).toUpperCase(),
+          (data['contractor_id'] as String?)?.substring(0, 2).toUpperCase() ??
+              'UN',
       companyName: data['description'] as String? ?? 'Unknown Project',
-      location: 'Location TBD',
-      disbursed: data['total_amount']?.toDouble() ?? 0.0,
+      location: data['location'] as String? ?? 'Location TBD',
+      disbursed: totalAmount,
       completed: completionPercentage,
       draws: drawCount,
-      inspections: 0, // Placeholder
-      status: 'On track', // You can implement your own status logic
+      inspections: 0, // Placeholder until you add inspections tracking
+      status: 'On track', // Default status until you add status tracking
       lastUpdated: DateTime.parse(data['updated_at'] as String),
-      updates: [], // Placeholder
-      documents: [], // Placeholder
+      startDate: DateTime.parse(data['start_date'] as String),
+      updates: [], // Placeholder for future updates feature
+      documents: [], // Placeholder for future documents feature
     );
   }
 }
@@ -384,25 +392,56 @@ class _LenderScreenState extends State<LenderScreen> {
 
   Future<void> _loadProjects() async {
     try {
+      print('1. Starting to load projects...'); // Debug point 1
       setState(() => _isLoading = true);
 
-      // Query the construction_loans table
-      final response = await Supabase.instance.client
-          .from('construction_loans')
-          .select()
-          .order('updated_at', ascending: false);
+      print('2. About to make Supabase query...'); // Debug point 2
+      final response =
+          await Supabase.instance.client.from('construction_loans').select('''
+          loan_id,
+          contractor_id,
+          description,
+          total_amount,
+          draw_count,
+          updated_at,
+          location,
+          start_date
+        ''');
 
-      // Convert the response data to List<Project>
-      final projects = (response as List<dynamic>)
-          .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
-          .toList();
+      print('3. Supabase Response: $response'); // Debug point 3
+      print('4. Response type: ${response.runtimeType}'); // Debug point 4
+
+      if (response == null) {
+        print('Response is null!');
+        return;
+      }
+
+      // Check if response is empty
+      if (response is List && response.isEmpty) {
+        print('Response is an empty list!');
+        setState(() {
+          _projects = [];
+          _isLoading = false;
+        });
+        return;
+      }
+
+      print('5. Converting response to projects...'); // Debug point 5
+      final projects = (response as List<dynamic>).map((data) {
+        print('Processing data: $data'); // Debug individual items
+        return Project.fromSupabase(data as Map<String, dynamic>);
+      }).toList();
+
+      print('6. Created ${projects.length} projects'); // Debug point 6
 
       setState(() {
         _projects = projects;
         _isLoading = false;
       });
-    } catch (error) {
+      print('7. State updated with projects'); // Debug point 7
+    } catch (error, stackTrace) {
       print('Error loading projects: $error');
+      print('Stack trace: $stackTrace');
       setState(() {
         _isLoading = false;
         _projects = [];
@@ -547,7 +586,7 @@ class _LenderScreenState extends State<LenderScreen> {
                           final response = await supabase
                               .from('construction_loans')
                               .select();
-                              // .eq('lender_id', userId);
+                          // .eq('lender_id', userId);
                           print(
                             "This is the data for all loans: $response",
                           );
@@ -841,12 +880,14 @@ class _LenderScreenState extends State<LenderScreen> {
   }
 
   void _showProjectDetails(Project project) {
-    // Implementation of project details modal
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ProjectDetailsModal(project: project),
+    // Navigate to LoanDashboardScreen instead of showing modal
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoanDashboardScreen(
+          loanId: project.id, // Pass the loan_id to the dashboard
+        ),
+      ),
     );
   }
 

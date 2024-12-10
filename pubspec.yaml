@@ -44,6 +44,7 @@ dependencies:
   flutter_svg: ^2.0.15
   file_picker: ^8.1.4
   dotted_border: ^2.1.0
+  syncfusion_flutter_pdf: ^27.2.5
 
 dev_dependencies:
   flutter_test:

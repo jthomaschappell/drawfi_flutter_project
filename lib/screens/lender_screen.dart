@@ -79,7 +79,7 @@ class Project {
       companyInitials:
           (data['contractor_id'] as String?)?.substring(0, 2).toUpperCase() ??
               'UN',
-      companyName: data['description'] as String? ?? 'Unknown Project',
+      companyName: data['project_name'] as String? ?? 'Unknown Project',
       location: data['location'] as String? ?? 'Location TBD',
       disbursed: totalAmount,
       completed: completionPercentage,
@@ -392,56 +392,41 @@ class _LenderScreenState extends State<LenderScreen> {
 
   Future<void> _loadProjects() async {
     try {
-      print('1. Starting to load projects...'); // Debug point 1
       setState(() => _isLoading = true);
 
-      print('2. About to make Supabase query...'); // Debug point 2
-      final response =
-          await Supabase.instance.client.from('construction_loans').select('''
+      // Get the lender_id from the userProfile
+      final lenderId = widget.userProfile['user_id'];
+      print('Loading projects for lender: $lenderId'); // Debug print
+
+      // Query construction_loans table filtered by lender_id
+      final response = await supabase
+          .from('construction_loans')
+          .select('''
           loan_id,
           contractor_id,
-          description,
+          project_name,
           total_amount,
           draw_count,
           updated_at,
           location,
           start_date
-        ''');
+        ''')
+          .eq('lender_id', lenderId) // Filter by lender_id
+          .order('updated_at', ascending: false);
 
-      print('3. Supabase Response: $response'); // Debug point 3
-      print('4. Response type: ${response.runtimeType}'); // Debug point 4
+      print('Response from Supabase: $response'); // Debug print
 
-      if (response == null) {
-        print('Response is null!');
-        return;
-      }
-
-      // Check if response is empty
-      if (response is List && response.isEmpty) {
-        print('Response is an empty list!');
-        setState(() {
-          _projects = [];
-          _isLoading = false;
-        });
-        return;
-      }
-
-      print('5. Converting response to projects...'); // Debug point 5
-      final projects = (response as List<dynamic>).map((data) {
-        print('Processing data: $data'); // Debug individual items
-        return Project.fromSupabase(data as Map<String, dynamic>);
-      }).toList();
-
-      print('6. Created ${projects.length} projects'); // Debug point 6
+      // Convert the response data to List<Project>
+      final projects = (response as List<dynamic>)
+          .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
+          .toList();
 
       setState(() {
         _projects = projects;
         _isLoading = false;
       });
-      print('7. State updated with projects'); // Debug point 7
-    } catch (error, stackTrace) {
+    } catch (error) {
       print('Error loading projects: $error');
-      print('Stack trace: $stackTrace');
       setState(() {
         _isLoading = false;
         _projects = [];

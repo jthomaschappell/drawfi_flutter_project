@@ -39,6 +39,9 @@ class DrawRequest {
   double? draw1;
   double? draw2;
   double? draw3;
+  String? draw1Status;
+  String? draw2Status;
+  String? draw3Status;
 
   DrawRequest({
     required this.lineItem,
@@ -46,13 +49,16 @@ class DrawRequest {
     this.draw1,
     this.draw2,
     this.draw3,
+    this.draw1Status = 'pending',
+    this.draw2Status = 'pending',
+    this.draw3Status = 'pending',
   });
 
   double get totalDrawn => (draw1 ?? 0) + (draw2 ?? 0) + (draw3 ?? 0);
 }
 
 class LoanDashboardScreen extends StatefulWidget {
-  final String loanId; // Add this parameter
+  final String loanId;
 
   const LoanDashboardScreen({super.key, required this.loanId});
 
@@ -96,37 +102,46 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       inspected: true,
       draw1: 15000,
       draw2: 25000,
+      draw1Status: 'pending',
+      draw2Status: 'pending',
     ),
     DrawRequest(
       lineItem: 'Framing',
       inspected: true,
       draw1: 30000,
+      draw1Status: 'pending',
     ),
     DrawRequest(
       lineItem: 'Electrical',
       inspected: false,
       draw1: 12000,
+      draw1Status: 'pending',
     ),
     DrawRequest(
       lineItem: 'Plumbing',
       inspected: true,
       draw1: 8000,
       draw2: 10000,
+      draw1Status: 'pending',
+      draw2Status: 'pending',
     ),
     DrawRequest(
       lineItem: 'HVAC Installation',
       inspected: false,
       draw1: 20000,
+      draw1Status: 'pending',
     ),
     DrawRequest(
       lineItem: 'Roofing',
       inspected: true,
       draw1: 25000,
+      draw1Status: 'pending',
     ),
     DrawRequest(
       lineItem: 'Interior Finishing',
       inspected: false,
       draw1: 18000,
+      draw1Status: 'pending',
     ),
   ];
 
@@ -145,6 +160,22 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   double get projectCompletion {
     int completedItems = _drawRequests.where((r) => r.inspected).length;
     return (completedItems / _drawRequests.length) * 100;
+  }
+
+  void _updateDrawStatus(DrawRequest item, int drawNumber, String status) {
+    setState(() {
+      switch (drawNumber) {
+        case 1:
+          item.draw1Status = status;
+          break;
+        case 2:
+          item.draw2Status = status;
+          break;
+        case 3:
+          item.draw3Status = status;
+          break;
+      }
+    });
   }
 
   void _showNotifications() {
@@ -206,89 +237,6 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showUserConfig() {
-    final nameController = TextEditingController(text: _userSettings.name);
-    final emailController = TextEditingController(text: _userSettings.email);
-    final phoneController = TextEditingController(text: _userSettings.phone);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('User Configuration'),
-        content: SizedBox(
-          width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  icon: Icon(Icons.person),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  icon: Icon(Icons.email),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone',
-                  icon: Icon(Icons.phone),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _userSettings.role,
-                decoration: const InputDecoration(
-                  labelText: 'Role',
-                  icon: Icon(Icons.work),
-                ),
-                items: ['Contractor', 'Inspector', 'Admin']
-                    .map((role) => DropdownMenuItem(
-                          value: role,
-                          child: Text(role),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _userSettings.role = value!;
-                  });
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _userSettings = UserSettings(
-                  name: nameController.text,
-                  email: emailController.text,
-                  phone: phoneController.text,
-                  role: _userSettings.role,
-                );
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
           ),
         ],
       ),
@@ -399,32 +347,135 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   }
 
   Widget _buildSearchBar() {
-    return SizedBox(
+    return Container(
       height: 36,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: TextField(
         controller: _searchController,
-        style: const TextStyle(fontSize: 14),
+        style: const TextStyle(
+          fontSize: 14,
+          color: Colors.black,
+        ),
         onChanged: (value) => setState(() => _searchQuery = value),
         decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
           hintText: 'Search by name, loan #, etc...',
           hintStyle: const TextStyle(
             fontSize: 14,
-            color: Color.fromARGB(255, 107, 7, 7),
+            color: Colors.black,
           ),
-          prefixIcon: const Icon(Icons.search,
-              size: 20, color: Color.fromARGB(255, 154, 203, 7)),
+          prefixIcon: const Icon(
+            Icons.search,
+            size: 20,
+            color: Colors.black,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide:
-                const BorderSide(color: Color.fromARGB(255, 209, 206, 14)),
+            borderSide: BorderSide(color: Colors.grey[300]!),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide:
-                const BorderSide(color: Color.fromARGB(255, 0, 13, 162)),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey[300]!),
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDrawStatusWidget(DrawRequest item, int drawNumber) {
+    String? status;
+    double? amount;
+
+    switch (drawNumber) {
+      case 1:
+        status = item.draw1Status;
+        amount = item.draw1;
+        break;
+      case 2:
+        status = item.draw2Status;
+        amount = item.draw2;
+        break;
+      case 3:
+        status = item.draw3Status;
+        amount = item.draw3;
+        break;
+    }
+
+    if (amount == null) {
+      return const Expanded(child: SizedBox());
+    }
+
+    Color getStatusColor(String status) {
+      switch (status.toLowerCase()) {
+        case 'approved':
+          return Colors.green;
+        case 'declined':
+          return Colors.red;
+        case 'pending':
+        default:
+          return Colors.orange;
+      }
+    }
+
+    return Expanded(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Status text
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: getStatusColor(status ?? 'pending').withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              status?.toUpperCase() ?? 'PENDING',
+              style: TextStyle(
+                color: getStatusColor(status ?? 'pending'),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (status?.toLowerCase() == 'pending') const SizedBox(height: 4),
+          // Action buttons
+          if (status?.toLowerCase() == 'pending')
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.check_circle_outline),
+                  iconSize: 16,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  color: Colors.green,
+                  onPressed: () =>
+                      _updateDrawStatus(item, drawNumber, 'approved'),
+                  tooltip: 'Approve',
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.cancel_outlined),
+                  iconSize: 16,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  color: Colors.red,
+                  onPressed: () =>
+                      _updateDrawStatus(item, drawNumber, 'declined'),
+                  tooltip: 'Decline',
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -436,27 +487,27 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   }) {
     return Expanded(
       child: Container(
-        height: 130,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        height: 140, // Increased height
+        padding: const EdgeInsets.symmetric(
+            horizontal: 28, vertical: 20), // Increased padding
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
+          color: color.withOpacity(0.17),
+          borderRadius: BorderRadius.circular(16), // Increased radius
         ),
         child: Row(
           children: [
-            Container(
-              height: 100,
-              width: 120, // Increased from 100 to 120 for wider circle
+            SizedBox(
+              height: 110, // Increased size
+              width: 130, // Increased size
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    height: 100,
-                    width: 100,
+                    height: 110,
+                    width: 110,
                     child: CircularProgressIndicator(
                       value: percentage / 100,
-                      strokeWidth:
-                          12, // Increased from 8 to 12 for more prominent circle
+                      strokeWidth: 10, // Increased stroke width
                       backgroundColor: color.withOpacity(0.2),
                       valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
@@ -464,17 +515,15 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                   Text(
                     '${percentage.toInt()}%',
                     style: const TextStyle(
-                      fontSize:
-                          18, // Increased from 16 to 18 for better visibility
-                      fontWeight:
-                          FontWeight.bold, // Changed to bold for emphasis
+                      fontSize: 20, // Increased font size
+                      fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 20),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -483,7 +532,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                   Text(
                     label,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 18, // Increased font size
                       fontWeight: FontWeight.w500,
                       color: Colors.black87,
                     ),
@@ -492,7 +541,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                     Text(
                       '\$${totalDisbursed.toStringAsFixed(2)}',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 16, // Increased font size
                         color: color,
                         fontWeight: FontWeight.w500,
                       ),
@@ -501,92 +550,6 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopNav() {
-    return Container(
-      height: 64,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Logo and navigation items grouped together on the left
-          Padding(
-            padding: const EdgeInsets.only(left: 16.0),
-            child: Row(
-              children: [
-                // Logo
-                SvgPicture.string(
-                  '''<svg width="32" height="32" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
-                <ellipse cx="528" cy="429.5" rx="136.5" ry="136" transform="rotate(-90 528 429.5)" fill="white"/>
-                <circle cx="528" cy="1103" r="136" transform="rotate(-90 528 1103)" fill="white"/>
-                <circle cx="1001" cy="773" r="136" fill="white"/>
-                <ellipse cx="528" cy="774" rx="29" ry="28" fill="white"/>
-                <ellipse cx="808" cy="494" rx="29" ry="28" fill="white"/>
-                <ellipse cx="808" cy="1038.5" rx="29" ry="29.5" fill="white"/>
-                <defs>
-                <linearGradient id="paint0_linear_82_170" x1="1485.07" y1="0.00010633" x2="30.6199" y2="1485.07" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#FF1970"/>
-                <stop offset="0.145" stop-color="#E81766"/>
-                <stop offset="0.307358" stop-color="#DB12AF"/>
-                <stop offset="0.43385" stop-color="#BF09D5"/>
-                <stop offset="0.556871" stop-color="#A200FA"/>
-                <stop offset="0.698313" stop-color="#6500E9"/>
-                <stop offset="0.855" stop-color="#3C17DB"/>
-                <stop offset="1" stop-color="#2800D7"/>
-                </linearGradient>
-                </defs>
-                </svg>''',
-                  width: 32,
-                  height: 32,
-                ),
-                const SizedBox(width: 24),
-                // Home icon with navigation
-                _buildNavItem(
-                  icon: Icons.home_outlined,
-                  isActive: true,
-                  onTap: () => Navigator.of(context).pop(),
-                ),
-                // Settings icon
-                _buildNavItem(
-                  icon: Icons.settings_outlined,
-                  onTap: _showSettings,
-                ),
-              ],
-            ),
-          ),
-          const Spacer(), // Pushes everything else to the right
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    bool isActive = false,
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Icon(
-          icon,
-          color: isActive ? const Color(0xFF6500E9) : Colors.grey[600],
-          size: 24,
         ),
       ),
     );
@@ -602,7 +565,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             height: 50,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.grey[200],
+              color: const Color.fromARGB(255, 208, 205, 205),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -628,63 +591,10 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  Widget _buildSidebar() {
-    return Container(
-      width: 250,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: _buildSearchBar(),
-          ),
-          const Text(
-            "BIG T",
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          const Text(
-            "Construction",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _userSettings.name,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
-          ),
-          Text(
-            _userSettings.phone,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildSidebarItem(count: "2", label: "Draw Requests"),
-          _buildSidebarItem(count: "6", label: "Inspections"),
-          const Spacer(),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTableHeader(String text, {bool isFirst = false}) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.only(left: isFirst ? 16 : 8),
+        padding: EdgeInsets.only(left: isFirst ? 16 : 78),
         child: Text(
           text,
           style: const TextStyle(
@@ -719,7 +629,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: EdgeInsets.only(left: isFirst ? 16 : 8),
+          padding: EdgeInsets.only(left: isFirst ? 16 : 68),
           child: Text(
             isAmount ? '\$${double.parse(text).toStringAsFixed(2)}' : text,
             style: TextStyle(
@@ -734,88 +644,227 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   }
 
   Widget _buildDataTable() {
-    return Expanded(
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey[300]!),
-                ),
-              ),
-              child: Row(
-                children: [
-                  _buildTableHeader('Line Item', isFirst: true),
-                  _buildTableHeader('INSP'),
-                  _buildTableHeader('Draw 1'),
-                  _buildTableHeader('Draw 2'),
-                  _buildTableHeader('Draw 3'),
-                ],
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 25),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.grey[300]!),
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: filteredRequests.length,
-                itemBuilder: (context, index) {
-                  final item = filteredRequests[index];
-                  return InkWell(
-                    onTap: () => setState(() => _selectedRequest = item),
-                    child: Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: _selectedRequest == item
-                            ? Colors.blue.withOpacity(0.1)
-                            : null,
-                        border: Border(
-                          bottom: BorderSide(color: Colors.grey[200]!),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          _buildTableCell(item.lineItem, isFirst: true),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setState(() {
-                                item.inspected = !item.inspected;
-                              }),
-                              child: Container(
-                                padding: const EdgeInsets.only(left: 8),
-                                child: Icon(
-                                  item.inspected
-                                      ? Icons.check_circle
-                                      : Icons.warning,
-                                  color: item.inspected
-                                      ? Colors.green
-                                      : Colors.orange,
-                                  size: 20,
-                                ),
+            child: Row(
+              children: [
+                _buildTableHeader('Line Item', isFirst: true),
+                _buildTableHeader('INSP'),
+                _buildTableHeader('Draw 1'),
+                _buildTableHeader('Status'),
+                _buildTableHeader('Draw 2'),
+                _buildTableHeader('Status'),
+                _buildTableHeader('Draw 3'),
+                _buildTableHeader('Status'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: filteredRequests.length,
+              itemBuilder: (context, index) {
+                final item = filteredRequests[index];
+                return Container(
+                  height: 60, // Increased height for two rows
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[200]!),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildTableCell(item.lineItem, isFirst: true),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'INSP',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                          ),
-                          _buildEditableTableCell(item.draw1?.toString() ?? '-',
-                              isAmount: item.draw1 != null,
-                              onTap: () => _showDrawEditDialog(item, 1)),
-                          _buildEditableTableCell(item.draw2?.toString() ?? '-',
-                              isAmount: item.draw2 != null,
-                              onTap: () => _showDrawEditDialog(item, 2)),
-                          _buildEditableTableCell(item.draw3?.toString() ?? '-',
-                              isAmount: item.draw3 != null,
-                              onTap: () => _showDrawEditDialog(item, 3)),
-                        ],
+                            const SizedBox(height: 4),
+                            Icon(
+                              item.inspected
+                                  ? Icons.check_circle
+                                  : Icons.warning,
+                              color:
+                                  item.inspected ? Colors.green : Colors.orange,
+                              size: 18,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                      _buildEditableTableCell(
+                        item.draw1?.toString() ?? '-',
+                        isAmount: item.draw1 != null,
+                        onTap: () => _showDrawEditDialog(item, 1),
+                      ),
+                      _buildDrawStatusWidget(item, 1),
+                      _buildEditableTableCell(
+                        item.draw2?.toString() ?? '-',
+                        isAmount: item.draw2 != null,
+                        onTap: () => _showDrawEditDialog(item, 2),
+                      ),
+                      _buildDrawStatusWidget(item, 2),
+                      _buildEditableTableCell(
+                        item.draw3?.toString() ?? '-',
+                        isAmount: item.draw3 != null,
+                        onTap: () => _showDrawEditDialog(item, 3),
+                      ),
+                      _buildDrawStatusWidget(item, 3),
+                    ],
+                  ),
+                );
+              },
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar() {
+    return Container(
+      width: 280, // Increased width
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20), // Increased padding
+            child: _buildSearchBar(),
+          ),
+          const Text(
+            "BIG T",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+          ),
+          const Text(
+            "Construction",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _userSettings.name,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black,
+            ),
+          ),
+          Text(
+            _userSettings.phone,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSidebarItem(count: "2", label: "Draw Requests"),
+          _buildSidebarItem(count: "6", label: "Inspections"),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopNav() {
+    return Container(
+      height: 64,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0),
+            child: Row(
+              children: [
+                SvgPicture.string(
+                  '''<svg width="32" height="32" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
+                <ellipse cx="528" cy="429.5" rx="136.5" ry="136" transform="rotate(-90 528 429.5)" fill="white"/>
+                <circle cx="528" cy="1103" r="136" transform="rotate(-90 528 1103)" fill="white"/>
+                <circle cx="1001" cy="773" r="136" fill="white"/>
+                <ellipse cx="528" cy="774" rx="29" ry="28" fill="white"/>
+                <ellipse cx="808" cy="494" rx="29" ry="28" fill="white"/>
+                <ellipse cx="808" cy="1038.5" rx="29" ry="29.5" fill="white"/>
+                <defs>
+                <linearGradient id="paint0_linear_82_170" x1="1485.07" y1="0.00010633" x2="30.6199" y2="1485.07" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FF1970"/><stop offset="0.145" stop-color="#E81766"/>
+                <stop offset="0.307358" stop-color="#DB12AF"/><stop offset="0.43385" stop-color="#BF09D5"/>
+                <stop offset="0.556871" stop-color="#A200FA"/><stop offset="0.698313" stop-color="#6500E9"/>
+                <stop offset="0.855" stop-color="#3C17DB"/><stop offset="1" stop-color="#2800D7"/>
+                </linearGradient></defs></svg>''',
+                  width: 32,
+                  height: 32,
+                ),
+                const SizedBox(width: 24),
+                _buildNavItem(
+                  icon: Icons.home_outlined,
+                  isActive: true,
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+                _buildNavItem(
+                  icon: Icons.settings_outlined,
+                  onTap: _showSettings,
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    bool isActive = false,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Icon(
+          icon,
+          color: isActive ? const Color(0xFF6500E9) : Colors.grey[600],
+          size: 24,
         ),
       ),
     );
@@ -826,17 +875,18 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(
+            horizontal: 24, vertical: 20), // Increased padding
         child: Column(
           children: [
             _buildTopNav(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20), // Increased spacing
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSidebar(),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 24), // Increased spacing
                   Expanded(
                     child: Column(
                       children: [
@@ -847,7 +897,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                               label: 'Amount Disbursed',
                               color: const Color(0xFFE91E63),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 24), // Increased spacing
                             _buildProgressCircle(
                               percentage: projectCompletion,
                               label: 'Project Completion',
@@ -855,8 +905,10 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        _buildDataTable(),
+                        const SizedBox(height: 24), // Increased spacing
+                        Expanded(
+                          child: _buildDataTable(),
+                        ),
                       ],
                     ),
                   ),

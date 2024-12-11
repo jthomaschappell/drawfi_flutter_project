@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tester/screens/lender_screen.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -50,7 +52,9 @@ class DrawRequest {
 }
 
 class LoanDashboardScreen extends StatefulWidget {
-  const LoanDashboardScreen({super.key, required String loanId});
+  final String loanId; // Add this parameter
+
+  const LoanDashboardScreen({super.key, required this.loanId});
 
   @override
   State<LoanDashboardScreen> createState() => _LoanDashboardScreenState();
@@ -440,23 +444,30 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
         ),
         child: Row(
           children: [
-            SizedBox(
-              height: 80,
-              width: 80,
+            Container(
+              height: 100,
+              width: 120, // Increased from 100 to 120 for wider circle
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  CircularProgressIndicator(
-                    value: percentage / 100,
-                    strokeWidth: 8,
-                    backgroundColor: color.withOpacity(0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  SizedBox(
+                    height: 100,
+                    width: 100,
+                    child: CircularProgressIndicator(
+                      value: percentage / 100,
+                      strokeWidth:
+                          12, // Increased from 8 to 12 for more prominent circle
+                      backgroundColor: color.withOpacity(0.2),
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                    ),
                   ),
                   Text(
                     '${percentage.toInt()}%',
                     style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontSize:
+                          18, // Increased from 16 to 18 for better visibility
+                      fontWeight:
+                          FontWeight.bold, // Changed to bold for emphasis
                       color: Colors.black87,
                     ),
                   ),
@@ -497,83 +508,86 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
 
   Widget _buildTopNav() {
     return Container(
-      height: 48,
+      height: 64,
       decoration: BoxDecoration(
-        color: Colors.grey[400],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.home, color: Colors.white),
-            label: const Text(
-              'Home',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          TextButton.icon(
-            onPressed: _showNotifications,
-            icon: Stack(
-              children: [
-                const Icon(Icons.notifications, color: Colors.white),
-                if (_notifications.any((n) => !n.isRead))
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 8,
-                        minHeight: 8,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            label: const Text(
-              'Notifications',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          TextButton.icon(
-            onPressed: _showUserConfig,
-            icon: const Icon(Icons.person, color: Colors.white),
-            label: const Text(
-              'User Config',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          TextButton.icon(
-            onPressed: _showSettings,
-            icon: const Icon(Icons.settings, color: Colors.white),
-            label: const Text(
-              'Settings',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
+      ),
+      child: Row(
+        children: [
+          // Logo and navigation items grouped together on the left
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0),
+            child: Row(
+              children: [
+                // Logo
+                SvgPicture.string(
+                  '''<svg width="32" height="32" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
+                <ellipse cx="528" cy="429.5" rx="136.5" ry="136" transform="rotate(-90 528 429.5)" fill="white"/>
+                <circle cx="528" cy="1103" r="136" transform="rotate(-90 528 1103)" fill="white"/>
+                <circle cx="1001" cy="773" r="136" fill="white"/>
+                <ellipse cx="528" cy="774" rx="29" ry="28" fill="white"/>
+                <ellipse cx="808" cy="494" rx="29" ry="28" fill="white"/>
+                <ellipse cx="808" cy="1038.5" rx="29" ry="29.5" fill="white"/>
+                <defs>
+                <linearGradient id="paint0_linear_82_170" x1="1485.07" y1="0.00010633" x2="30.6199" y2="1485.07" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FF1970"/>
+                <stop offset="0.145" stop-color="#E81766"/>
+                <stop offset="0.307358" stop-color="#DB12AF"/>
+                <stop offset="0.43385" stop-color="#BF09D5"/>
+                <stop offset="0.556871" stop-color="#A200FA"/>
+                <stop offset="0.698313" stop-color="#6500E9"/>
+                <stop offset="0.855" stop-color="#3C17DB"/>
+                <stop offset="1" stop-color="#2800D7"/>
+                </linearGradient>
+                </defs>
+                </svg>''',
+                  width: 32,
+                  height: 32,
+                ),
+                const SizedBox(width: 24),
+                // Home icon with navigation
+                _buildNavItem(
+                  icon: Icons.home_outlined,
+                  isActive: true,
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+                // Settings icon
+                _buildNavItem(
+                  icon: Icons.settings_outlined,
+                  onTap: _showSettings,
+                ),
+              ],
+            ),
+          ),
+          const Spacer(), // Pushes everything else to the right
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    bool isActive = false,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Icon(
+          icon,
+          color: isActive ? const Color(0xFF6500E9) : Colors.grey[600],
+          size: 24,
+        ),
       ),
     );
   }

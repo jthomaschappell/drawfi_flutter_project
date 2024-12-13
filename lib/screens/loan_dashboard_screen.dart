@@ -57,6 +57,272 @@ class DrawRequest {
   double get totalDrawn => (draw1 ?? 0) + (draw2 ?? 0) + (draw3 ?? 0);
 }
 
+class ChatMessage {
+  final String sender;
+  final String message;
+  final DateTime timestamp;
+  final String role;
+  final String? avatarUrl;
+
+  ChatMessage({
+    required this.sender,
+    required this.message,
+    required this.timestamp,
+    required this.role,
+    this.avatarUrl,
+  });
+}
+
+class ChatSection extends StatefulWidget {
+  const ChatSection({super.key});
+
+  @override
+  State<ChatSection> createState() => _ChatSectionState();
+}
+
+class _ChatSectionState extends State<ChatSection> {
+  final TextEditingController _messageController = TextEditingController();
+  final List<ChatMessage> _messages = [
+    ChatMessage(
+      sender: 'Thomas Chappell',
+      message: 'Foundation work is complete. Ready for inspection.',
+      timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      role: 'Contractor',
+      avatarUrl: 'TC',
+    ),
+    ChatMessage(
+      sender: 'John Inspector',
+      message: 'I\'ll be there tomorrow at 9 AM.',
+      timestamp: DateTime.now().subtract(const Duration(hours: 23)),
+      role: 'Inspector',
+      avatarUrl: 'JI',
+    ),
+    ChatMessage(
+      sender: 'Sarah Lender',
+      message: 'Great, keep me updated on the inspection results.',
+      timestamp: DateTime.now().subtract(const Duration(hours: 22)),
+      role: 'Lender',
+      avatarUrl: 'SL',
+    ),
+  ];
+
+  Color _getRoleColor(String role) {
+    switch (role.toLowerCase()) {
+      case 'contractor':
+        return Colors.blue;
+      case 'inspector':
+        return Colors.green;
+      case 'lender':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildMessage(ChatMessage message, bool isMe) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          if (!isMe) ...[
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: _getRoleColor(message.role).withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  message.avatarUrl ?? message.sender[0],
+                  style: TextStyle(
+                    color: _getRoleColor(message.role),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Column(
+              crossAxisAlignment:
+                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                if (!isMe)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0, bottom: 2.0),
+                    child: Text(
+                      message.sender,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isMe ? Colors.blue[100] : Colors.grey[200],
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    message.message,
+                    style: TextStyle(
+                      color: isMe ? Colors.blue[900] : Colors.black87,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2.0, left: 4.0),
+                  child: Text(
+                    '${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isMe) const SizedBox(width: 40),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 300,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(12)),
+              border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.chat_bubble_outline, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Project Chat',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const Spacer(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_messages.length} messages',
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              reverse: true,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[_messages.length - 1 - index];
+                final isMe = message.role == 'Lender';
+                return _buildMessage(message, isMe);
+              },
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey[300]!)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: 'Type a message...',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send),
+                  color: Colors.blue,
+                  onPressed: () {
+                    if (_messageController.text.isNotEmpty) {
+                      setState(() {
+                        _messages.add(ChatMessage(
+                          sender: 'Sarah Lender',
+                          message: _messageController.text,
+                          timestamp: DateTime.now(),
+                          role: 'Lender',
+                          avatarUrl: 'SL',
+                        ));
+                        _messageController.clear();
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+}
+
 class LoanDashboardScreen extends StatefulWidget {
   final String loanId;
 
@@ -651,6 +917,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       ),
       child: Column(
         children: [
+          // Table header
           Container(
             padding: const EdgeInsets.symmetric(vertical: 25),
             decoration: BoxDecoration(
@@ -663,14 +930,12 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                 _buildTableHeader('Line Item', isFirst: true),
                 _buildTableHeader('INSP'),
                 _buildTableHeader('Draw 1'),
-                _buildTableHeader('Status'),
                 _buildTableHeader('Draw 2'),
-                _buildTableHeader('Status'),
                 _buildTableHeader('Draw 3'),
-                _buildTableHeader('Status'),
               ],
             ),
           ),
+          // Table content
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.zero,
@@ -678,7 +943,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
               itemBuilder: (context, index) {
                 final item = filteredRequests[index];
                 return Container(
-                  height: 60, // Increased height for two rows
+                  height: 40,
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(color: Colors.grey[200]!),
@@ -716,23 +981,42 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                         isAmount: item.draw1 != null,
                         onTap: () => _showDrawEditDialog(item, 1),
                       ),
-                      _buildDrawStatusWidget(item, 1),
                       _buildEditableTableCell(
                         item.draw2?.toString() ?? '-',
                         isAmount: item.draw2 != null,
                         onTap: () => _showDrawEditDialog(item, 2),
                       ),
-                      _buildDrawStatusWidget(item, 2),
                       _buildEditableTableCell(
                         item.draw3?.toString() ?? '-',
                         isAmount: item.draw3 != null,
                         onTap: () => _showDrawEditDialog(item, 3),
                       ),
-                      _buildDrawStatusWidget(item, 3),
                     ],
                   ),
                 );
               },
+            ),
+          ),
+          // Status lines at the bottom
+          Container(
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              border: Border(
+                top: BorderSide(color: Colors.grey[300]!),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Empty space for Line Item and INSP columns
+                Expanded(flex: 2, child: Container()),
+                // Draw 1 Status
+                Expanded(child: _buildVerticalDrawStatus(1)),
+                // Draw 2 Status
+                Expanded(child: _buildVerticalDrawStatus(2)),
+                // Draw 3 Status
+                Expanded(child: _buildVerticalDrawStatus(3)),
+              ],
             ),
           ),
         ],
@@ -740,9 +1024,88 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
+  Widget _buildVerticalDrawStatus(int drawNumber) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.check_circle_outline),
+          iconSize: 16,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          color: Colors.green,
+          onPressed: () => _approveVerticalDraw(drawNumber),
+          tooltip: 'Approve Draw $drawNumber',
+        ),
+        const SizedBox(width: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Text(
+            'PENDING',
+            style: TextStyle(
+              color: Colors.orange,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          icon: const Icon(Icons.cancel_outlined),
+          iconSize: 16,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          color: Colors.red,
+          onPressed: () => _declineVerticalDraw(drawNumber),
+          tooltip: 'Decline Draw $drawNumber',
+        ),
+      ],
+    );
+  }
+
+  void _approveVerticalDraw(int drawNumber) {
+    setState(() {
+      for (var item in _drawRequests) {
+        switch (drawNumber) {
+          case 1:
+            if (item.draw1 != null) item.draw1Status = 'approved';
+            break;
+          case 2:
+            if (item.draw2 != null) item.draw2Status = 'approved';
+            break;
+          case 3:
+            if (item.draw3 != null) item.draw3Status = 'approved';
+            break;
+        }
+      }
+    });
+  }
+
+  void _declineVerticalDraw(int drawNumber) {
+    setState(() {
+      for (var item in _drawRequests) {
+        switch (drawNumber) {
+          case 1:
+            if (item.draw1 != null) item.draw1Status = 'declined';
+            break;
+          case 2:
+            if (item.draw2 != null) item.draw2Status = 'declined';
+            break;
+          case 3:
+            if (item.draw3 != null) item.draw3Status = 'declined';
+            break;
+        }
+      }
+    });
+  }
+
   Widget _buildSidebar() {
     return Container(
-      width: 280, // Increased width
+      width: 280,
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey[300]!),
@@ -751,7 +1114,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(20), // Increased padding
+            padding: const EdgeInsets.all(20),
             child: _buildSearchBar(),
           ),
           const Text(
@@ -789,6 +1152,11 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           _buildSidebarItem(count: "2", label: "Draw Requests"),
           _buildSidebarItem(count: "6", label: "Inspections"),
           const Spacer(),
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: ChatSection(),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );

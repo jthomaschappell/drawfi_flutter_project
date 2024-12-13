@@ -57,7 +57,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
 </linearGradient>
 </defs>
 </svg>''';
-
+  List<LineItem> _lineItems = [];
   Future<void> _pickFiles() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
@@ -169,6 +169,199 @@ class _InvitationScreenState extends State<InvitationScreen> {
     );
   }
 
+  Widget _buildLineItemsTable() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Line Items',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF111827),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _lineItems.add(LineItem(description: '', amount: 0));
+                    });
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add Item'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                top: BorderSide(color: Colors.grey[200]!),
+                bottom: BorderSide(color: Colors.grey[200]!),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Description',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                ),
+                const Expanded(
+                  child: Text(
+                    'Amount',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 48),
+              ],
+            ),
+          ),
+          if (_lineItems.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: Text(
+                  'No line items added yet',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            )
+          else
+            ..._lineItems.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey[200]!),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: TextFormField(
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF111827),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Enter description',
+                          hintStyle: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          fillColor: Colors.white,
+                          filled: true,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            item.description = value;
+                          });
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: TextFormField(
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF111827),
+                        ),
+                        decoration: InputDecoration(
+                          hintText: '0.00',
+                          hintStyle: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          fillColor: Colors.white,
+                          filled: true,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 8),
+                          prefixText: '\$ ',
+                          prefixStyle: const TextStyle(
+                            color: Color(0xFF111827),
+                            fontSize: 14,
+                          ),
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        onChanged: (value) {
+                          setState(() {
+                            item.amount = double.tryParse(value) ?? 0;
+                          });
+                        },
+                      ),
+                    ),
+                    IconButton(
+                      icon:
+                          Icon(Icons.close, size: 20, color: Colors.grey[400]),
+                      onPressed: () {
+                        setState(() {
+                          _lineItems.removeAt(index);
+                        });
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFormField({
     required TextEditingController controller,
     required String label,
@@ -203,8 +396,17 @@ class _InvitationScreenState extends State<InvitationScreen> {
           child: TextField(
             controller: controller,
             maxLines: isMultiline ? 4 : 1,
+            style: const TextStyle(
+              color: Color(0xFF111827), // Text color when typing
+              fontSize: 14,
+            ),
             decoration: InputDecoration(
               hintText: hint,
+              hintStyle: const TextStyle(
+                color: Color(0xFF6B7280), // Darker placeholder text
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
               prefixIcon: prefixIcon != null
                   ? Icon(prefixIcon, color: const Color(0xFF6B7280))
                   : null,
@@ -397,6 +599,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
               prefixIcon: Icons.attach_money,
             ),
             const SizedBox(height: 24),
+            _buildLineItemsTable(),
             _buildFormField(
               controller: _loanNumberController,
               label: 'Loan Number',
@@ -870,4 +1073,14 @@ class FilePickerResult {
 class PlatformFile {
   final String name;
   PlatformFile({required this.name});
+}
+
+class LineItem {
+  String description;
+  double amount;
+
+  LineItem({
+    required this.description,
+    required this.amount,
+  });
 }

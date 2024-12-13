@@ -255,7 +255,7 @@ class _ChatSectionState extends State<ChatSection> {
   Widget build(BuildContext context) {
     final messages = _chats[_selectedChat] ?? [];
     return Container(
-      height: 400, // 240 + 189 (5cm in pixels)
+      height: 359, // 240 + 189 (5cm in pixels)
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),

@@ -82,29 +82,42 @@ class ChatSection extends StatefulWidget {
 
 class _ChatSectionState extends State<ChatSection> {
   final TextEditingController _messageController = TextEditingController();
-  final List<ChatMessage> _messages = [
-    ChatMessage(
-      sender: 'Thomas Chappell',
-      message: 'Foundation work is complete. Ready for inspection.',
-      timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      role: 'Contractor',
-      avatarUrl: 'TC',
-    ),
-    ChatMessage(
-      sender: 'John Inspector',
-      message: 'I\'ll be there tomorrow at 9 AM.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 23)),
-      role: 'Inspector',
-      avatarUrl: 'JI',
-    ),
-    ChatMessage(
-      sender: 'Sarah Lender',
-      message: 'Great, keep me updated on the inspection results.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 22)),
-      role: 'Lender',
-      avatarUrl: 'SL',
-    ),
-  ];
+  String _selectedChat = 'contractor'; // 'contractor' or 'inspector'
+
+  final Map<String, List<ChatMessage>> _chats = {
+    'contractor': [
+      ChatMessage(
+        sender: 'Thomas Chappell',
+        message: 'Hi Sarah, do you have a moment to discuss the timeline?',
+        timestamp: DateTime.now().subtract(const Duration(days: 2)),
+        role: 'Contractor',
+        avatarUrl: 'TC',
+      ),
+      ChatMessage(
+        sender: 'Sarah Lender',
+        message: 'Of course, what would you like to know?',
+        timestamp: DateTime.now().subtract(const Duration(days: 2)),
+        role: 'Lender',
+        avatarUrl: 'SL',
+      ),
+    ],
+    'inspector': [
+      ChatMessage(
+        sender: 'John Inspector',
+        message: 'Sarah, I noticed some concerns with the electrical work.',
+        timestamp: DateTime.now().subtract(const Duration(days: 3)),
+        role: 'Inspector',
+        avatarUrl: 'JI',
+      ),
+      ChatMessage(
+        sender: 'Sarah Lender',
+        message: 'Can you provide more details?',
+        timestamp: DateTime.now().subtract(const Duration(days: 3)),
+        role: 'Lender',
+        avatarUrl: 'SL',
+      ),
+    ],
+  };
 
   Color _getRoleColor(String role) {
     switch (role.toLowerCase()) {
@@ -165,13 +178,11 @@ class _ChatSectionState extends State<ChatSection> {
                     ),
                   ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: isMe ? Colors.blue[100] : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     message.message,
@@ -200,10 +211,51 @@ class _ChatSectionState extends State<ChatSection> {
     );
   }
 
+  Widget _buildChatSelector() {
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        children: [
+          Expanded(child: _buildChatTab('Contractor', 'contractor')),
+          Expanded(child: _buildChatTab('Inspector', 'inspector')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatTab(String label, String chatId) {
+    final isSelected = _selectedChat == chatId;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedChat = chatId),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.transparent,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.blue : Colors.grey[600],
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final messages = _chats[_selectedChat] ?? [];
     return Container(
-      height: 300,
+      height: 400, // 240 + 189 (5cm in pixels)
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -211,56 +263,14 @@ class _ChatSectionState extends State<ChatSection> {
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(12)),
-              border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.chat_bubble_outline, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'Project Chat',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                const Spacer(),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${_messages.length} messages',
-                    style: const TextStyle(
-                      color: Colors.green,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildChatSelector(),
           Expanded(
             child: ListView.builder(
               reverse: true,
               padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: _messages.length,
+              itemCount: messages.length,
               itemBuilder: (context, index) {
-                final message = _messages[_messages.length - 1 - index];
+                final message = messages[messages.length - 1 - index];
                 final isMe = message.role == 'Lender';
                 return _buildMessage(message, isMe);
               },
@@ -277,8 +287,10 @@ class _ChatSectionState extends State<ChatSection> {
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      hintText:
+                          'Message ${_selectedChat.substring(0, 1).toUpperCase()}${_selectedChat.substring(1)}...',
+                      hintStyle:
+                          TextStyle(color: Colors.grey[400], fontSize: 13),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide(color: Colors.grey[300]!),
@@ -288,15 +300,16 @@ class _ChatSectionState extends State<ChatSection> {
                         vertical: 8,
                       ),
                     ),
+                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send),
+                  icon: const Icon(Icons.send, size: 20),
                   color: Colors.blue,
                   onPressed: () {
                     if (_messageController.text.isNotEmpty) {
                       setState(() {
-                        _messages.add(ChatMessage(
+                        _chats[_selectedChat]!.add(ChatMessage(
                           sender: 'Sarah Lender',
                           message: _messageController.text,
                           timestamp: DateTime.now(),

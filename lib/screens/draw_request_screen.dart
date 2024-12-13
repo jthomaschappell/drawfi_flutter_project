@@ -1,3 +1,4 @@
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -82,28 +83,154 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Edit Requested Amount'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Amount',
-            prefixText: '\$',
+        contentPadding: const EdgeInsets.all(24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Edit Request Amount',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF111827),
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              request.lineItem,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Divider(color: Colors.grey[200]),
+          ],
+        ),
+        content: Container(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Amount',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF111827),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    hintStyle: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 16,
+                    ),
+                    prefixText: '\$ ',
+                    prefixStyle: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    border: InputBorder.none,
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                request.requestedAmount = double.tryParse(controller.text);
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Save'),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.grey[200]!),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey[600],
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      request.requestedAmount =
+                          double.tryParse(controller.text);
+                    });
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6500E9),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Save Changes',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -111,23 +238,36 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
   }
 
   Widget _buildSearchBar() {
-    return SizedBox(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       height: 36,
       child: TextField(
         controller: _searchController,
-        style: const TextStyle(fontSize: 14),
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF111827), // Dark text color
+        ),
         onChanged: (value) => setState(() => _searchQuery = value),
         decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
           hintText: 'Search line items...',
-          hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
-          prefixIcon: const Icon(Icons.search, size: 20),
+          hintStyle: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[700], // Darker hint text
+          ),
+          prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey[700]),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.grey),
+            borderSide: BorderSide(color: Colors.grey[300]!),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Colors.grey),
+            borderSide: BorderSide(color: Colors.grey[300]!),
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
         ),
@@ -189,8 +329,10 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                 const Text(
                   'New Draw Request',
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 22, // Increased size
+                    fontWeight: FontWeight.w800, // Bolder
+                    color: Color(0xFF111827), // Darker text
+                    letterSpacing: -0.5, // Tighter spacing
                   ),
                 ),
               ],
@@ -209,6 +351,13 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,55 +365,77 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
           const Text(
             'Draw Request Summary',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontSize: 20, // Increased size
+              fontWeight: FontWeight.w800, // Bolder
+              color: Color(0xFF111827), // Darker text
+              letterSpacing: -0.5, // Tighter spacing
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total Requested Amount',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6500E9).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total Requested Amount',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[800],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '\$${totalRequested.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6500E9),
+                      const SizedBox(height: 8),
+                      Text(
+                        '\$${totalRequested.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF6500E9),
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  // Submit draw request logic
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Draw request submitted successfully!'),
-                      backgroundColor: Colors.green,
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Draw request submitted successfully!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6500E9),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
                     ),
-                  );
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6500E9),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Submit Draw Request',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                child: const Text('Submit Draw Request'),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -294,7 +465,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                     child: Text(
                       'Line Item',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Color(0xFF111827), // Darker text
                       ),
                     ),
                   ),
@@ -302,7 +475,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                     child: Text(
                       'Status',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Color(0xFF111827), // Darker text
                       ),
                     ),
                   ),
@@ -310,7 +485,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                     child: Text(
                       'Amount',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Color(0xFF111827), // Darker text
                       ),
                     ),
                   ),
@@ -333,7 +510,14 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                         children: [
                           Expanded(
                             flex: 2,
-                            child: Text(request.lineItem),
+                            child: Text(
+                              request.lineItem,
+                              style: const TextStyle(
+                                color: Color(0xFF111827), // Darker text
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                           Expanded(
                             child: Row(
@@ -343,8 +527,8 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                                       ? Icons.check_circle
                                       : Icons.pending,
                                   color: request.inspected
-                                      ? Colors.green
-                                      : Colors.orange,
+                                      ? Colors.green[700]
+                                      : Colors.orange[700],
                                   size: 20,
                                 ),
                                 const SizedBox(width: 4),
@@ -352,8 +536,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                                   request.inspected ? 'Verified' : 'Pending',
                                   style: TextStyle(
                                     color: request.inspected
-                                        ? Colors.green
-                                        : Colors.orange,
+                                        ? Colors.green[700]
+                                        : Colors.orange[700],
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -366,8 +551,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                                 request.requestedAmount != null
                                     ? '\$${request.requestedAmount!.toStringAsFixed(2)}'
                                     : 'Add Amount',
-                                style: TextStyle(
-                                  color: const Color(0xFF6500E9),
+                                style: const TextStyle(
+                                  color: Color(0xFF6500E9),
+                                  fontWeight: FontWeight.w500,
                                   decoration: TextDecoration.underline,
                                 ),
                               ),
@@ -386,6 +572,249 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     );
   }
 
+  Widget _buildDocumentUpload() {
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Supporting Documents',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF111827),
+            ),
+          ),
+          const SizedBox(height: 16),
+          DottedBorder(
+            // Using DottedBorder instead of BorderStyle.dashed
+            borderType: BorderType.RRect,
+            radius: const Radius.circular(12),
+            color: const Color(0xFF6500E9),
+            strokeWidth: 2,
+            dashPattern: const [8, 4],
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6500E9).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.cloud_upload_outlined,
+                      color: Color(0xFF6500E9),
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Drag & Drop files here',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'or browse from device',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // List of uploaded files would go here
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressCircles() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 180, // Increased height
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  height: 140, // Increased size (approximately 10cm)
+                  width: 140, // Increased size (approximately 10cm)
+                  child: Stack(
+                    alignment: Alignment.center, // Center the text
+                    children: [
+                      SizedBox(
+                        height: 140,
+                        width: 140,
+                        child: CircularProgressIndicator(
+                          value: 0.75,
+                          strokeWidth: 12, // Made stroke thicker
+                          backgroundColor: Colors.grey[200],
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFF6500E9),
+                          ),
+                        ),
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text(
+                            '75%',
+                            style: TextStyle(
+                              fontSize: 36, // Larger text
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF111827),
+                            ),
+                          ),
+                          Text(
+                            'Complete',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        'Project Progress',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '15 of 20 items completed',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        // Second circle (Budget Status) with same changes
+        Expanded(
+          child: Container(
+            height: 180, // Increased height
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  height: 140, // Increased size
+                  width: 140, // Increased size
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        height: 140,
+                        width: 140,
+                        child: CircularProgressIndicator(
+                          value: 0.45,
+                          strokeWidth: 12,
+                          backgroundColor: Colors.grey[200],
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Colors.green,
+                          ),
+                        ),
+                      ),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text(
+                            '45%',
+                            style: TextStyle(
+                              fontSize: 36, // Larger text
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF111827),
+                            ),
+                          ),
+                          Text(
+                            'Disbursed',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        'Budget Status',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '\$450,000 of \$1M disbursed',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -395,15 +824,25 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
           _buildTopNav(),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+              padding: const EdgeInsets.all(24),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSummaryCard(),
-                  const SizedBox(height: 16),
-                  _buildSearchBar(),
-                  const SizedBox(height: 16),
-                  _buildDataTable(),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildProgressCircles(),
+                        const SizedBox(height: 24),
+                        _buildSearchBar(),
+                        const SizedBox(height: 24),
+                        _buildDataTable(),
+                        const SizedBox(height: 24),
+                        _buildSummaryCard(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  _buildDocumentUpload(),
                 ],
               ),
             ),

@@ -1,12 +1,24 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:file_picker/file_picker.dart';
 
 class InvitationScreen extends StatefulWidget {
   const InvitationScreen({Key? key}) : super(key: key);
 
   @override
   State<InvitationScreen> createState() => _InvitationScreenState();
+}
+
+class LineItem {
+  String description;
+  double amount;
+
+  LineItem({
+    required this.description,
+    required this.amount,
+  });
 }
 
 class _InvitationScreenState extends State<InvitationScreen> {
@@ -59,16 +71,106 @@ class _InvitationScreenState extends State<InvitationScreen> {
 </svg>''';
   List<LineItem> _lineItems = [];
   Future<void> _pickFiles() async {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'jpg', 'png'],
-    );
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'png', 'csv'],
+        withData: true, // Add this
+      );
 
-    if (result != null) {
-      setState(() {
-        _uploadedFiles = result.files;
-      });
+      if (result != null) {
+        setState(() {
+          _uploadedFiles = result.files;
+        });
+      }
+    } catch (e) {
+      print('Error picking files: $e');
+    }
+  }
+
+  Future<void> _pickAndParseCSV() async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Processing CSV file...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        withData: true,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        print('File picked: ${file.name}'); // Debug log
+
+        if (file.bytes != null) {
+          final content = String.fromCharCodes(file.bytes!);
+          print('File content: $content'); // Debug log
+
+          final lines = content.split('\n');
+          print('Number of lines: ${lines.length}'); // Debug log
+
+          // Clear existing items
+          setState(() {
+            _lineItems = [];
+          });
+
+          // Process each line (skip header)
+          for (var i = 1; i < lines.length; i++) {
+            final line = lines[i].trim();
+            if (line.isEmpty) continue;
+
+            print('Processing line $i: $line'); // Debug log
+
+            final values = line.split(',');
+            if (values.length >= 2) {
+              final description = values[0].trim();
+              // Simply parse the number directly since it's a plain integer
+              final amount = double.tryParse(values[1].trim()) ?? 0.0;
+
+              print(
+                  'Parsed values - Description: $description, Amount: $amount'); // Debug log
+
+              setState(() {
+                _lineItems.add(LineItem(
+                  description: description,
+                  amount: amount,
+                ));
+                print(
+                    'Current line items length: ${_lineItems.length}'); // Add this debug line
+                print(
+                    'Last added item: ${_lineItems.last.description} - ${_lineItems.last.amount}'); // Add this line
+              });
+            }
+          }
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('CSV imported successfully'),
+              backgroundColor: Color(0xFF4F46E5),
+            ),
+          );
+        }
+      }
+    } catch (e, stackTrace) {
+      print('Error parsing CSV: $e');
+      print('Stack trace: $stackTrace');
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error importing CSV: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -216,6 +318,46 @@ class _InvitationScreenState extends State<InvitationScreen> {
             ),
           ),
           Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Import from CSV',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _pickAndParseCSV, // Just this one line changes
+                      icon: const Icon(Icons.upload_file),
+                      label: const Text('Upload CSV'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF4F46E5),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'CSV should have columns: Description, Amount',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -282,6 +424,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                     Expanded(
                       flex: 3,
                       child: TextFormField(
+                        initialValue: item.description,
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF111827),
@@ -308,6 +451,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                     ),
                     Expanded(
                       child: TextFormField(
+                        initialValue: item.amount.toString(),
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF111827),
@@ -1047,40 +1191,4 @@ class _InvitationScreenState extends State<InvitationScreen> {
 }
 
 // Mock classes for FilePicker
-class FileType {
-  static const custom = 'custom';
-}
 
-class FilePicker {
-  static final platform = _FilePickerPlatform();
-}
-
-class _FilePickerPlatform {
-  Future<FilePickerResult?> pickFiles({
-    bool? allowMultiple,
-    String? type,
-    List<String>? allowedExtensions,
-  }) async {
-    return null;
-  }
-}
-
-class FilePickerResult {
-  final List<PlatformFile> files;
-  FilePickerResult(this.files);
-}
-
-class PlatformFile {
-  final String name;
-  PlatformFile({required this.name});
-}
-
-class LineItem {
-  String description;
-  double amount;
-
-  LineItem({
-    required this.description,
-    required this.amount,
-  });
-}

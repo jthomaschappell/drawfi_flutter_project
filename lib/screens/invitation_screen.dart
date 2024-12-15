@@ -1,8 +1,8 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:math' as math;
 
 class InvitationScreen extends StatefulWidget {
   const InvitationScreen({Key? key}) : super(key: key);
@@ -70,6 +70,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
 </defs>
 </svg>''';
   List<LineItem> _lineItems = [];
+
   Future<void> _pickFiles() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -91,7 +92,6 @@ class _InvitationScreenState extends State<InvitationScreen> {
 
   Future<void> _pickAndParseCSV() async {
     try {
-      // Show loading indicator
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Processing CSV file...'),
@@ -108,18 +108,26 @@ class _InvitationScreenState extends State<InvitationScreen> {
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        print('File picked: ${file.name}'); // Debug log
+        print('File picked: ${file.name}');
 
         if (file.bytes != null) {
           final content = String.fromCharCodes(file.bytes!);
-          print('File content: $content'); // Debug log
-
           final lines = content.split('\n');
-          print('Number of lines: ${lines.length}'); // Debug log
+          print('Number of lines: ${lines.length}');
 
-          // Clear existing items
+          // Find Description and Amount columns in header
+          final headers =
+              lines[0].split(',').map((h) => h.trim().toLowerCase()).toList();
+          final descriptionIndex =
+              headers.indexWhere((h) => h.contains('description'));
+          final amountIndex = headers.indexWhere((h) => h.contains('amount'));
+
+          if (descriptionIndex == -1 || amountIndex == -1) {
+            throw Exception('CSV must contain Description and Amount columns');
+          }
+
           setState(() {
-            _lineItems = [];
+            _lineItems = []; // Clear existing items
           });
 
           // Process each line (skip header)
@@ -127,31 +135,20 @@ class _InvitationScreenState extends State<InvitationScreen> {
             final line = lines[i].trim();
             if (line.isEmpty) continue;
 
-            print('Processing line $i: $line'); // Debug log
-
             final values = line.split(',');
-            if (values.length >= 2) {
-              final description = values[0].trim();
-              // Simply parse the number directly since it's a plain integer
-              final amount = double.tryParse(values[1].trim()) ?? 0.0;
-
-              print(
-                  'Parsed values - Description: $description, Amount: $amount'); // Debug log
+            if (values.length > math.max(descriptionIndex, amountIndex)) {
+              final description = values[descriptionIndex].trim();
+              final amount = double.tryParse(values[amountIndex].trim()) ?? 0.0;
 
               setState(() {
                 _lineItems.add(LineItem(
                   description: description,
                   amount: amount,
                 ));
-                print(
-                    'Current line items length: ${_lineItems.length}'); // Add this debug line
-                print(
-                    'Last added item: ${_lineItems.last.description} - ${_lineItems.last.amount}'); // Add this line
               });
             }
           }
 
-          // Show success message
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('CSV imported successfully'),
@@ -164,7 +161,6 @@ class _InvitationScreenState extends State<InvitationScreen> {
       print('Error parsing CSV: $e');
       print('Stack trace: $stackTrace');
 
-      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error importing CSV: ${e.toString()}'),

@@ -200,7 +200,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
       });
     }
   }
-
+  
   Widget _buildStepIndicator() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:tester/screens/Gc_Settings_Screen.dart';
+import 'package:tester/screens/gc_settings_screen.dart';
 import 'package:tester/screens/draw_request_screen.dart';
 
 class ContractorScreen extends StatefulWidget {

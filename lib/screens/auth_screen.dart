@@ -58,6 +58,10 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  /// TODO:
+  /// 12.17.2024
+  /// This function is a work in progress.
+  /// When we are done with it, it will go into the auth_service.dart?
   void _handleForgotPassword() async {
     final email = _emailController.text.trim();
     if (email.isEmpty) {

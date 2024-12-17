@@ -90,7 +90,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
     }
   }
 
-Future<void> _pickAndParseCSV() async {
+  Future<void> _pickAndParseCSV() async {
     try {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -139,13 +139,6 @@ Future<void> _pickAndParseCSV() async {
             if (values.length > math.max(descriptionIndex, amountIndex)) {
               final description = values[descriptionIndex].trim();
               final amount = double.tryParse(values[amountIndex].trim()) ?? 0.0;
-
-              // Extract numbers from description using RegExp
-              final numberRegExp = RegExp(r'\d+\.?\d*');
-              final matches = numberRegExp.allMatches(description);
-              for (final match in matches) {
-                print('Number found in description: ${match.group(0)}');
-              }
 
               setState(() {
                 _lineItems.add(LineItem(

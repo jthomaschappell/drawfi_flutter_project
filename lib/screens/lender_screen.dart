@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tester/loan_dashboard/loan_dashboard_screen.dart';
 import 'package:tester/screens/notifications_screen.dart';
 import 'package:tester/screens/invitation_screen.dart';
-import 'package:tester/screens/loan_dashboard_screen.dart';
 import 'package:tester/screens/projects_screen.dart';
 import 'package:tester/screens/settings_screen.dart';
 
@@ -488,10 +488,10 @@ class _LenderScreenState extends State<LenderScreen> {
                         valueColor: const AlwaysStoppedAnimation<Color>(
                             Color(0xFF6500E9)),
                       ),
-                      Center(
+                      const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Text(
                               '75%',
                               style: TextStyle(
@@ -514,11 +514,11 @@ class _LenderScreenState extends State<LenderScreen> {
                   ),
                 ),
                 const SizedBox(width: 20),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text(
                         'Project Progress',
                         style: TextStyle(
@@ -566,10 +566,10 @@ class _LenderScreenState extends State<LenderScreen> {
                         valueColor:
                             const AlwaysStoppedAnimation<Color>(Colors.green),
                       ),
-                      Center(
+                      const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Text(
                               '45%',
                               style: TextStyle(
@@ -592,11 +592,11 @@ class _LenderScreenState extends State<LenderScreen> {
                   ),
                 ),
                 const SizedBox(width: 20),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text(
                         'Budget Status',
                         style: TextStyle(
@@ -719,35 +719,6 @@ class _LenderScreenState extends State<LenderScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () async {
-                          print("The user profile button was pressed");
-                          print(
-                            "The user profile full name is ${widget.userProfile['name']}",
-                          );
-                          // DONE: Get all of the user profile data
-                          print("The user profile is ${widget.userProfile}");
-                          final userId = widget.userProfile['user_id'];
-                          print("The user profile ID is $userId");
-                          // TODO: Get all of the loan data for this specific user.
-                          final response = await supabase
-                              .from('construction_loans')
-                              .select();
-                          // .eq('lender_id', userId);
-                          print(
-                            "This is the data for all loans: $response",
-                          );
-                          /**
-                           * START HERE: 
-                           * TODO: 
-                           * The response is showing up as an empty list. 
-                           * What might be going on? 
-                           */
-                        },
-                        child: const Text(
-                          "Get user profile data button",
-                        ),
-                      ),
                       Text(
                         widget.userProfile['name'] ?? '',
                         style: const TextStyle(
@@ -993,7 +964,7 @@ class _LenderScreenState extends State<LenderScreen> {
                             itemBuilder: (context, index) => ProjectCard(
                               project: _projects[index],
                               onTap: () =>
-                                  _showProjectDetails(_projects[index]),
+                                  _goToLoanDashboardScreen(_projects[index]),
                             ),
                           ),
                       ],
@@ -1026,7 +997,8 @@ class _LenderScreenState extends State<LenderScreen> {
     );
   }
 
-  void _showProjectDetails(Project project) {
+  void _goToLoanDashboardScreen(Project project) {
+    print("ATTENTION EVERYONE: What is the project ID here in showProjectDetails: ${project.id}");
     // Navigate to LoanDashboardScreen instead of showing modal
     Navigator.push(
       context,

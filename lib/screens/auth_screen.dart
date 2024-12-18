@@ -419,7 +419,8 @@ class _AuthScreenState extends State<AuthScreen> {
           await supabase.from('users').select().eq('user_id', userId).single();
 
       print(
-          "(Inside of getUserProfile, we grab this from the 'users' table) Basic user info: $userResponse");
+        "(Inside of getUserProfile, we grab this from the 'users' table) Basic user info: $userResponse",
+      );
 
       if (userResponse == null) {
         print("No user found");

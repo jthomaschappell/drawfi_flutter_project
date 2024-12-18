@@ -1,77 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tester/screens/lender_screen.dart';
+import 'package:tester/loan_dashboard/models/loan_dashboard_chat_message.dart';
+import 'package:tester/loan_dashboard/models/loan_dashboard_draw_request.dart';
+import 'package:tester/loan_dashboard/models/loan_dashboard_notification.dart';
+import 'package:tester/loan_dashboard/models/loan_dashboard_user_settings.dart';
 
 final supabase = Supabase.instance.client;
-
-class Notification {
-  final String title;
-  final String message;
-  final DateTime time;
-  bool isRead;
-
-  Notification({
-    required this.title,
-    required this.message,
-    required this.time,
-    this.isRead = false,
-  });
-}
-
-class UserSettings {
-  String name;
-  String email;
-  String phone;
-  String role;
-
-  UserSettings({
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.role,
-  });
-}
-
-class DrawRequest {
-  final String lineItem;
-  bool inspected;
-  double? draw1;
-  double? draw2;
-  double? draw3;
-  String? draw1Status;
-  String? draw2Status;
-  String? draw3Status;
-
-  DrawRequest({
-    required this.lineItem,
-    required this.inspected,
-    this.draw1,
-    this.draw2,
-    this.draw3,
-    this.draw1Status = 'pending',
-    this.draw2Status = 'pending',
-    this.draw3Status = 'pending',
-  });
-
-  double get totalDrawn => (draw1 ?? 0) + (draw2 ?? 0) + (draw3 ?? 0);
-}
-
-class ChatMessage {
-  final String sender;
-  final String message;
-  final DateTime timestamp;
-  final String role;
-  final String? avatarUrl;
-
-  ChatMessage({
-    required this.sender,
-    required this.message,
-    required this.timestamp,
-    required this.role,
-    this.avatarUrl,
-  });
-}
 
 class ChatSection extends StatefulWidget {
   const ChatSection({super.key});
@@ -84,16 +19,16 @@ class _ChatSectionState extends State<ChatSection> {
   final TextEditingController _messageController = TextEditingController();
   String _selectedChat = 'contractor'; // 'contractor' or 'inspector'
 
-  final Map<String, List<ChatMessage>> _chats = {
+  final Map<String, List<LoanDashboardChatMessage>> _chats = {
     'contractor': [
-      ChatMessage(
+      LoanDashboardChatMessage(
         sender: 'Thomas Chappell',
         message: 'Hi Sarah, do you have a moment to discuss the timeline?',
         timestamp: DateTime.now().subtract(const Duration(days: 2)),
         role: 'Contractor',
         avatarUrl: 'TC',
       ),
-      ChatMessage(
+      LoanDashboardChatMessage(
         sender: 'Sarah Lender',
         message: 'Of course, what would you like to know?',
         timestamp: DateTime.now().subtract(const Duration(days: 2)),
@@ -102,14 +37,14 @@ class _ChatSectionState extends State<ChatSection> {
       ),
     ],
     'inspector': [
-      ChatMessage(
+      LoanDashboardChatMessage(
         sender: 'John Inspector',
         message: 'Sarah, I noticed some concerns with the electrical work.',
         timestamp: DateTime.now().subtract(const Duration(days: 3)),
         role: 'Inspector',
         avatarUrl: 'JI',
       ),
-      ChatMessage(
+      LoanDashboardChatMessage(
         sender: 'Sarah Lender',
         message: 'Can you provide more details?',
         timestamp: DateTime.now().subtract(const Duration(days: 3)),
@@ -132,7 +67,7 @@ class _ChatSectionState extends State<ChatSection> {
     }
   }
 
-  Widget _buildMessage(ChatMessage message, bool isMe) {
+  Widget _buildMessage(LoanDashboardChatMessage message, bool isMe) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       child: Row(
@@ -309,7 +244,7 @@ class _ChatSectionState extends State<ChatSection> {
                   onPressed: () {
                     if (_messageController.text.isNotEmpty) {
                       setState(() {
-                        _chats[_selectedChat]!.add(ChatMessage(
+                        _chats[_selectedChat]!.add(LoanDashboardChatMessage(
                           sender: 'Sarah Lender',
                           message: _messageController.text,
                           timestamp: DateTime.now(),
@@ -348,35 +283,133 @@ class LoanDashboardScreen extends StatefulWidget {
 class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  DrawRequest? _selectedRequest;
+  LoanDashboardDrawRequest? _selectedRequest;
+  final supabase = Supabase.instance.client;
+  String companyName = "Loading...";
 
-  final List<Notification> _notifications = [
-    Notification(
+  @override
+  void initState() {
+    super.initState();
+    _fetchCompanyName();
+  }
+
+  Future<void> _fetchCompanyName() async {
+    try {
+      // Fetch contractor_id for the loan
+      final contractorResponse = await supabase
+          .from('construction_loans')
+          .select('contractor_id')
+          .eq('loan_id', widget.loanId)
+          .single();
+      final contractorId = contractorResponse['contractor_id'];
+      print(
+        "The contractor id is $contractorId",
+      );
+
+      // Fetch company_name for the contractor_id
+      final companyResponse = await supabase
+          .from('contractors')
+          .select('company_name')
+          .eq('contractor_id', contractorId)
+          .single();
+
+      print("This is the company response: $companyResponse");
+
+      final fetchedCompanyName = companyResponse['company_name'];
+
+      setState(() {
+        companyName = fetchedCompanyName;
+      });
+    } catch (e) {
+      print("Error fetching company name: $e");
+      setState(() {
+        companyName = "Unknown Company";
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 20,
+        ), // Increased padding
+        child: Column(
+          children: [
+            _buildTopNav(),
+            const SizedBox(
+              height: 20,
+            ), // Increased spacing
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSidebar(),
+                  const SizedBox(width: 24), // Increased spacing
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            _buildProgressCircle(
+                              percentage: (totalDisbursed / 200000) * 100,
+                              label: 'Amount Disbursed',
+                              color: const Color(0xFFE91E63),
+                            ),
+                            const SizedBox(width: 24), // Increased spacing
+                            _buildProgressCircle(
+                              percentage: projectCompletion,
+                              label: 'Project Completion',
+                              color: const Color.fromARGB(255, 51, 7, 163),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24), // Increased spacing
+                        Expanded(
+                          child: _buildDataTable(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  final List<LoanDashboardNotification> _notifications = [
+    LoanDashboardNotification(
       title: 'New Draw Request',
       message: 'Foundation work draw request submitted',
       time: DateTime.now().subtract(const Duration(hours: 2)),
     ),
-    Notification(
+    LoanDashboardNotification(
       title: 'Inspection Complete',
       message: 'Framing inspection has been completed',
       time: DateTime.now().subtract(const Duration(days: 1)),
     ),
-    Notification(
+    LoanDashboardNotification(
       title: 'Payment Processed',
       message: 'Draw payment for electrical work processed',
       time: DateTime.now().subtract(const Duration(days: 2)),
     ),
   ];
 
-  UserSettings _userSettings = UserSettings(
+  final LoanDashboardUserSettings _userSettings = LoanDashboardUserSettings(
     name: 'Thomas Chappell',
     email: 'thomas@bigt.com',
     phone: '678-999-8212',
     role: 'Contractor',
   );
 
-  final List<DrawRequest> _drawRequests = [
-    DrawRequest(
+  final List<LoanDashboardDrawRequest> _drawRequests = [
+    LoanDashboardDrawRequest(
       lineItem: 'Foundation Work',
       inspected: true,
       draw1: 15000,
@@ -384,19 +417,19 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       draw1Status: 'pending',
       draw2Status: 'pending',
     ),
-    DrawRequest(
+    LoanDashboardDrawRequest(
       lineItem: 'Framing',
       inspected: true,
       draw1: 30000,
       draw1Status: 'pending',
     ),
-    DrawRequest(
+    LoanDashboardDrawRequest(
       lineItem: 'Electrical',
       inspected: false,
       draw1: 12000,
       draw1Status: 'pending',
     ),
-    DrawRequest(
+    LoanDashboardDrawRequest(
       lineItem: 'Plumbing',
       inspected: true,
       draw1: 8000,
@@ -404,19 +437,19 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       draw1Status: 'pending',
       draw2Status: 'pending',
     ),
-    DrawRequest(
+    LoanDashboardDrawRequest(
       lineItem: 'HVAC Installation',
       inspected: false,
       draw1: 20000,
       draw1Status: 'pending',
     ),
-    DrawRequest(
+    LoanDashboardDrawRequest(
       lineItem: 'Roofing',
       inspected: true,
       draw1: 25000,
       draw1Status: 'pending',
     ),
-    DrawRequest(
+    LoanDashboardDrawRequest(
       lineItem: 'Interior Finishing',
       inspected: false,
       draw1: 18000,
@@ -424,7 +457,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     ),
   ];
 
-  List<DrawRequest> get filteredRequests {
+  List<LoanDashboardDrawRequest> get filteredRequests {
     if (_searchQuery.isEmpty) return _drawRequests;
     return _drawRequests
         .where((request) =>
@@ -441,7 +474,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     return (completedItems / _drawRequests.length) * 100;
   }
 
-  void _updateDrawStatus(DrawRequest item, int drawNumber, String status) {
+  void _updateDrawStatus(LoanDashboardDrawRequest item, int drawNumber, String status) {
     setState(() {
       switch (drawNumber) {
         case 1:
@@ -457,14 +490,14 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     });
   }
 
-  void _showNotifications() {
+  void _showLoanDashboardNotifications() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Notifications'),
+            const Text('LoanDashboardNotifications'),
             TextButton(
               onPressed: () {
                 setState(() {
@@ -534,7 +567,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.notifications_active),
-                title: const Text('Email Notifications'),
+                title: const Text('Email LoanDashboardNotifications'),
                 trailing: Switch(
                   value: true,
                   onChanged: (value) {},
@@ -575,7 +608,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  void _showDrawEditDialog(DrawRequest request, int drawNumber) {
+  void _showDrawEditDialog(LoanDashboardDrawRequest request, int drawNumber) {
     final controller = TextEditingController(
         text: drawNumber == 1
             ? request.draw1?.toString()
@@ -670,7 +703,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  Widget _buildDrawStatusWidget(DrawRequest item, int drawNumber) {
+  Widget _buildDrawStatusWidget(LoanDashboardDrawRequest item, int drawNumber) {
     String? status;
     double? amount;
 
@@ -1130,16 +1163,16 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             padding: const EdgeInsets.all(20),
             child: _buildSearchBar(),
           ),
-          const Text(
-            "BIG T",
-            style: TextStyle(
+          Text(
+            companyName,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
               color: Colors.black,
             ),
           ),
           const Text(
-            "Construction",
+            "Construction Loan",
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w500,
@@ -1246,57 +1279,6 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           icon,
           color: isActive ? const Color(0xFF6500E9) : Colors.grey[600],
           size: 24,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 24, vertical: 20), // Increased padding
-        child: Column(
-          children: [
-            _buildTopNav(),
-            const SizedBox(height: 20), // Increased spacing
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSidebar(),
-                  const SizedBox(width: 24), // Increased spacing
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            _buildProgressCircle(
-                              percentage: (totalDisbursed / 200000) * 100,
-                              label: 'Amount Disbursed',
-                              color: const Color(0xFFE91E63),
-                            ),
-                            const SizedBox(width: 24), // Increased spacing
-                            _buildProgressCircle(
-                              percentage: projectCompletion,
-                              label: 'Project Completion',
-                              color: const Color.fromARGB(255, 51, 7, 163),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24), // Increased spacing
-                        Expanded(
-                          child: _buildDataTable(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

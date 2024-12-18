@@ -25,11 +25,6 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   String contractorPhone = "Loading...";
 
   List<LoanLineItem> _loanLineItems = [
-    /**
-     * Take out the hardcoded values for these. 
-     * 
-     * Labeling them as draw requests is a misnomer. They are rows with columns. 
-     */
     LoanLineItem(
       lineItem: 'Foundation Work',
       // inspected: true,

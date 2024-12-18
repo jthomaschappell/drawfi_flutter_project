@@ -3,8 +3,6 @@ import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/loan_dashboard/chat/loan_chat_section.dart';
 import 'package:tester/loan_dashboard/models/loan_draw_request.dart';
-import 'package:tester/loan_dashboard/models/loan_notification.dart';
-import 'package:tester/loan_dashboard/models/loan_user_settings.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -20,34 +18,11 @@ class LoanDashboardScreen extends StatefulWidget {
 class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  LoanDrawRequest? _selectedRequest;
   final supabase = Supabase.instance.client;
   String companyName = "Loading...";
-
-  final List<LoanNotification> _notifications = [
-    LoanNotification(
-      title: 'New Draw Request',
-      message: 'Foundation work draw request submitted',
-      time: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    LoanNotification(
-      title: 'Inspection Complete',
-      message: 'Framing inspection has been completed',
-      time: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    LoanNotification(
-      title: 'Payment Processed',
-      message: 'Draw payment for electrical work processed',
-      time: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-  ];
-
-  final LoanUserSettings _userSettings = LoanUserSettings(
-    name: 'Thomas Chappell',
-    email: 'thomas@bigt.com',
-    phone: '678-999-8212',
-    role: 'Contractor',
-  );
+  String contractorName = "Loading...";
+  String contractorEmail = "Muffins...";
+  String contractorPhone = "Muffins...";
 
   final List<LoanDrawRequest> _drawRequests = [
     LoanDrawRequest(
@@ -118,43 +93,120 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchCompanyName();
+    setContractorDetails();
   }
 
-  Future<void> _fetchCompanyName() async {
+  Future<void> setContractorDetails() async {
     try {
       // Fetch contractor_id for the loan
-      final contractorResponse = await supabase
+      final loanResponse = await supabase
           .from('construction_loans')
           .select('contractor_id')
           .eq('loan_id', widget.loanId)
           .single();
-      final contractorId = contractorResponse['contractor_id'];
-      print(
-        "The contractor id is $contractorId",
-      );
+      final contractorId = loanResponse['contractor_id'];
+      print("The contractor id is $contractorId");
 
-      // Fetch company_name for the contractor_id
-      final companyResponse = await supabase
+      // fetch contractor name for the contractor id.
+      final contractorResponse = await supabase
           .from('contractors')
-          .select('company_name')
+          .select()
           .eq('contractor_id', contractorId)
           .single();
+      print("This is the contractor response: $contractorResponse");
 
-      print("This is the company response: $companyResponse");
-
-      final fetchedCompanyName = companyResponse['company_name'];
-
+      // Wrap all state updates in setState
       setState(() {
-        companyName = fetchedCompanyName;
+        contractorName = contractorResponse['full_name'];
+        companyName = contractorResponse['company_name'];
+        contractorEmail = contractorResponse['email'];
+        contractorPhone = contractorResponse['phone'];
       });
+
+      print("Contractor details name is $contractorName");
+      print("Contractor details company name is $companyName");
+      print("Contractor details email is $contractorEmail");
+      print("Contractor details phone is $contractorPhone");
     } catch (e) {
-      print("Error fetching company name: $e");
+      print("Error fetching contractor name: $e");
       setState(() {
-        companyName = "Unknown Company";
+        print("The pulling didn't work!");
+        // Optionally set error states here
+        contractorName = "Error loading";
+        companyName = "Error loading";
+        contractorEmail = "Error loading";
+        contractorPhone = "Error loading";
       });
     }
   }
+
+  // Future<void> _fetchContractorName() async {
+  //   try {
+  //     // Fetch contractor_id for the loan
+  //     final contractorResponse = await supabase
+  //         .from('construction_loans')
+  //         .select('contractor_id')
+  //         .eq('loan_id', widget.loanId)
+  //         .single();
+  //     final contractorId = contractorResponse['contractor_id'];
+  //     print(
+  //       "The contractor id is $contractorId",
+  //     );
+
+  //     // fetch contractor name for the contractor id.
+  //     final response = await supabase
+  //         .from('contractors')
+  //         .select('full_name')
+  //         .eq('contractor_id', contractorId)
+  //         .single();
+
+  //     print("This is the contractor response: $response");
+  //     final fetchedContractorName = response['full_name'];
+  //     setState(() {
+  //       contractorName = fetchedContractorName;
+  //     });
+  //   } catch (e) {
+  //     print("Error fetching contractor name: $e");
+  //     setState(() {
+  //       contractorName = "Contractor Unknown";
+  //     });
+  //   }
+  // }
+
+  // Future<void> _fetchCompanyName() async {
+  //   try {
+  //     // Fetch contractor_id for the loan
+  //     final contractorResponse = await supabase
+  //         .from('construction_loans')
+  //         .select('contractor_id')
+  //         .eq('loan_id', widget.loanId)
+  //         .single();
+  //     final contractorId = contractorResponse['contractor_id'];
+  //     print(
+  //       "The contractor id is $contractorId",
+  //     );
+
+  //     // Fetch company_name for the contractor_id
+  //     final companyResponse = await supabase
+  //         .from('contractors')
+  //         .select('company_name')
+  //         .eq('contractor_id', contractorId)
+  //         .single();
+
+  //     print("This is the company response: $companyResponse");
+
+  //     final fetchedCompanyName = companyResponse['company_name'];
+
+  //     setState(() {
+  //       companyName = fetchedCompanyName;
+  //     });
+  //   } catch (e) {
+  //     print("Error fetching company name: $e");
+  //     setState(() {
+  //       companyName = "Unknown Company";
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -225,71 +277,6 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           break;
       }
     });
-  }
-
-  void _showLoanDashboardNotifications() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('LoanDashboardNotifications'),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  for (var notification in _notifications) {
-                    notification.isRead = true;
-                  }
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('Mark all as read'),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 400,
-          height: 300,
-          child: ListView.builder(
-            itemCount: _notifications.length,
-            itemBuilder: (context, index) {
-              final notification = _notifications[index];
-              return ListTile(
-                leading: Icon(
-                  notification.isRead
-                      ? Icons.notifications_none
-                      : Icons.notifications_active,
-                  color: notification.isRead ? Colors.grey : Colors.blue,
-                ),
-                title: Text(notification.title),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(notification.message),
-                    Text(
-                      '${notification.time.day}/${notification.time.month}/${notification.time.year} ${notification.time.hour}:${notification.time.minute}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                  ],
-                ),
-                onTap: () {
-                  setState(() {
-                    notification.isRead = true;
-                  });
-                },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showSettings() {
@@ -918,14 +905,14 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            _userSettings.name,
+            contractorName,
             style: const TextStyle(
               fontSize: 14,
               color: Colors.black,
             ),
           ),
           Text(
-            _userSettings.phone,
+            contractorPhone,
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[600],

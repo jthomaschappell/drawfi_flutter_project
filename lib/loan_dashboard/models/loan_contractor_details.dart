@@ -1,13 +1,13 @@
-class LoanUserSettings {
+class LoanContractorDetails {
   String name;
   String email;
   String phone;
-  String role;
+  String companyName; 
 
-  LoanUserSettings({
+  LoanContractorDetails({
     required this.name,
     required this.email,
     required this.phone,
-    required this.role,
+    required this.companyName,
   });
 }

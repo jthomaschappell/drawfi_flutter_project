@@ -488,10 +488,10 @@ class _LenderScreenState extends State<LenderScreen> {
                         valueColor: const AlwaysStoppedAnimation<Color>(
                             Color(0xFF6500E9)),
                       ),
-                      Center(
+                      const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Text(
                               '75%',
                               style: TextStyle(
@@ -514,11 +514,11 @@ class _LenderScreenState extends State<LenderScreen> {
                   ),
                 ),
                 const SizedBox(width: 20),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text(
                         'Project Progress',
                         style: TextStyle(
@@ -566,10 +566,10 @@ class _LenderScreenState extends State<LenderScreen> {
                         valueColor:
                             const AlwaysStoppedAnimation<Color>(Colors.green),
                       ),
-                      Center(
+                      const Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
+                          children: [
                             Text(
                               '45%',
                               style: TextStyle(
@@ -592,11 +592,11 @@ class _LenderScreenState extends State<LenderScreen> {
                   ),
                 ),
                 const SizedBox(width: 20),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text(
                         'Budget Status',
                         style: TextStyle(
@@ -719,28 +719,6 @@ class _LenderScreenState extends State<LenderScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () async {
-                          print("The user profile button was pressed");
-                          print(
-                            "The user profile full name is ${widget.userProfile['name']}",
-                          );
-                          // DONE: Get all of the user profile data
-                          print("The user profile is ${widget.userProfile}");
-                          final userId = widget.userProfile['user_id'];
-                          print("The user profile ID is $userId");
-                          // TODO: Get all of the loan data for this specific user.
-                          final response = await supabase
-                              .from('construction_loans')
-                              .select();
-                          print(
-                            "This is the data for all loans: $response",
-                          );
-                        },
-                        child: const Text(
-                          "Get user profile data button",
-                        ),
-                      ),
                       Text(
                         widget.userProfile['name'] ?? '',
                         style: const TextStyle(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tester/screens/lender_screen.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -336,11 +335,6 @@ class _ChatSectionState extends State<ChatSection> {
   }
 }
 
-/**
- * TODO:
- * DELETE THIS MESSAGE WHEN YOU ARE DONE: 
- * Print out the loan ID. 
- */
 class LoanDashboardScreen extends StatefulWidget {
   final String loanId;
 
@@ -354,6 +348,49 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   DrawRequest? _selectedRequest;
+  final supabase = Supabase.instance.client;
+  String companyName = "Loading...";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCompanyName();
+  }
+
+  Future<void> _fetchCompanyName() async {
+    try {
+      // Fetch contractor_id for the loan
+      final contractorResponse = await supabase
+          .from('construction_loans')
+          .select('contractor_id')
+          .eq('loan_id', widget.loanId)
+          .single();
+      final contractorId = contractorResponse['contractor_id'];
+      print(
+        "The contractor id is $contractorId",
+      );
+
+      // Fetch company_name for the contractor_id
+      final companyResponse = await supabase
+          .from('contractors')
+          .select('company_name')
+          .eq('contractor_id', contractorId)
+          .single();
+
+      print("This is the company response: $companyResponse");
+
+      final fetchedCompanyName = companyResponse['company_name'];
+
+      setState(() {
+        companyName = fetchedCompanyName;
+      });
+    } catch (e) {
+      print("Error fetching company name: $e");
+      setState(() {
+        companyName = "Unknown Company";
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1190,9 +1227,9 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             padding: const EdgeInsets.all(20),
             child: _buildSearchBar(),
           ),
-          const Text(
-            "BIG T",
-            style: TextStyle(
+          Text(
+            companyName,
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
               color: Colors.black,

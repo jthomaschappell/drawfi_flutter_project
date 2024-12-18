@@ -1,9 +1,9 @@
-
 # CODING STANDARDS (made in 10 minutes) FOR DRAWFI: 
 
 ## 1 Naming conventions: 
 
-- camelcase (loanScreen)
+- camelCase (loanScreen) for naming functions. 
+- snake_case (auth_screen) for naming files. 
 
 ## 2. Code organization and structure: 
 

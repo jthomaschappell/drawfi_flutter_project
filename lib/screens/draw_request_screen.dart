@@ -12,7 +12,7 @@ class DrawRequest {
     required this.lineItem,
     this.inspected = false,
     this.requestedAmount,
-    this.status = 'Pending',
+    this.status = 'Pending', 
   });
 }
 
@@ -458,8 +458,8 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                   bottom: BorderSide(color: Colors.grey[300]!),
                 ),
               ),
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Expanded(
                     flex: 2,
                     child: Text(
@@ -676,9 +676,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                           ),
                         ),
                       ),
-                      Column(
+                      const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Text(
                             '75%',
                             style: TextStyle(
@@ -700,11 +700,11 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                   ),
                 ),
                 const SizedBox(width: 24),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text(
                         'Project Progress',
                         style: TextStyle(
@@ -759,9 +759,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                           ),
                         ),
                       ),
-                      Column(
+                      const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Text(
                             '45%',
                             style: TextStyle(
@@ -783,11 +783,11 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                   ),
                 ),
                 const SizedBox(width: 24),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text(
                         'Budget Status',
                         style: TextStyle(

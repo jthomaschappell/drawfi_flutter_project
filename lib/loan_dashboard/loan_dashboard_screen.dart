@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tester/loan_dashboard/models/draw_request.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -30,30 +31,6 @@ class UserSettings {
     required this.phone,
     required this.role,
   });
-}
-
-class DrawRequest {
-  final String lineItem;
-  bool inspected;
-  double? draw1;
-  double? draw2;
-  double? draw3;
-  String? draw1Status;
-  String? draw2Status;
-  String? draw3Status;
-
-  DrawRequest({
-    required this.lineItem,
-    required this.inspected,
-    this.draw1,
-    this.draw2,
-    this.draw3,
-    this.draw1Status = 'pending',
-    this.draw2Status = 'pending',
-    this.draw3Status = 'pending',
-  });
-
-  double get totalDrawn => (draw1 ?? 0) + (draw2 ?? 0) + (draw3 ?? 0);
 }
 
 class ChatMessage {
@@ -347,7 +324,7 @@ class LoanDashboardScreen extends StatefulWidget {
 class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  DrawRequest? _selectedRequest;
+  DrawRequestOnLoanDashboard? _selectedRequest;
   final supabase = Supabase.instance.client;
   String companyName = "Loading...";
 
@@ -472,8 +449,8 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     role: 'Contractor',
   );
 
-  final List<DrawRequest> _drawRequests = [
-    DrawRequest(
+  final List<DrawRequestOnLoanDashboard> _drawRequests = [
+    DrawRequestOnLoanDashboard(
       lineItem: 'Foundation Work',
       inspected: true,
       draw1: 15000,
@@ -481,19 +458,19 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       draw1Status: 'pending',
       draw2Status: 'pending',
     ),
-    DrawRequest(
+    DrawRequestOnLoanDashboard(
       lineItem: 'Framing',
       inspected: true,
       draw1: 30000,
       draw1Status: 'pending',
     ),
-    DrawRequest(
+    DrawRequestOnLoanDashboard(
       lineItem: 'Electrical',
       inspected: false,
       draw1: 12000,
       draw1Status: 'pending',
     ),
-    DrawRequest(
+    DrawRequestOnLoanDashboard(
       lineItem: 'Plumbing',
       inspected: true,
       draw1: 8000,
@@ -501,19 +478,19 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       draw1Status: 'pending',
       draw2Status: 'pending',
     ),
-    DrawRequest(
+    DrawRequestOnLoanDashboard(
       lineItem: 'HVAC Installation',
       inspected: false,
       draw1: 20000,
       draw1Status: 'pending',
     ),
-    DrawRequest(
+    DrawRequestOnLoanDashboard(
       lineItem: 'Roofing',
       inspected: true,
       draw1: 25000,
       draw1Status: 'pending',
     ),
-    DrawRequest(
+    DrawRequestOnLoanDashboard(
       lineItem: 'Interior Finishing',
       inspected: false,
       draw1: 18000,
@@ -521,7 +498,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     ),
   ];
 
-  List<DrawRequest> get filteredRequests {
+  List<DrawRequestOnLoanDashboard> get filteredRequests {
     if (_searchQuery.isEmpty) return _drawRequests;
     return _drawRequests
         .where((request) =>
@@ -538,7 +515,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     return (completedItems / _drawRequests.length) * 100;
   }
 
-  void _updateDrawStatus(DrawRequest item, int drawNumber, String status) {
+  void _updateDrawStatus(DrawRequestOnLoanDashboard item, int drawNumber, String status) {
     setState(() {
       switch (drawNumber) {
         case 1:
@@ -672,7 +649,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  void _showDrawEditDialog(DrawRequest request, int drawNumber) {
+  void _showDrawEditDialog(DrawRequestOnLoanDashboard request, int drawNumber) {
     final controller = TextEditingController(
         text: drawNumber == 1
             ? request.draw1?.toString()
@@ -767,7 +744,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  Widget _buildDrawStatusWidget(DrawRequest item, int drawNumber) {
+  Widget _buildDrawStatusWidget(DrawRequestOnLoanDashboard item, int drawNumber) {
     String? status;
     double? amount;
 

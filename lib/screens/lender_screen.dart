@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tester/loan_dashboard/loan_dashboard_screen.dart';
 import 'package:tester/screens/notifications_screen.dart';
 import 'package:tester/screens/invitation_screen.dart';
-import 'package:tester/screens/loan_dashboard_screen.dart';
 import 'package:tester/screens/projects_screen.dart';
 import 'package:tester/screens/settings_screen.dart';
 
@@ -733,16 +733,9 @@ class _LenderScreenState extends State<LenderScreen> {
                           final response = await supabase
                               .from('construction_loans')
                               .select();
-                          // .eq('lender_id', userId);
                           print(
                             "This is the data for all loans: $response",
                           );
-                          /**
-                           * START HERE: 
-                           * TODO: 
-                           * The response is showing up as an empty list. 
-                           * What might be going on? 
-                           */
                         },
                         child: const Text(
                           "Get user profile data button",

@@ -74,7 +74,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     ),
   ];
 
-  List<LoanLineItem> get filteredRequests {
+  List<LoanLineItem> get filteredLineItems {
     if (_searchQuery.isEmpty) return _loanLineItems;
     return _loanLineItems
         .where(
@@ -696,9 +696,9 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.zero,
-              itemCount: filteredRequests.length,
+              itemCount: filteredLineItems.length,
               itemBuilder: (context, index) {
-                final item = filteredRequests[index];
+                final item = filteredLineItems[index];
                 return Container(
                   height: 40,
                   decoration: BoxDecoration(

@@ -418,15 +418,9 @@ class _AuthScreenState extends State<AuthScreen> {
       final userResponse =
           await supabase.from('users').select().eq('user_id', userId).single();
 
-      print(
-        "(Inside of getUserProfile, we grab this from the 'users' table) Basic user info: $userResponse",
-      );
-
-      if (userResponse == null) {
-        print("No user found");
-        return null;
-      }
-
+      // print(
+      //   "(Inside of getUserProfile, we grab this from the 'users' table) Basic user info: $userResponse",
+      // );
       // Determine role by checking each table
       try {
         // Check lenders table
@@ -435,7 +429,7 @@ class _AuthScreenState extends State<AuthScreen> {
             .select()
             .eq('lender_id', userId)
             .single();
-        print("Found lender role (inside function getUserProfile)");
+        // print("Found lender role (inside function getUserProfile)");
         return {...userResponse, 'user_role': 'lender'};
       } catch (e) {
         // Not a lender, continue checking

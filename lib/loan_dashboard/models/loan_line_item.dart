@@ -1,4 +1,4 @@
-class LoanDrawRequest {
+class LoanLineItem {
   final String lineItem; 
   /// TODO: 
   /// I see here that this is a data class for a DrawRequest.
@@ -14,7 +14,8 @@ class LoanDrawRequest {
   /// Let's keep it simple. 
   /// 
   /// -Thomas Chappell, 12.17.2024
-  bool inspected;
+  // bool inspected;
+  double inspectionPercentage;
   double? draw1;
   double? draw2;
   double? draw3;
@@ -22,9 +23,9 @@ class LoanDrawRequest {
   String? draw2Status;
   String? draw3Status;
 
-  LoanDrawRequest({
+  LoanLineItem({
     required this.lineItem,
-    required this.inspected,
+    required this.inspectionPercentage, 
     this.draw1,
     this.draw2,
     this.draw3,

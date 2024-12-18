@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/loan_dashboard/chat/loan_chat_section.dart';
-import 'package:tester/loan_dashboard/models/loan_draw_request.dart';
+import 'package:tester/loan_dashboard/models/loan_line_item.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -21,73 +21,84 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final supabase = Supabase.instance.client;
   String companyName = "Loading...";
   String contractorName = "Loading...";
-  String contractorEmail = "Muffins...";
-  String contractorPhone = "Muffins...";
+  String contractorEmail = "Loading...";
+  String contractorPhone = "Loading...";
 
-  final List<LoanDrawRequest> _drawRequests = [
-    LoanDrawRequest(
+  final List<LoanLineItem> _loanLineItems = [
+    /**
+     * Take out the hardcoded values for these. 
+     * 
+     * Labeling them as draw requests is a misnomer. They are rows with columns. 
+     */
+    LoanLineItem(
       lineItem: 'Foundation Work',
-      inspected: true,
-      draw1: 15000,
-      draw2: 25000,
+      // inspected: true,
+      inspectionPercentage: 0.3,
+      draw1: 15000, // these will come from draws
       draw1Status: 'pending',
+      draw2: 25000,
       draw2Status: 'pending',
     ),
-    LoanDrawRequest(
+    LoanLineItem(
       lineItem: 'Framing',
-      inspected: true,
+      inspectionPercentage: .34,
       draw1: 30000,
       draw1Status: 'pending',
     ),
-    LoanDrawRequest(
+    LoanLineItem(
       lineItem: 'Electrical',
-      inspected: false,
+      inspectionPercentage: .55,
       draw1: 12000,
       draw1Status: 'pending',
     ),
-    LoanDrawRequest(
+    LoanLineItem(
       lineItem: 'Plumbing',
-      inspected: true,
+      inspectionPercentage: .13,
       draw1: 8000,
       draw2: 10000,
       draw1Status: 'pending',
       draw2Status: 'pending',
     ),
-    LoanDrawRequest(
+    LoanLineItem(
       lineItem: 'HVAC Installation',
-      inspected: false,
+      inspectionPercentage: 0,
       draw1: 20000,
       draw1Status: 'pending',
     ),
-    LoanDrawRequest(
+    LoanLineItem(
       lineItem: 'Roofing',
-      inspected: true,
+      inspectionPercentage: .4,
       draw1: 25000,
       draw1Status: 'pending',
     ),
-    LoanDrawRequest(
+    LoanLineItem(
       lineItem: 'Interior Finishing',
-      inspected: false,
+      inspectionPercentage: .45,
       draw1: 18000,
       draw1Status: 'pending',
     ),
   ];
 
-  List<LoanDrawRequest> get filteredRequests {
-    if (_searchQuery.isEmpty) return _drawRequests;
-    return _drawRequests
-        .where((request) =>
-            request.lineItem.toLowerCase().contains(_searchQuery.toLowerCase()))
+  List<LoanLineItem> get filteredRequests {
+    if (_searchQuery.isEmpty) return _loanLineItems;
+    return _loanLineItems
+        .where(
+          (request) => request.lineItem.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ),
+        )
         .toList();
   }
 
   double get totalDisbursed {
-    return _drawRequests.fold(0, (sum, request) => sum + request.totalDrawn);
+    return _loanLineItems.fold(0, (sum, request) => sum + request.totalDrawn);
   }
 
+  // calculates average progress over all the items, converting to a percentage.
   double get projectCompletion {
-    int completedItems = _drawRequests.where((r) => r.inspected).length;
-    return (completedItems / _drawRequests.length) * 100;
+    double totalProgress =
+        _loanLineItems.fold(0, (sum, item) => sum + item.inspectionPercentage);
+    return (totalProgress / _loanLineItems.length) * 100;
   }
 
   @override
@@ -139,74 +150,6 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       });
     }
   }
-
-  // Future<void> _fetchContractorName() async {
-  //   try {
-  //     // Fetch contractor_id for the loan
-  //     final contractorResponse = await supabase
-  //         .from('construction_loans')
-  //         .select('contractor_id')
-  //         .eq('loan_id', widget.loanId)
-  //         .single();
-  //     final contractorId = contractorResponse['contractor_id'];
-  //     print(
-  //       "The contractor id is $contractorId",
-  //     );
-
-  //     // fetch contractor name for the contractor id.
-  //     final response = await supabase
-  //         .from('contractors')
-  //         .select('full_name')
-  //         .eq('contractor_id', contractorId)
-  //         .single();
-
-  //     print("This is the contractor response: $response");
-  //     final fetchedContractorName = response['full_name'];
-  //     setState(() {
-  //       contractorName = fetchedContractorName;
-  //     });
-  //   } catch (e) {
-  //     print("Error fetching contractor name: $e");
-  //     setState(() {
-  //       contractorName = "Contractor Unknown";
-  //     });
-  //   }
-  // }
-
-  // Future<void> _fetchCompanyName() async {
-  //   try {
-  //     // Fetch contractor_id for the loan
-  //     final contractorResponse = await supabase
-  //         .from('construction_loans')
-  //         .select('contractor_id')
-  //         .eq('loan_id', widget.loanId)
-  //         .single();
-  //     final contractorId = contractorResponse['contractor_id'];
-  //     print(
-  //       "The contractor id is $contractorId",
-  //     );
-
-  //     // Fetch company_name for the contractor_id
-  //     final companyResponse = await supabase
-  //         .from('contractors')
-  //         .select('company_name')
-  //         .eq('contractor_id', contractorId)
-  //         .single();
-
-  //     print("This is the company response: $companyResponse");
-
-  //     final fetchedCompanyName = companyResponse['company_name'];
-
-  //     setState(() {
-  //       companyName = fetchedCompanyName;
-  //     });
-  //   } catch (e) {
-  //     print("Error fetching company name: $e");
-  //     setState(() {
-  //       companyName = "Unknown Company";
-  //     });
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +206,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  void _updateDrawStatus(LoanDrawRequest item, int drawNumber, String status) {
+  void _updateDrawStatus(LoanLineItem item, int drawNumber, String status) {
     setState(() {
       switch (drawNumber) {
         case 1:
@@ -279,6 +222,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     });
   }
 
+  // this shows a dialog popup with settings.
   void _showSettings() {
     showDialog(
       context: context,
@@ -291,7 +235,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.notifications_active),
-                title: const Text('Email LoanDashboardNotifications'),
+                title: const Text('Email Notifications'),
                 trailing: Switch(
                   value: true,
                   onChanged: (value) {},
@@ -332,7 +276,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  void _showDrawEditDialog(LoanDrawRequest request, int drawNumber) {
+  void _showDrawEditDialog(LoanLineItem request, int drawNumber) {
     final controller = TextEditingController(
         text: drawNumber == 1
             ? request.draw1?.toString()
@@ -427,7 +371,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  Widget _buildDrawStatusWidget(LoanDrawRequest item, int drawNumber) {
+  Widget _buildDrawStatusWidget(LoanLineItem item, int drawNumber) {
     String? status;
     double? amount;
 
@@ -727,21 +671,12 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'INSP',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
+                              "${(item.inspectionPercentage * 100).toStringAsFixed(1)}%",
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 14,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Icon(
-                              item.inspected
-                                  ? Icons.check_circle
-                                  : Icons.warning,
-                              color:
-                                  item.inspected ? Colors.green : Colors.orange,
-                              size: 18,
                             ),
                           ],
                         ),
@@ -839,7 +774,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
 
   void _approveVerticalDraw(int drawNumber) {
     setState(() {
-      for (var item in _drawRequests) {
+      for (var item in _loanLineItems) {
         switch (drawNumber) {
           case 1:
             if (item.draw1 != null) item.draw1Status = 'approved';
@@ -857,7 +792,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
 
   void _declineVerticalDraw(int drawNumber) {
     setState(() {
-      for (var item in _drawRequests) {
+      for (var item in _loanLineItems) {
         switch (drawNumber) {
           case 1:
             if (item.draw1 != null) item.draw1Status = 'declined';

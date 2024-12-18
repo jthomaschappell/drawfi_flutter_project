@@ -104,10 +104,31 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    setContractorDetails();
+    _setContractorDetails();
+    fetchConstructionLoanLineItems();
   }
 
-  Future<void> setContractorDetails() async {
+  Future<void> fetchConstructionLoanLineItems() async {
+    print(
+      "According to fetch construction line items, the loan id is ${widget.loanId}",
+    );
+    try {
+      final response = await supabase
+          .from('construction_loan_line_items')
+          .select()
+          .eq('loan_id', widget.loanId);
+      // final response = await supabase.from('construction_loan_line_items').select();
+      print(
+        "These are the construction loan line items for this loan: $response",
+      );
+    } catch (e) {
+      print(
+        "Error fetching construction loan line items from database: $e",
+      );
+    }
+  }
+
+  Future<void> _setContractorDetails() async {
     try {
       // Fetch contractor_id for the loan
       final loanResponse = await supabase
@@ -278,11 +299,12 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
 
   void _showDrawEditDialog(LoanLineItem request, int drawNumber) {
     final controller = TextEditingController(
-        text: drawNumber == 1
-            ? request.draw1?.toString()
-            : drawNumber == 2
-                ? request.draw2?.toString()
-                : request.draw3?.toString());
+      text: drawNumber == 1
+          ? request.draw1?.toString()
+          : drawNumber == 2
+              ? request.draw2?.toString()
+              : request.draw3?.toString(),
+    );
 
     showDialog(
       context: context,
@@ -587,8 +609,11 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  Widget _buildTableCell(String text,
-      {bool isFirst = false, bool isAmount = false}) {
+  Widget _buildTableCell(
+    String text, {
+    bool isFirst = false,
+    bool isAmount = false,
+  }) {
     return Expanded(
       child: Container(
         padding: EdgeInsets.only(left: isFirst ? 16 : 8),
@@ -646,6 +671,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                 _buildTableHeader('Draw 1'),
                 _buildTableHeader('Draw 2'),
                 _buildTableHeader('Draw 3'),
+                _buildTableHeader('Budget'),
               ],
             ),
           ),
@@ -665,7 +691,12 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                   ),
                   child: Row(
                     children: [
-                      _buildTableCell(item.lineItem, isFirst: true),
+                      // line item description column.
+                      _buildTableCell(
+                        item.lineItem,
+                        isFirst: true,
+                      ),
+                      // inspection percentage column.
                       Expanded(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -681,20 +712,44 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                           ],
                         ),
                       ),
+                      // Draw 1.
+                      // It can be edited.
                       _buildEditableTableCell(
                         item.draw1?.toString() ?? '-',
                         isAmount: item.draw1 != null,
                         onTap: () => _showDrawEditDialog(item, 1),
                       ),
+                      // Draw 2.
+                      // It can be edited.
                       _buildEditableTableCell(
                         item.draw2?.toString() ?? '-',
                         isAmount: item.draw2 != null,
                         onTap: () => _showDrawEditDialog(item, 2),
                       ),
+                      // Draw 3.
+                      // It can be edited.
                       _buildEditableTableCell(
                         item.draw3?.toString() ?? '-',
                         isAmount: item.draw3 != null,
                         onTap: () => _showDrawEditDialog(item, 3),
+                      ),
+                      // Budget can be edited.
+                      /**
+                       * TODO: 
+                       * 
+                       * I edited the loan line item to have a budget field. 
+                       * 
+                       * I edited the header to have aheader titled Budget 
+                       * AND I made an editable table cell for budget. 
+                       */
+                      // _buildEditableTableCell(
+                      //   "${item.budget}",
+                      //   isAmount: true,
+                      //   onTap: () => _showDrawEditDialog(item, 0),
+                      // ),
+                      _buildTableCell(
+                        item.budget.toString(),
+                        isFirst: false,
                       ),
                     ],
                   ),

@@ -1,53 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tester/loan_dashboard/models/draw_request.dart';
+import 'package:tester/loan_dashboard/models/loan_dashboard_chat_message.dart';
+import 'package:tester/loan_dashboard/models/loan_dashboard_draw_request.dart';
+import 'package:tester/loan_dashboard/models/loan_dashboard_notification.dart';
+import 'package:tester/loan_dashboard/models/loan_dashboard_user_settings.dart';
 
 final supabase = Supabase.instance.client;
-
-class Notification {
-  final String title;
-  final String message;
-  final DateTime time;
-  bool isRead;
-
-  Notification({
-    required this.title,
-    required this.message,
-    required this.time,
-    this.isRead = false,
-  });
-}
-
-class UserSettings {
-  String name;
-  String email;
-  String phone;
-  String role;
-
-  UserSettings({
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.role,
-  });
-}
-
-class ChatMessage {
-  final String sender;
-  final String message;
-  final DateTime timestamp;
-  final String role;
-  final String? avatarUrl;
-
-  ChatMessage({
-    required this.sender,
-    required this.message,
-    required this.timestamp,
-    required this.role,
-    this.avatarUrl,
-  });
-}
 
 class ChatSection extends StatefulWidget {
   const ChatSection({super.key});
@@ -60,16 +19,16 @@ class _ChatSectionState extends State<ChatSection> {
   final TextEditingController _messageController = TextEditingController();
   String _selectedChat = 'contractor'; // 'contractor' or 'inspector'
 
-  final Map<String, List<ChatMessage>> _chats = {
+  final Map<String, List<LoanDashboardChatMessage>> _chats = {
     'contractor': [
-      ChatMessage(
+      LoanDashboardChatMessage(
         sender: 'Thomas Chappell',
         message: 'Hi Sarah, do you have a moment to discuss the timeline?',
         timestamp: DateTime.now().subtract(const Duration(days: 2)),
         role: 'Contractor',
         avatarUrl: 'TC',
       ),
-      ChatMessage(
+      LoanDashboardChatMessage(
         sender: 'Sarah Lender',
         message: 'Of course, what would you like to know?',
         timestamp: DateTime.now().subtract(const Duration(days: 2)),
@@ -78,14 +37,14 @@ class _ChatSectionState extends State<ChatSection> {
       ),
     ],
     'inspector': [
-      ChatMessage(
+      LoanDashboardChatMessage(
         sender: 'John Inspector',
         message: 'Sarah, I noticed some concerns with the electrical work.',
         timestamp: DateTime.now().subtract(const Duration(days: 3)),
         role: 'Inspector',
         avatarUrl: 'JI',
       ),
-      ChatMessage(
+      LoanDashboardChatMessage(
         sender: 'Sarah Lender',
         message: 'Can you provide more details?',
         timestamp: DateTime.now().subtract(const Duration(days: 3)),
@@ -108,7 +67,7 @@ class _ChatSectionState extends State<ChatSection> {
     }
   }
 
-  Widget _buildMessage(ChatMessage message, bool isMe) {
+  Widget _buildMessage(LoanDashboardChatMessage message, bool isMe) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       child: Row(
@@ -285,7 +244,7 @@ class _ChatSectionState extends State<ChatSection> {
                   onPressed: () {
                     if (_messageController.text.isNotEmpty) {
                       setState(() {
-                        _chats[_selectedChat]!.add(ChatMessage(
+                        _chats[_selectedChat]!.add(LoanDashboardChatMessage(
                           sender: 'Sarah Lender',
                           message: _messageController.text,
                           timestamp: DateTime.now(),
@@ -324,7 +283,7 @@ class LoanDashboardScreen extends StatefulWidget {
 class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  DrawRequestOnLoanDashboard? _selectedRequest;
+  LoanDashboardDrawRequest? _selectedRequest;
   final supabase = Supabase.instance.client;
   String companyName = "Loading...";
 
@@ -424,33 +383,33 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  final List<Notification> _notifications = [
-    Notification(
+  final List<LoanDashboardNotification> _notifications = [
+    LoanDashboardNotification(
       title: 'New Draw Request',
       message: 'Foundation work draw request submitted',
       time: DateTime.now().subtract(const Duration(hours: 2)),
     ),
-    Notification(
+    LoanDashboardNotification(
       title: 'Inspection Complete',
       message: 'Framing inspection has been completed',
       time: DateTime.now().subtract(const Duration(days: 1)),
     ),
-    Notification(
+    LoanDashboardNotification(
       title: 'Payment Processed',
       message: 'Draw payment for electrical work processed',
       time: DateTime.now().subtract(const Duration(days: 2)),
     ),
   ];
 
-  UserSettings _userSettings = UserSettings(
+  final LoanDashboardUserSettings _userSettings = LoanDashboardUserSettings(
     name: 'Thomas Chappell',
     email: 'thomas@bigt.com',
     phone: '678-999-8212',
     role: 'Contractor',
   );
 
-  final List<DrawRequestOnLoanDashboard> _drawRequests = [
-    DrawRequestOnLoanDashboard(
+  final List<LoanDashboardDrawRequest> _drawRequests = [
+    LoanDashboardDrawRequest(
       lineItem: 'Foundation Work',
       inspected: true,
       draw1: 15000,
@@ -458,19 +417,19 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       draw1Status: 'pending',
       draw2Status: 'pending',
     ),
-    DrawRequestOnLoanDashboard(
+    LoanDashboardDrawRequest(
       lineItem: 'Framing',
       inspected: true,
       draw1: 30000,
       draw1Status: 'pending',
     ),
-    DrawRequestOnLoanDashboard(
+    LoanDashboardDrawRequest(
       lineItem: 'Electrical',
       inspected: false,
       draw1: 12000,
       draw1Status: 'pending',
     ),
-    DrawRequestOnLoanDashboard(
+    LoanDashboardDrawRequest(
       lineItem: 'Plumbing',
       inspected: true,
       draw1: 8000,
@@ -478,19 +437,19 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       draw1Status: 'pending',
       draw2Status: 'pending',
     ),
-    DrawRequestOnLoanDashboard(
+    LoanDashboardDrawRequest(
       lineItem: 'HVAC Installation',
       inspected: false,
       draw1: 20000,
       draw1Status: 'pending',
     ),
-    DrawRequestOnLoanDashboard(
+    LoanDashboardDrawRequest(
       lineItem: 'Roofing',
       inspected: true,
       draw1: 25000,
       draw1Status: 'pending',
     ),
-    DrawRequestOnLoanDashboard(
+    LoanDashboardDrawRequest(
       lineItem: 'Interior Finishing',
       inspected: false,
       draw1: 18000,
@@ -498,7 +457,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     ),
   ];
 
-  List<DrawRequestOnLoanDashboard> get filteredRequests {
+  List<LoanDashboardDrawRequest> get filteredRequests {
     if (_searchQuery.isEmpty) return _drawRequests;
     return _drawRequests
         .where((request) =>
@@ -515,7 +474,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     return (completedItems / _drawRequests.length) * 100;
   }
 
-  void _updateDrawStatus(DrawRequestOnLoanDashboard item, int drawNumber, String status) {
+  void _updateDrawStatus(LoanDashboardDrawRequest item, int drawNumber, String status) {
     setState(() {
       switch (drawNumber) {
         case 1:
@@ -531,14 +490,14 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     });
   }
 
-  void _showNotifications() {
+  void _showLoanDashboardNotifications() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Notifications'),
+            const Text('LoanDashboardNotifications'),
             TextButton(
               onPressed: () {
                 setState(() {
@@ -608,7 +567,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.notifications_active),
-                title: const Text('Email Notifications'),
+                title: const Text('Email LoanDashboardNotifications'),
                 trailing: Switch(
                   value: true,
                   onChanged: (value) {},
@@ -649,7 +608,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  void _showDrawEditDialog(DrawRequestOnLoanDashboard request, int drawNumber) {
+  void _showDrawEditDialog(LoanDashboardDrawRequest request, int drawNumber) {
     final controller = TextEditingController(
         text: drawNumber == 1
             ? request.draw1?.toString()
@@ -744,7 +703,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  Widget _buildDrawStatusWidget(DrawRequestOnLoanDashboard item, int drawNumber) {
+  Widget _buildDrawStatusWidget(LoanDashboardDrawRequest item, int drawNumber) {
     String? status;
     double? amount;
 

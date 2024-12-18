@@ -1,4 +1,4 @@
-class DrawRequestOnLoanDashboard {
+class LoanDashboardDrawRequest {
   final String lineItem; 
   /// TODO: 
   /// I see here that this is a data class for a DrawRequest.
@@ -22,7 +22,7 @@ class DrawRequestOnLoanDashboard {
   String? draw2Status;
   String? draw3Status;
 
-  DrawRequestOnLoanDashboard({
+  LoanDashboardDrawRequest({
     required this.lineItem,
     required this.inspected,
     this.draw1,

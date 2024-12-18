@@ -1,275 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tester/loan_dashboard/models/loan_dashboard_chat_message.dart';
-import 'package:tester/loan_dashboard/models/loan_dashboard_draw_request.dart';
-import 'package:tester/loan_dashboard/models/loan_dashboard_notification.dart';
-import 'package:tester/loan_dashboard/models/loan_dashboard_user_settings.dart';
+import 'package:tester/loan_dashboard/chat/loan_chat_section.dart';
+import 'package:tester/loan_dashboard/models/loan_draw_request.dart';
+import 'package:tester/loan_dashboard/models/loan_notification.dart';
+import 'package:tester/loan_dashboard/models/loan_user_settings.dart';
 
 final supabase = Supabase.instance.client;
-
-class ChatSection extends StatefulWidget {
-  const ChatSection({super.key});
-
-  @override
-  State<ChatSection> createState() => _ChatSectionState();
-}
-
-class _ChatSectionState extends State<ChatSection> {
-  final TextEditingController _messageController = TextEditingController();
-  String _selectedChat = 'contractor'; // 'contractor' or 'inspector'
-
-  final Map<String, List<LoanDashboardChatMessage>> _chats = {
-    'contractor': [
-      LoanDashboardChatMessage(
-        sender: 'Thomas Chappell',
-        message: 'Hi Sarah, do you have a moment to discuss the timeline?',
-        timestamp: DateTime.now().subtract(const Duration(days: 2)),
-        role: 'Contractor',
-        avatarUrl: 'TC',
-      ),
-      LoanDashboardChatMessage(
-        sender: 'Sarah Lender',
-        message: 'Of course, what would you like to know?',
-        timestamp: DateTime.now().subtract(const Duration(days: 2)),
-        role: 'Lender',
-        avatarUrl: 'SL',
-      ),
-    ],
-    'inspector': [
-      LoanDashboardChatMessage(
-        sender: 'John Inspector',
-        message: 'Sarah, I noticed some concerns with the electrical work.',
-        timestamp: DateTime.now().subtract(const Duration(days: 3)),
-        role: 'Inspector',
-        avatarUrl: 'JI',
-      ),
-      LoanDashboardChatMessage(
-        sender: 'Sarah Lender',
-        message: 'Can you provide more details?',
-        timestamp: DateTime.now().subtract(const Duration(days: 3)),
-        role: 'Lender',
-        avatarUrl: 'SL',
-      ),
-    ],
-  };
-
-  Color _getRoleColor(String role) {
-    switch (role.toLowerCase()) {
-      case 'contractor':
-        return Colors.blue;
-      case 'inspector':
-        return Colors.green;
-      case 'lender':
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Widget _buildMessage(LoanDashboardChatMessage message, bool isMe) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          if (!isMe) ...[
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: _getRoleColor(message.role).withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  message.avatarUrl ?? message.sender[0],
-                  style: TextStyle(
-                    color: _getRoleColor(message.role),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Column(
-              crossAxisAlignment:
-                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                if (!isMe)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4.0, bottom: 2.0),
-                    child: Text(
-                      message.sender,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isMe ? Colors.blue[100] : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    message.message,
-                    style: TextStyle(
-                      color: isMe ? Colors.blue[900] : Colors.black87,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 2.0, left: 4.0),
-                  child: Text(
-                    '${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isMe) const SizedBox(width: 40),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChatSelector() {
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        children: [
-          Expanded(child: _buildChatTab('Contractor', 'contractor')),
-          Expanded(child: _buildChatTab('Inspector', 'inspector')),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChatTab(String label, String chatId) {
-    final isSelected = _selectedChat == chatId;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedChat = chatId),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? Colors.blue : Colors.transparent,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.blue : Colors.grey[600],
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final messages = _chats[_selectedChat] ?? [];
-    return Container(
-      height: 359, // 240 + 189 (5cm in pixels)
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        children: [
-          _buildChatSelector(),
-          Expanded(
-            child: ListView.builder(
-              reverse: true,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[messages.length - 1 - index];
-                final isMe = message.role == 'Lender';
-                return _buildMessage(message, isMe);
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: Colors.grey[300]!)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText:
-                          'Message ${_selectedChat.substring(0, 1).toUpperCase()}${_selectedChat.substring(1)}...',
-                      hintStyle:
-                          TextStyle(color: Colors.grey[400], fontSize: 13),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                    ),
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send, size: 20),
-                  color: Colors.blue,
-                  onPressed: () {
-                    if (_messageController.text.isNotEmpty) {
-                      setState(() {
-                        _chats[_selectedChat]!.add(LoanDashboardChatMessage(
-                          sender: 'Sarah Lender',
-                          message: _messageController.text,
-                          timestamp: DateTime.now(),
-                          role: 'Lender',
-                          avatarUrl: 'SL',
-                        ));
-                        _messageController.clear();
-                      });
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
-  }
-}
 
 class LoanDashboardScreen extends StatefulWidget {
   final String loanId;
@@ -283,9 +20,100 @@ class LoanDashboardScreen extends StatefulWidget {
 class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  LoanDashboardDrawRequest? _selectedRequest;
+  LoanDrawRequest? _selectedRequest;
   final supabase = Supabase.instance.client;
   String companyName = "Loading...";
+
+  final List<LoanNotification> _notifications = [
+    LoanNotification(
+      title: 'New Draw Request',
+      message: 'Foundation work draw request submitted',
+      time: DateTime.now().subtract(const Duration(hours: 2)),
+    ),
+    LoanNotification(
+      title: 'Inspection Complete',
+      message: 'Framing inspection has been completed',
+      time: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+    LoanNotification(
+      title: 'Payment Processed',
+      message: 'Draw payment for electrical work processed',
+      time: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+  ];
+
+  final LoanUserSettings _userSettings = LoanUserSettings(
+    name: 'Thomas Chappell',
+    email: 'thomas@bigt.com',
+    phone: '678-999-8212',
+    role: 'Contractor',
+  );
+
+  final List<LoanDrawRequest> _drawRequests = [
+    LoanDrawRequest(
+      lineItem: 'Foundation Work',
+      inspected: true,
+      draw1: 15000,
+      draw2: 25000,
+      draw1Status: 'pending',
+      draw2Status: 'pending',
+    ),
+    LoanDrawRequest(
+      lineItem: 'Framing',
+      inspected: true,
+      draw1: 30000,
+      draw1Status: 'pending',
+    ),
+    LoanDrawRequest(
+      lineItem: 'Electrical',
+      inspected: false,
+      draw1: 12000,
+      draw1Status: 'pending',
+    ),
+    LoanDrawRequest(
+      lineItem: 'Plumbing',
+      inspected: true,
+      draw1: 8000,
+      draw2: 10000,
+      draw1Status: 'pending',
+      draw2Status: 'pending',
+    ),
+    LoanDrawRequest(
+      lineItem: 'HVAC Installation',
+      inspected: false,
+      draw1: 20000,
+      draw1Status: 'pending',
+    ),
+    LoanDrawRequest(
+      lineItem: 'Roofing',
+      inspected: true,
+      draw1: 25000,
+      draw1Status: 'pending',
+    ),
+    LoanDrawRequest(
+      lineItem: 'Interior Finishing',
+      inspected: false,
+      draw1: 18000,
+      draw1Status: 'pending',
+    ),
+  ];
+
+  List<LoanDrawRequest> get filteredRequests {
+    if (_searchQuery.isEmpty) return _drawRequests;
+    return _drawRequests
+        .where((request) =>
+            request.lineItem.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
+  }
+
+  double get totalDisbursed {
+    return _drawRequests.fold(0, (sum, request) => sum + request.totalDrawn);
+  }
+
+  double get projectCompletion {
+    int completedItems = _drawRequests.where((r) => r.inspected).length;
+    return (completedItems / _drawRequests.length) * 100;
+  }
 
   @override
   void initState() {
@@ -383,98 +211,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  final List<LoanDashboardNotification> _notifications = [
-    LoanDashboardNotification(
-      title: 'New Draw Request',
-      message: 'Foundation work draw request submitted',
-      time: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    LoanDashboardNotification(
-      title: 'Inspection Complete',
-      message: 'Framing inspection has been completed',
-      time: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    LoanDashboardNotification(
-      title: 'Payment Processed',
-      message: 'Draw payment for electrical work processed',
-      time: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-  ];
-
-  final LoanDashboardUserSettings _userSettings = LoanDashboardUserSettings(
-    name: 'Thomas Chappell',
-    email: 'thomas@bigt.com',
-    phone: '678-999-8212',
-    role: 'Contractor',
-  );
-
-  final List<LoanDashboardDrawRequest> _drawRequests = [
-    LoanDashboardDrawRequest(
-      lineItem: 'Foundation Work',
-      inspected: true,
-      draw1: 15000,
-      draw2: 25000,
-      draw1Status: 'pending',
-      draw2Status: 'pending',
-    ),
-    LoanDashboardDrawRequest(
-      lineItem: 'Framing',
-      inspected: true,
-      draw1: 30000,
-      draw1Status: 'pending',
-    ),
-    LoanDashboardDrawRequest(
-      lineItem: 'Electrical',
-      inspected: false,
-      draw1: 12000,
-      draw1Status: 'pending',
-    ),
-    LoanDashboardDrawRequest(
-      lineItem: 'Plumbing',
-      inspected: true,
-      draw1: 8000,
-      draw2: 10000,
-      draw1Status: 'pending',
-      draw2Status: 'pending',
-    ),
-    LoanDashboardDrawRequest(
-      lineItem: 'HVAC Installation',
-      inspected: false,
-      draw1: 20000,
-      draw1Status: 'pending',
-    ),
-    LoanDashboardDrawRequest(
-      lineItem: 'Roofing',
-      inspected: true,
-      draw1: 25000,
-      draw1Status: 'pending',
-    ),
-    LoanDashboardDrawRequest(
-      lineItem: 'Interior Finishing',
-      inspected: false,
-      draw1: 18000,
-      draw1Status: 'pending',
-    ),
-  ];
-
-  List<LoanDashboardDrawRequest> get filteredRequests {
-    if (_searchQuery.isEmpty) return _drawRequests;
-    return _drawRequests
-        .where((request) =>
-            request.lineItem.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-  }
-
-  double get totalDisbursed {
-    return _drawRequests.fold(0, (sum, request) => sum + request.totalDrawn);
-  }
-
-  double get projectCompletion {
-    int completedItems = _drawRequests.where((r) => r.inspected).length;
-    return (completedItems / _drawRequests.length) * 100;
-  }
-
-  void _updateDrawStatus(LoanDashboardDrawRequest item, int drawNumber, String status) {
+  void _updateDrawStatus(LoanDrawRequest item, int drawNumber, String status) {
     setState(() {
       switch (drawNumber) {
         case 1:
@@ -608,7 +345,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  void _showDrawEditDialog(LoanDashboardDrawRequest request, int drawNumber) {
+  void _showDrawEditDialog(LoanDrawRequest request, int drawNumber) {
     final controller = TextEditingController(
         text: drawNumber == 1
             ? request.draw1?.toString()
@@ -703,7 +440,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     );
   }
 
-  Widget _buildDrawStatusWidget(LoanDashboardDrawRequest item, int drawNumber) {
+  Widget _buildDrawStatusWidget(LoanDrawRequest item, int drawNumber) {
     String? status;
     double? amount;
 
@@ -1200,7 +937,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           const Spacer(),
           const Padding(
             padding: EdgeInsets.all(16),
-            child: ChatSection(),
+            child: LoanChatSection(),
           ),
           const SizedBox(height: 16),
         ],

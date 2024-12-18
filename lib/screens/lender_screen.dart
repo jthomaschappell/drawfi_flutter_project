@@ -791,8 +791,9 @@ class _LenderScreenState extends State<LenderScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) =>
-                                          const InvitationScreen()),
+                                    builder: (context) =>
+                                        const InvitationScreen(),
+                                  ),
                                 );
                               },
                               icon: const Icon(Icons.add, size: 20),
@@ -998,7 +999,8 @@ class _LenderScreenState extends State<LenderScreen> {
   }
 
   void _goToLoanDashboardScreen(Project project) {
-    print("ATTENTION EVERYONE: What is the project ID here in showProjectDetails: ${project.id}");
+    print(
+        "ATTENTION EVERYONE: What is the project ID here in showProjectDetails: ${project.id}");
     // Navigate to LoanDashboardScreen instead of showing modal
     Navigator.push(
       context,

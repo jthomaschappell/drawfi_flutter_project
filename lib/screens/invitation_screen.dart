@@ -45,7 +45,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
   final TextEditingController _gcEmailController = TextEditingController();
   final TextEditingController _inspectorEmailController =
       TextEditingController();
-  final TextEditingController _loanNumberController = TextEditingController();
+
   final TextEditingController _noteController = TextEditingController();
 
   // State variables
@@ -775,13 +775,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
             ),
             const SizedBox(height: 24),
             _buildLineItemsTable(),
-            _buildFormField(
-              controller: _loanNumberController,
-              label: 'Loan Number',
-              hint: 'Enter a loan number',
-              prefixIcon: Icons.numbers_outlined,
-            ),
-            const SizedBox(height: 24),
+          
             Row(
               children: [
                 Expanded(

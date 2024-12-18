@@ -693,7 +693,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                 _buildTableHeader('Draw 1'),
                 _buildTableHeader('Draw 2'),
                 _buildTableHeader('Draw 3'),
-                _buildTableHeader('Budget'),
+                _buildTableHeader('Budget', isFirst: true),
               ],
             ),
           ),
@@ -764,14 +764,17 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                        * I edited the header to have aheader titled Budget 
                        * AND I made an editable table cell for budget. 
                        */
-                      // _buildEditableTableCell(
-                      //   "${item.budget}",
-                      //   isAmount: true,
-                      //   onTap: () => _showDrawEditDialog(item, 0),
-                      // ),
-                      _buildTableCell(
-                        item.budget.toString(),
-                        isFirst: false,
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Text(
+                            '\$${item.budget.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),

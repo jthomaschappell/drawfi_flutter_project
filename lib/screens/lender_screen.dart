@@ -993,7 +993,7 @@ class _LenderScreenState extends State<LenderScreen> {
                             itemBuilder: (context, index) => ProjectCard(
                               project: _projects[index],
                               onTap: () =>
-                                  _showProjectDetails(_projects[index]),
+                                  _goToLoanDashboardScreen(_projects[index]),
                             ),
                           ),
                       ],
@@ -1026,7 +1026,8 @@ class _LenderScreenState extends State<LenderScreen> {
     );
   }
 
-  void _showProjectDetails(Project project) {
+  void _goToLoanDashboardScreen(Project project) {
+    print("ATTENTION EVERYONE: What is the project ID here in showProjectDetails: ${project.id}");
     // Navigate to LoanDashboardScreen instead of showing modal
     Navigator.push(
       context,

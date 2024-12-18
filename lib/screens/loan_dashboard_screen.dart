@@ -336,6 +336,11 @@ class _ChatSectionState extends State<ChatSection> {
   }
 }
 
+/**
+ * TODO:
+ * DELETE THIS MESSAGE WHEN YOU ARE DONE: 
+ * Print out the loan ID. 
+ */
 class LoanDashboardScreen extends StatefulWidget {
   final String loanId;
 
@@ -349,6 +354,61 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   DrawRequest? _selectedRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 20,
+        ), // Increased padding
+        child: Column(
+          children: [
+            _buildTopNav(),
+            const SizedBox(
+              height: 20,
+            ), // Increased spacing
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSidebar(),
+                  const SizedBox(width: 24), // Increased spacing
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            _buildProgressCircle(
+                              percentage: (totalDisbursed / 200000) * 100,
+                              label: 'Amount Disbursed',
+                              color: const Color(0xFFE91E63),
+                            ),
+                            const SizedBox(width: 24), // Increased spacing
+                            _buildProgressCircle(
+                              percentage: projectCompletion,
+                              label: 'Project Completion',
+                              color: const Color.fromARGB(255, 51, 7, 163),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24), // Increased spacing
+                        Expanded(
+                          child: _buildDataTable(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   final List<Notification> _notifications = [
     Notification(
@@ -1139,7 +1199,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             ),
           ),
           const Text(
-            "Construction",
+            "Construction Loan",
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w500,
@@ -1246,57 +1306,6 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           icon,
           color: isActive ? const Color(0xFF6500E9) : Colors.grey[600],
           size: 24,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 24, vertical: 20), // Increased padding
-        child: Column(
-          children: [
-            _buildTopNav(),
-            const SizedBox(height: 20), // Increased spacing
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSidebar(),
-                  const SizedBox(width: 24), // Increased spacing
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            _buildProgressCircle(
-                              percentage: (totalDisbursed / 200000) * 100,
-                              label: 'Amount Disbursed',
-                              color: const Color(0xFFE91E63),
-                            ),
-                            const SizedBox(width: 24), // Increased spacing
-                            _buildProgressCircle(
-                              percentage: projectCompletion,
-                              label: 'Project Completion',
-                              color: const Color.fromARGB(255, 51, 7, 163),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24), // Increased spacing
-                        Expanded(
-                          child: _buildDataTable(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

@@ -105,29 +105,46 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   void initState() {
     super.initState();
     _setContractorDetails();
-    fetchLineItems();
+    fetchLoanLineItems();
   }
 
-  Future<void> fetchLineItems() async {
+  Future<void> fetchLoanLineItems() async {
+    print(
+      "Loan line items from the database were: $_loanLineItems",
+    );
     try {
       final response = await supabase
-          .from('line_items')
+          .from('construction_loan_line_items')
           .select()
           .eq('loan_id', widget.loanId);
 
-      setState(() {
-        _loanLineItems = response
-            .map((entity) => LoanLineItem(
-                  lineItem: entity['category_name'] ?? 0,
+      print("This was the response: $response");
+
+      if (response.isEmpty) {
+        throw Exception('No line items found for loan ID: ${widget.loanId}');
+      }
+
+      setState(
+        () {
+          _loanLineItems = response
+              .map(
+                (entity) => LoanLineItem(
+                  lineItem: entity['category_name'] ?? "-",
                   inspectionPercentage: entity['inspection_percentage'] ?? 0,
-                  draw1: entity['draw1_amount'] ?? 0,
+                  draw1: entity['draw1_amount'] ?? 0.0,
                   draw1Status: entity['draw1_status'] ?? 'pending',
                   draw2: entity['draw2_amount'] ?? 0,
                   draw2Status: entity['draw2_status'] ?? 'pending',
                   budget: entity['budgeted_amount'] ?? 0,
-                ))
-            .toList();
-      });
+                ),
+              )
+              .toList();
+        },
+      );
+
+      print(
+        "Loan line items from the database were: $_loanLineItems",
+      );
     } catch (e) {
       print('Error fetching line items: $e');
     }

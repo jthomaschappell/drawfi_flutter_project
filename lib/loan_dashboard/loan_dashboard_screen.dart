@@ -24,7 +24,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   String contractorEmail = "Loading...";
   String contractorPhone = "Loading...";
 
-  final List<LoanLineItem> _loanLineItems = [
+  List<LoanLineItem> _loanLineItems = [
     /**
      * Take out the hardcoded values for these. 
      * 
@@ -105,26 +105,31 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   void initState() {
     super.initState();
     _setContractorDetails();
-    fetchConstructionLoanLineItems();
+    fetchLineItems();
   }
 
-  Future<void> fetchConstructionLoanLineItems() async {
-    print(
-      "According to fetch construction line items, the loan id is ${widget.loanId}",
-    );
+  Future<void> fetchLineItems() async {
     try {
       final response = await supabase
-          .from('construction_loan_line_items')
+          .from('line_items')
           .select()
           .eq('loan_id', widget.loanId);
-      // final response = await supabase.from('construction_loan_line_items').select();
-      print(
-        "These are the construction loan line items for this loan: $response",
-      );
+
+      setState(() {
+        _loanLineItems = response
+            .map((entity) => LoanLineItem(
+                  lineItem: entity['category_name'] ?? 0,
+                  inspectionPercentage: entity['inspection_percentage'] ?? 0,
+                  draw1: entity['draw1_amount'] ?? 0,
+                  draw1Status: entity['draw1_status'] ?? 'pending',
+                  draw2: entity['draw2_amount'] ?? 0,
+                  draw2Status: entity['draw2_status'] ?? 'pending',
+                  budget: entity['budgeted_amount'] ?? 0,
+                ))
+            .toList();
+      });
     } catch (e) {
-      print(
-        "Error fetching construction loan line items from database: $e",
-      );
+      print('Error fetching line items: $e');
     }
   }
 

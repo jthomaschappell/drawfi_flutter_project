@@ -14,13 +14,29 @@ class InvitationScreen extends StatefulWidget {
 class LineItem {
   String description;
   double amount;
+  bool addedViaCSV;
 
   LineItem({
     required this.description,
     required this.amount,
+    this.addedViaCSV = false,
   });
 }
+// Add this after the LineItem class
+double calculateTotalCSVAmount(List<LineItem> items) {
+  return items
+      .where((item) => item.addedViaCSV)
+      .fold(0.0, (sum, item) => sum + item.amount);
+}
+double calculateTotalManualAmount(List<LineItem> items) {
+  return items
+      .where((item) => !item.addedViaCSV)
+      .fold(0.0, (sum, item) => sum + item.amount);
+}
 
+double calculateTotalAmount(List<LineItem> items) {
+  return items.fold(0.0, (sum, item) => sum + item.amount);
+}
 class _InvitationScreenState extends State<InvitationScreen> {
   // Controllers
   final TextEditingController _projectNameController = TextEditingController();
@@ -141,11 +157,12 @@ class _InvitationScreenState extends State<InvitationScreen> {
               final amount = double.tryParse(values[amountIndex].trim()) ?? 0.0;
 
               setState(() {
-                _lineItems.add(LineItem(
-                  description: description,
-                  amount: amount,
-                ));
-              });
+  _lineItems.add(LineItem(
+    description: description,
+    amount: amount,
+    addedViaCSV: true,  // Add this line
+  ));
+});
             }
           }
 
@@ -269,50 +286,68 @@ class _InvitationScreenState extends State<InvitationScreen> {
 
   Widget _buildLineItemsTable() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Line Items',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _lineItems.add(LineItem(description: '', amount: 0));
-                    });
-                  },
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Item'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4F46E5),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ],
+  padding: const EdgeInsets.all(16),
+  decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(12),
+    border: Border.all(color: Colors.grey[200]!),
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Line Items',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+        ),
+        if (_lineItems.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Total: \$${calculateTotalAmount(_lineItems).toStringAsFixed(2)}',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF4F46E5),
             ),
           ),
+        ],
+      ],
+    ),
+    ElevatedButton.icon(
+      onPressed: () {
+        setState(() {
+          _lineItems.add(LineItem(
+            description: '',
+            amount: 0,
+            addedViaCSV: false,
+          ));
+        });
+      },
+      icon: const Icon(Icons.add, size: 18),
+      label: const Text('Add Item'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF4F46E5),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    ),
+  ],
+),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

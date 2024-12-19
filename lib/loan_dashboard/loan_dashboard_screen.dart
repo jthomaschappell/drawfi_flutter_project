@@ -4,9 +4,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/loan_dashboard/chat/loan_chat_section.dart';
 import 'package:tester/loan_dashboard/models/loan_line_item.dart';
 
+final supabase = Supabase.instance.client;
+
 class LoanDashboardScreen extends StatefulWidget {
   final String loanId;
-  
 
   const LoanDashboardScreen({super.key, required this.loanId});
 
@@ -16,7 +17,6 @@ class LoanDashboardScreen extends StatefulWidget {
 
 class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final supabase = Supabase.instance.client;
   String _searchQuery = '';
   String companyName = "Loading...";
   String contractorName = "Loading...";
@@ -77,7 +77,6 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       draw1: 18000,
       draw1Status: 'pending',
       budget: 153000,
-
     ),
   ];
 

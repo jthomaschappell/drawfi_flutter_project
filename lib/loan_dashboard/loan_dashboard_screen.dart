@@ -132,11 +132,11 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                 (entity) => LoanLineItem(
                   lineItem: entity['category_name'] ?? "-",
                   inspectionPercentage: entity['inspection_percentage'] ?? 0,
-                  draw1: entity['draw1_amount'] ?? 1337.0,
+                  draw1: entity['draw1_amount'] ?? 0.0,
                   draw1Status: entity['draw1_status'] ?? 'pending',
-                  draw2: entity['draw2_amount'] ?? 1337.0,
+                  draw2: entity['draw2_amount'] ?? 0.0,
                   draw2Status: entity['draw2_status'] ?? 'pending',
-                  budget: entity['budgeted_amount'] ?? 1337.0,
+                  budget: entity['budgeted_amount'] ?? 0.0,
                 ),
               )
               .toList();
@@ -694,6 +694,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                 _buildTableHeader('Draw 1'),
                 _buildTableHeader('Draw 2'),
                 _buildTableHeader('Draw 3'),
+                _buildTableHeader('Total Drawn'),
                 _buildTableHeader('Budget', isFirst: true),
               ],
             ),
@@ -756,20 +757,25 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                         isAmount: item.draw3 != null,
                         onTap: () => _showDrawEditDialog(item, 3),
                       ),
-                      // Budget can be edited.
-                      /**
-                       * TODO: 
-                       * 
-                       * I edited the loan line item to have a budget field. 
-                       * 
-                       * I edited the header to have aheader titled Budget 
-                       * AND I made an editable table cell for budget. 
-                       */
+                      // Budget column.
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.only(left: 16),
                           child: Text(
                             '\$${item.budget.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Total drawn column.
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Text(
+                            '\$${item.totalDrawn.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 14,
                               color: Colors.black87,

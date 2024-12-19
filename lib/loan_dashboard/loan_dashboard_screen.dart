@@ -111,7 +111,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
 
   Future<void> fetchLoanLineItems() async {
     print(
-      "Loan line items from the database were: $_loanLineItems",
+      "Loan line items were: $_loanLineItems",
     );
     try {
       final response = await supabase
@@ -122,7 +122,8 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       print("This was the response: $response");
 
       if (response.isEmpty) {
-        throw Exception('No line items found for loan ID: ${widget.loanId}');
+        throw Exception(
+            'No line items found for loan ID: ${widget.loanId}.\nUsing default values.');
       }
 
       setState(
@@ -136,16 +137,25 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                   draw1Status: entity['draw1_status'] ?? 'pending',
                   draw2: entity['draw2_amount'] ?? 0.0,
                   draw2Status: entity['draw2_status'] ?? 'pending',
+                  draw3: entity['draw3_amount'] ?? 0.0,
+                  draw3Status: entity['draw3_status'] ?? 'pending',
                   budget: entity['budgeted_amount'] ?? 0.0,
                 ),
               )
               .toList();
+
+          print(
+            "After loading from the database, loan line items are NOW: $_loanLineItems",
+          );
         },
       );
 
-      print(
-        "Loan line items from the database were: $_loanLineItems",
-      );
+      // print(
+      //   "Loan line items from the database were: ",
+      // );
+      // for (LoanLineItem l in _loanLineItems) {
+      //   l.toString();
+      // }
     } catch (e) {
       print('Error fetching line items: $e');
     }
@@ -178,10 +188,10 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
         contractorPhone = contractorResponse['phone'];
       });
 
-      print("Contractor details name is $contractorName");
-      print("Contractor details company name is $companyName");
-      print("Contractor details email is $contractorEmail");
-      print("Contractor details phone is $contractorPhone");
+      // print("Contractor details name is $contractorName");
+      // print("Contractor details company name is $companyName");
+      // print("Contractor details email is $contractorEmail");
+      // print("Contractor details phone is $contractorPhone");
     } catch (e) {
       print("Error fetching contractor name: $e");
       setState(() {
@@ -694,7 +704,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                 _buildTableHeader('Draw 1'),
                 _buildTableHeader('Draw 2'),
                 _buildTableHeader('Draw 3'),
-                _buildTableHeader('Total Drawn'),
+                _buildTableHeader('Total Drawn', isFirst: true),
                 _buildTableHeader('Budget', isFirst: true),
               ],
             ),
@@ -757,12 +767,12 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                         isAmount: item.draw3 != null,
                         onTap: () => _showDrawEditDialog(item, 3),
                       ),
-                      // Budget column.
+                      // Total drawn column.
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.only(left: 16),
                           child: Text(
-                            '\$${item.budget.toStringAsFixed(2)}',
+                            '\$${item.totalDrawn.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 14,
                               color: Colors.black87,
@@ -770,12 +780,12 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                           ),
                         ),
                       ),
-                      // Total drawn column.
+                      // Budget column.
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.only(left: 16),
                           child: Text(
-                            '\$${item.totalDrawn.toStringAsFixed(2)}',
+                            '\$${item.budget.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 14,
                               color: Colors.black87,

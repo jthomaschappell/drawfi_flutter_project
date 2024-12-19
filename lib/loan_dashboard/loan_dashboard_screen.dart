@@ -92,16 +92,27 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   }
 
   double get totalDisbursed {
-    return _loanLineItems.fold(0, (sum, request) => sum + request.totalDrawn);
-  }
+    double totalDrawn = _loanLineItems.fold<double>(0.0, (sum, request) => sum + request.totalDrawn);
+    double totalBudget = _loanLineItems.fold<double>(0.0, (sum, request) => sum + request.budget);
+    
+    // Calculate percentage (avoid division by zero)
+    if (totalBudget == 0) return 0;
+    return (totalDrawn / totalBudget) * 100;
+}
 
-  // calculates average progress over all the items, converting to a percentage.
-  double get projectCompletion {
-    double totalProgress =
-        _loanLineItems.fold(0, (sum, item) => sum + item.inspectionPercentage);
-    return (totalProgress / _loanLineItems.length) * 100;
-  }
-
+double get projectCompletion {
+    double weightedSum = 0;
+    double totalBudget = 0;
+    
+    for (var item in _loanLineItems) {
+        weightedSum += (item.inspectionPercentage * item.budget);
+        totalBudget += item.budget;
+    }
+    
+    // Calculate weighted percentage (avoid division by zero)
+    if (totalBudget == 0) return 0;
+    return (weightedSum / totalBudget) * 100;
+}
   @override
   void initState() {
     super.initState();
@@ -258,20 +269,20 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                     child: Column(
                       children: [
                         Row(
-                          children: [
-                            _buildProgressCircle(
-                              percentage: (totalDisbursed / 200000) * 100,
-                              label: 'Amount Disbursed',
-                              color: const Color(0xFFE91E63),
-                            ),
-                            const SizedBox(width: 24), // Increased spacing
-                            _buildProgressCircle(
-                              percentage: projectCompletion,
-                              label: 'Project Completion',
-                              color: const Color.fromARGB(255, 51, 7, 163),
-                            ),
-                          ],
-                        ),
+  children: [
+    _buildProgressCircle(
+      percentage: totalDisbursed, // Remove the division by 200000
+      label: 'Amount Disbursed',
+      color: const Color(0xFFE91E63),
+    ),
+    const SizedBox(width: 24),
+    _buildProgressCircle(
+      percentage: projectCompletion,
+      label: 'Project Completion',
+      color: const Color.fromARGB(255, 51, 7, 163),
+    ),
+  ],
+),
                         const SizedBox(height: 24), // Increased spacing
                         Expanded(
                           child: _buildDataTable(),
@@ -555,20 +566,24 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     required String label,
     required Color color,
   }) {
+    // Calculate total drawn amount (not percentage) only when needed
+    double totalDrawnAmount = label == 'Amount Disbursed' 
+        ? _loanLineItems.fold<double>(0.0, (sum, request) => sum + request.totalDrawn)
+        : 0.0;
+
     return Expanded(
       child: Container(
-        height: 140, // Increased height
-        padding: const EdgeInsets.symmetric(
-            horizontal: 28, vertical: 20), // Increased padding
+        height: 140,
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
         decoration: BoxDecoration(
           color: color.withOpacity(0.17),
-          borderRadius: BorderRadius.circular(16), // Increased radius
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
             SizedBox(
-              height: 110, // Increased size
-              width: 130, // Increased size
+              height: 110,
+              width: 130,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -577,7 +592,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                     width: 110,
                     child: CircularProgressIndicator(
                       value: percentage / 100,
-                      strokeWidth: 10, // Increased stroke width
+                      strokeWidth: 10,
                       backgroundColor: color.withOpacity(0.2),
                       valueColor: AlwaysStoppedAnimation<Color>(color),
                     ),
@@ -585,7 +600,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                   Text(
                     '${percentage.toInt()}%',
                     style: const TextStyle(
-                      fontSize: 20, // Increased font size
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -602,16 +617,16 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                   Text(
                     label,
                     style: const TextStyle(
-                      fontSize: 18, // Increased font size
+                      fontSize: 18,
                       fontWeight: FontWeight.w500,
                       color: Colors.black87,
                     ),
                   ),
                   if (label == 'Amount Disbursed')
                     Text(
-                      '\$${totalDisbursed.toStringAsFixed(2)}',
+                      '\$${totalDrawnAmount.toStringAsFixed(2)}',
                       style: TextStyle(
-                        fontSize: 16, // Increased font size
+                        fontSize: 16,
                         color: color,
                         fontWeight: FontWeight.w500,
                       ),

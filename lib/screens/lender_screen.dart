@@ -66,33 +66,52 @@ class Project {
   });
   // yo thomas 
 
-  factory Project.fromSupabase(Map<String, dynamic> data) {
-    final drawCount = data['draw_count'] as int? ?? 0;
-    final maxDraws = 10; // Assuming 10 draws is 100% completion
-    final completionPercentage = (drawCount / maxDraws) * 100;
+  // In the Project.fromSupabase method, replace the current completion calculation with:
 
-    final totalAmount = (data['total_amount'] is int)
-        ? (data['total_amount'] as int).toDouble()
-        : data['total_amount']?.toDouble() ?? 0.0;
-
-    return Project(
-      id: data['loan_id'] as String,
-      companyInitials:
-          (data['contractor_id'] as String?)?.substring(0, 2).toUpperCase() ??
-              'UN',
-      companyName: data['project_name'] as String? ?? 'Unknown Project',
-      location: data['location'] as String? ?? 'Location TBD',
-      disbursed: totalAmount,
-      completed: completionPercentage,
-      draws: drawCount,
-      inspections: 0, // Placeholder until you add inspections tracking
-      status: 'On track', // Default status until you add status tracking
-      lastUpdated: DateTime.parse(data['updated_at'] as String),
-      startDate: DateTime.parse(data['start_date'] as String),
-      updates: [], // Placeholder for future updates feature
-      documents: [], // Placeholder for future documents feature
-    );
+factory Project.fromSupabase(Map<String, dynamic> data) {
+  // Get total budget
+  final totalBudget = (data['total_amount'] is int)
+      ? (data['total_amount'] as int).toDouble()
+      : data['total_amount']?.toDouble() ?? 0.0;
+      
+  // Calculate completion based on the completed inspection percentages
+  double completionPercentage = 0.0;
+  if (data['inspections'] != null) {
+    // Sum up (INSP × Budget) for each line item
+    double weightedSum = 0.0;
+    double totalBudgetSum = 0.0;
+    
+    // Iterate through inspection items
+    for (var item in data['inspections']) {
+      double inspectionPercentage = item['inspection_percentage'] ?? 0.0;
+      double itemBudget = item['budget'] ?? 0.0;
+      
+      weightedSum += (inspectionPercentage * itemBudget);
+      totalBudgetSum += itemBudget;
+    }
+    
+    // Calculate final weighted percentage
+    if (totalBudgetSum > 0) {
+      completionPercentage = (weightedSum / totalBudgetSum);
+    }
   }
+
+  return Project(
+    id: data['loan_id'] as String,
+    companyInitials: (data['contractor_id'] as String?)?.substring(0, 2).toUpperCase() ?? 'UN',
+    companyName: data['project_name'] as String? ?? 'Unknown Project',
+    location: data['location'] as String? ?? 'Location TBD',
+    disbursed: totalBudget,
+    completed: completionPercentage,
+    draws: data['draw_count'] as int? ?? 0,
+    inspections: 0,
+    status: 'On track',
+    lastUpdated: DateTime.parse(data['updated_at'] as String),
+    startDate: DateTime.parse(data['start_date'] as String),
+    updates: [],
+    documents: [],
+  );
+}
 }
 
 class ProjectUpdate {

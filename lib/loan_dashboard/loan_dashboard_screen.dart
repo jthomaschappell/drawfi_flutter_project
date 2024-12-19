@@ -25,7 +25,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
 
   List<LoanLineItem> _loanLineItems = [
     LoanLineItem(
-      lineItem: 'Foundation Work',
+      lineItem: 'Default Value: Foundation Work',
       // inspected: true,
       inspectionPercentage: 0.3,
       draw1: 15000, // these will come from draws
@@ -35,21 +35,21 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       budget: 153000,
     ),
     LoanLineItem(
-      lineItem: 'Framing',
+      lineItem: 'Default Value: Framing',
       inspectionPercentage: .34,
       draw1: 30000,
       draw1Status: 'pending',
       budget: 153000,
     ),
     LoanLineItem(
-      lineItem: 'Electrical',
+      lineItem: 'Default Value: Electrical',
       inspectionPercentage: .55,
       draw1: 12000,
       draw1Status: 'pending',
       budget: 111000,
     ),
     LoanLineItem(
-      lineItem: 'Plumbing',
+      lineItem: 'Default Value: Plumbing',
       inspectionPercentage: .13,
       draw1: 8000,
       draw2: 10000,
@@ -58,21 +58,21 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       budget: 153000,
     ),
     LoanLineItem(
-      lineItem: 'HVAC Installation',
+      lineItem: 'Default Value: HVAC Installation',
       inspectionPercentage: 0,
       draw1: 20000,
       draw1Status: 'pending',
       budget: 153000,
     ),
     LoanLineItem(
-      lineItem: 'Roofing',
+      lineItem: 'Default Value: Roofing',
       inspectionPercentage: .4,
       draw1: 25000,
       draw1Status: 'pending',
       budget: 153000,
     ),
     LoanLineItem(
-      lineItem: 'Interior Finishing',
+      lineItem: 'Default Value: Interior Finishing',
       inspectionPercentage: .45,
       draw1: 18000,
       draw1Status: 'pending',
@@ -149,16 +149,44 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           );
         },
       );
-
-      // print(
-      //   "Loan line items from the database were: ",
-      // );
-      // for (LoanLineItem l in _loanLineItems) {
-      //   l.toString();
-      // }
     } catch (e) {
       print('Error fetching line items: $e');
     }
+  }
+
+  Future<void> _updateLineItemInDatabase(
+      LoanLineItem item, int drawNumber, double? amount) async {
+    try {
+      // Determine which draw column to update based on drawNumber
+      final drawColumn = 'draw${drawNumber}_amount';
+
+      await supabase
+          .from('construction_loan_line_items')
+          .update({
+            drawColumn: amount,
+          })
+          .eq('loan_id', widget.loanId)
+          .eq('category_name',
+              item.lineItem); // Using lineItem name to match the record
+
+      print(
+          'Successfully updated draw $drawNumber for ${item.lineItem} to $amount');
+    } catch (e) {
+      print('Error updating line item in database: $e');
+      // You might want to show a snackbar or dialog here to inform the user
+      _showError(
+        e.toString(),
+      );
+    }
+  } // Add this to show errors to the user
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   Future<void> _setContractorDetails() async {
@@ -357,9 +385,15 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              // Made async
+              final amount = double.tryParse(controller.text);
+
+              // First update the database
+              await _updateLineItemInDatabase(request, drawNumber, amount);
+
+              // Then update the UI state
               setState(() {
-                final amount = double.tryParse(controller.text);
                 switch (drawNumber) {
                   case 1:
                     request.draw1 = amount;
@@ -372,6 +406,7 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                     break;
                 }
               });
+
               Navigator.pop(context);
             },
             child: const Text('Save'),

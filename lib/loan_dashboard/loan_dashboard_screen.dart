@@ -4,10 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/loan_dashboard/chat/loan_chat_section.dart';
 import 'package:tester/loan_dashboard/models/loan_line_item.dart';
 
-final supabase = Supabase.instance.client;
-
 class LoanDashboardScreen extends StatefulWidget {
   final String loanId;
+  
 
   const LoanDashboardScreen({super.key, required this.loanId});
 
@@ -17,8 +16,8 @@ class LoanDashboardScreen extends StatefulWidget {
 
 class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
   final supabase = Supabase.instance.client;
+  String _searchQuery = '';
   String companyName = "Loading...";
   String contractorName = "Loading...";
   String contractorEmail = "Loading...";
@@ -33,18 +32,21 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       draw1Status: 'pending',
       draw2: 25000,
       draw2Status: 'pending',
+      budget: 153000,
     ),
     LoanLineItem(
       lineItem: 'Framing',
       inspectionPercentage: .34,
       draw1: 30000,
       draw1Status: 'pending',
+      budget: 153000,
     ),
     LoanLineItem(
       lineItem: 'Electrical',
       inspectionPercentage: .55,
       draw1: 12000,
       draw1Status: 'pending',
+      budget: 111000,
     ),
     LoanLineItem(
       lineItem: 'Plumbing',
@@ -53,24 +55,29 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       draw2: 10000,
       draw1Status: 'pending',
       draw2Status: 'pending',
+      budget: 153000,
     ),
     LoanLineItem(
       lineItem: 'HVAC Installation',
       inspectionPercentage: 0,
       draw1: 20000,
       draw1Status: 'pending',
+      budget: 153000,
     ),
     LoanLineItem(
       lineItem: 'Roofing',
       inspectionPercentage: .4,
       draw1: 25000,
       draw1Status: 'pending',
+      budget: 153000,
     ),
     LoanLineItem(
       lineItem: 'Interior Finishing',
       inspectionPercentage: .45,
       draw1: 18000,
       draw1Status: 'pending',
+      budget: 153000,
+
     ),
   ];
 
@@ -126,11 +133,11 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                 (entity) => LoanLineItem(
                   lineItem: entity['category_name'] ?? "-",
                   inspectionPercentage: entity['inspection_percentage'] ?? 0,
-                  draw1: entity['draw1_amount'] ?? 0.0,
+                  draw1: entity['draw1_amount'] ?? 1337.0,
                   draw1Status: entity['draw1_status'] ?? 'pending',
-                  draw2: entity['draw2_amount'] ?? 0,
+                  draw2: entity['draw2_amount'] ?? 1337.0,
                   draw2Status: entity['draw2_status'] ?? 'pending',
-                  budget: entity['budgeted_amount'] ?? 0,
+                  budget: entity['budgeted_amount'] ?? 1337.0,
                 ),
               )
               .toList();

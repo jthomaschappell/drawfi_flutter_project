@@ -79,6 +79,11 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       budget: 153000,
     ),
   ];
+  Map<int, String> drawStatuses = {
+  1: 'pending',
+  2: 'pending',
+  3: 'pending'
+};
 
   List<LoanLineItem> get filteredLineItems {
     if (_searchQuery.isEmpty) return _loanLineItems;
@@ -712,19 +717,39 @@ double get projectCompletion {
   }
 
   Widget _buildEditableTableCell(String text,
-      {bool isFirst = false, bool isAmount = false, VoidCallback? onTap}) {
+      {bool isFirst = false, bool isAmount = false, VoidCallback? onTap, required LoanLineItem item, required int drawNumber}) {
+    // Calculate if this draw would exceed budget
+    double currentAmount = double.tryParse(text) ?? 0;
+    double totalWithoutThisDraw = item.totalDrawn - currentAmount;
+    bool wouldExceedBudget = (totalWithoutThisDraw + currentAmount) > item.budget;
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           padding: EdgeInsets.only(left: isFirst ? 16 : 68),
-          child: Text(
-            isAmount ? '\$${double.parse(text).toStringAsFixed(2)}' : text,
-            style: TextStyle(
-              fontSize: 14,
-              color: isAmount ? Colors.green[700] : Colors.black87,
-              decoration: onTap != null ? TextDecoration.underline : null,
-            ),
+          child: Row(
+            children: [
+              Text(
+                isAmount ? '\$${double.parse(text).toStringAsFixed(2)}' : text,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: wouldExceedBudget ? Colors.red : (isAmount ? Colors.green[700] : Colors.black87),
+                  decoration: onTap != null ? TextDecoration.underline : null,
+                ),
+              ),
+              if (wouldExceedBudget && isAmount) ...[
+                const SizedBox(width: 4),
+                Tooltip(
+                  message: 'This draw would exceed the budget',
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    size: 16,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -797,36 +822,54 @@ double get projectCompletion {
                         ),
                       ),
                       // Draw 1.
-                      // It can be edited.
                       _buildEditableTableCell(
                         item.draw1?.toString() ?? '-',
                         isAmount: item.draw1 != null,
                         onTap: () => _showDrawEditDialog(item, 1),
+                        item: item,
+                        drawNumber: 1,
                       ),
                       // Draw 2.
-                      // It can be edited.
                       _buildEditableTableCell(
                         item.draw2?.toString() ?? '-',
                         isAmount: item.draw2 != null,
                         onTap: () => _showDrawEditDialog(item, 2),
+                        item: item,
+                        drawNumber: 2,
                       ),
                       // Draw 3.
-                      // It can be edited.
                       _buildEditableTableCell(
                         item.draw3?.toString() ?? '-',
                         isAmount: item.draw3 != null,
                         onTap: () => _showDrawEditDialog(item, 3),
+                        item: item,
+                        drawNumber: 3,
                       ),
-                      // Total drawn column.
+                      // Total drawn column with warning
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.only(left: 16),
-                          child: Text(
-                            '\$${item.totalDrawn.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                            ),
+                          child: Row(
+                            children: [
+                              Text(
+                                '\$${item.totalDrawn.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: item.totalDrawn > item.budget ? Colors.red : Colors.black87,
+                                ),
+                              ),
+                              if (item.totalDrawn > item.budget) ...[
+                                const SizedBox(width: 4),
+                                Tooltip(
+                                  message: 'Total drawn amount exceeds budget',
+                                  child: Icon(
+                                    Icons.warning_amber_rounded,
+                                    size: 16,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),
@@ -877,83 +920,105 @@ double get projectCompletion {
   }
 
   Widget _buildVerticalDrawStatus(int drawNumber) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.check_circle_outline),
-          iconSize: 16,
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          color: Colors.green,
-          onPressed: () => _approveVerticalDraw(drawNumber),
-          tooltip: 'Approve Draw $drawNumber',
-        ),
-        const SizedBox(width: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Text(
-            'PENDING',
-            style: TextStyle(
-              color: Colors.orange,
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        const SizedBox(width: 4),
-        IconButton(
-          icon: const Icon(Icons.cancel_outlined),
-          iconSize: 16,
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          color: Colors.red,
-          onPressed: () => _declineVerticalDraw(drawNumber),
-          tooltip: 'Decline Draw $drawNumber',
-        ),
-      ],
-    );
+  Color getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Colors.green;
+      case 'declined':
+        return Colors.red;
+      case 'pending':
+      default:
+        return Colors.orange;
+    }
   }
 
-  void _approveVerticalDraw(int drawNumber) {
-    setState(() {
-      for (var item in _loanLineItems) {
-        switch (drawNumber) {
-          case 1:
-            if (item.draw1 != null) item.draw1Status = 'approved';
-            break;
-          case 2:
-            if (item.draw2 != null) item.draw2Status = 'approved';
-            break;
-          case 3:
-            if (item.draw3 != null) item.draw3Status = 'approved';
-            break;
-        }
-      }
-    });
-  }
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      IconButton(
+        icon: const Icon(Icons.check_circle_outline),
+        iconSize: 16,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        color: Colors.green,
+        onPressed: () => _approveVerticalDraw(drawNumber),
+        tooltip: 'Approve Draw $drawNumber',
+      ),
+      const SizedBox(width: 14),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: getStatusColor(drawStatuses[drawNumber] ?? 'pending').withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          (drawStatuses[drawNumber] ?? 'PENDING').toUpperCase(),
+          style: TextStyle(
+            color: getStatusColor(drawStatuses[drawNumber] ?? 'pending'),
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+      const SizedBox(width: 14),
+      IconButton(
+        icon: const Icon(Icons.cancel_outlined),
+        iconSize: 16,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        color: Colors.red,
+        onPressed: () => _declineVerticalDraw(drawNumber),
+        tooltip: 'Decline Draw $drawNumber',
+      ),
+    ],
+  );
+}
 
-  void _declineVerticalDraw(int drawNumber) {
-    setState(() {
-      for (var item in _loanLineItems) {
-        switch (drawNumber) {
-          case 1:
-            if (item.draw1 != null) item.draw1Status = 'declined';
-            break;
-          case 2:
-            if (item.draw2 != null) item.draw2Status = 'declined';
-            break;
-          case 3:
-            if (item.draw3 != null) item.draw3Status = 'declined';
-            break;
-        }
+// Update the approve and decline functions
+void _approveVerticalDraw(int drawNumber) {
+  setState(() {
+    // Update the overall draw status
+    drawStatuses[drawNumber] = 'approved';
+    
+    // Update individual line items
+    for (var item in _loanLineItems) {
+      switch (drawNumber) {
+        case 1:
+          if (item.draw1 != null) item.draw1Status = 'approved';
+          break;
+        case 2:
+          if (item.draw2 != null) item.draw2Status = 'approved';
+          break;
+        case 3:
+          if (item.draw3 != null) item.draw3Status = 'approved';
+          break;
       }
-    });
-  }
+    }
+  });
+}
+
+void _declineVerticalDraw(int drawNumber) {
+  setState(() {
+    // Update the overall draw status
+    drawStatuses[drawNumber] = 'declined';
+    
+    // Update individual line items
+    for (var item in _loanLineItems) {
+      switch (drawNumber) {
+        case 1:
+          if (item.draw1 != null) item.draw1Status = 'declined';
+          break;
+        case 2:
+          if (item.draw2 != null) item.draw2Status = 'declined';
+          break;
+        case 3:
+          if (item.draw3 != null) item.draw3Status = 'declined';
+          break;
+      }
+    }
+  });
+}
+
 
   Widget _buildSidebar() {
     return Container(

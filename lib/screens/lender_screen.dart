@@ -411,58 +411,57 @@ class _LenderScreenState extends State<LenderScreen> {
   }
 
   Future<void> _loadProjects() async {
-    try {
-      setState(() => _isLoading = true);
+  try {
+    setState(() => _isLoading = true);
 
-      // Get the lender_id from the userProfile
-      final lenderId = widget.userProfile['user_id'];
-      print('Loading projects for lender: $lenderId'); // Debug print
+    // Get the lender_id from the userProfile
+    final lenderId = widget.userProfile['user_id'];
+    print('Loading projects for lender: $lenderId'); // Debug print
 
-      // Query construction_loans table filtered by lender_id
-      final response = await supabase
-          .from('construction_loans')
-          .select('''
-          loan_id,
-          contractor_id,
-          project_name,
-          total_amount,
-          draw_count,
-          updated_at,
-          location,
-          start_date
-        ''')
-          .eq('lender_id', lenderId) // Filter by lender_id
-          .order('updated_at', ascending: false);
+    // Query construction_loans table filtered by lender_id
+    final response = await supabase
+        .from('construction_loans')
+        .select('''
+        loan_id,
+        contractor_id,
+        project_name,
+        total_amount,
+        draw_count,
+        updated_at,
+        location,
+        start_date
+      ''')
+        .eq('lender_id', lenderId) // Filter by lender_id
+        .order('updated_at', ascending: false);
 
-      print('Response from Supabase: $response'); // Debug print
+    print('Response from Supabase: $response'); // Debug print
 
-      // Convert the response data to List<Project>
-      final projects = (response as List<dynamic>)
-          .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
-          .toList();
+    // Convert the response data to List<Project>
+    final projects = (response as List<dynamic>)
+        .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
+        .toList();
 
-      setState(() {
-        _projects = projects;
-        _isLoading = false;
-      });
-    } catch (error) {
-      print('Error loading projects: $error');
-      setState(() {
-        _isLoading = false;
-        _projects = [];
-      });
+    setState(() {
+      _projects = projects;
+      _isLoading = false;
+    });
+  } catch (error) {
+    print('Error loading projects: $error');
+    setState(() {
+      _isLoading = false;
+      _projects = [];
+    });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading projects: ${error.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading projects: ${error.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
-
+}
   void _filterProjects() {
     if (_searchQuery.isEmpty && _selectedStatus == 'All') {
       _loadProjects();

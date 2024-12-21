@@ -42,7 +42,7 @@ class Project {
   final double disbursed;
   final double completed;
   final int draws;
-  final int inspections;
+  final DateTime? nextInspectionDate; // New field
   final String status;
   final DateTime lastUpdated;
   final DateTime startDate;
@@ -57,13 +57,14 @@ class Project {
     required this.disbursed,
     required this.completed,
     required this.draws,
-    required this.inspections,
+    this.nextInspectionDate, // Made optional
     required this.status,
     required this.lastUpdated,
     required this.startDate,
     required this.updates,
     required this.documents,
   });
+
   // yo thomas 
 
   // In the Project.fromSupabase method, replace the current completion calculation with:
@@ -97,21 +98,25 @@ factory Project.fromSupabase(Map<String, dynamic> data) {
   }
 
   return Project(
-    id: data['loan_id'] as String,
-    companyInitials: (data['contractor_id'] as String?)?.substring(0, 2).toUpperCase() ?? 'UN',
-    companyName: data['project_name'] as String? ?? 'Unknown Project',
-    location: data['location'] as String? ?? 'Location TBD',
-    disbursed: totalBudget,
-    completed: completionPercentage,
-    draws: data['draw_count'] as int? ?? 0,
-    inspections: 0,
-    status: 'On track',
-    lastUpdated: DateTime.parse(data['updated_at'] as String),
-    startDate: DateTime.parse(data['start_date'] as String),
-    updates: [],
-    documents: [],
-  );
-}
+      id: data['loan_id'] as String,
+      companyInitials: (data['contractor_id'] as String?)?.substring(0, 2).toUpperCase() ?? 'UN',
+      companyName: data['project_name'] as String? ?? 'Unknown Project',
+      location: data['location'] as String? ?? 'Location TBD',
+      disbursed: totalBudget,
+      completed: completionPercentage,
+      draws: data['draw_count'] as int? ?? 0,
+      nextInspectionDate: data['next_inspection_date'] != null 
+          ? DateTime.parse(data['next_inspection_date'] as String)
+          : null,
+      status: 'On track',
+      lastUpdated: DateTime.parse(data['updated_at'] as String),
+      startDate: DateTime.parse(data['start_date'] as String),
+      updates: [],
+      documents: [],
+    );
+  }
+  
+  get inspections => null;
 }
 
 class ProjectUpdate {
@@ -222,6 +227,22 @@ class NavigationIconButton extends StatelessWidget {
     );
   }
 }
+class CompletionDataProvider {
+  static final Map<String, double> _completionPercentages = {};
+
+  static void setCompletion(String loanId, double percentage) {
+    _completionPercentages[loanId] = percentage;
+  }
+
+  static double getCompletion(String loanId) {
+    return _completionPercentages[loanId] ?? 0.0;
+  }
+}
+
+// In your LoanDashboardScreen, after calculating the completion percentage:
+void updateCompletionPercentage(double completionPercentage, dynamic widget) {
+  CompletionDataProvider.setCompletion(widget.loanId, completionPercentage);
+}
 
 class ProjectCard extends StatelessWidget {
   final Project project;
@@ -309,12 +330,15 @@ class ProjectCard extends StatelessWidget {
               ),
 
               // Metrics
-              _buildMetric(
-                  'Disbursed', '${project.disbursed.toStringAsFixed(0)}%'),
-              _buildMetric(
-                  'Completed', '${project.completed.toStringAsFixed(0)}%'),
+              _buildMetric('Disbursed', '${project.disbursed.toStringAsFixed(0)}%'),
+              _buildMetric('Completed', '${project.completed.toStringAsFixed(0)}%'),
               _buildMetric('Draws', project.draws.toString()),
-              _buildMetric('Inspections', project.inspections.toString()),
+              _buildMetric(
+                'Next Inspection',
+                project.nextInspectionDate != null
+                    ? DateFormat('MMM d').format(project.nextInspectionDate!)
+                    : 'N/A'
+              ),
 
               // Status Badge
               Container(

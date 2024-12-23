@@ -4,13 +4,13 @@ class GcSettingsScreen extends StatelessWidget {
   final Map<String, dynamic> userProfile;
 
   const GcSettingsScreen({
-    Key? key,
+    super.key,
     this.userProfile = const {
       'full_name': 'John Doe',
       'email': 'johndoe@example.com',
       'user_role': 'contractor',
     },
-  }) : super(key: key);
+  });
 
   void _handleLogout(BuildContext context) {
     showDialog(

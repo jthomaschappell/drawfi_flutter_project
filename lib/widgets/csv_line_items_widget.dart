@@ -16,10 +16,10 @@ class CSVLineItemsWidget extends StatelessWidget {
   final Function(List<LineItem>) onLineItemsChanged;
 
   const CSVLineItemsWidget({
-    Key? key,
+    super.key,
     required this.lineItems,
     required this.onLineItemsChanged,
-  }) : super(key: key);
+  });
 
   Future<void> _pickAndParseCSV() async {
     try {

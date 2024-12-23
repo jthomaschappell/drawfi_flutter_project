@@ -167,6 +167,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         actions: [
           CupertinoButton(
             padding: const EdgeInsets.symmetric(horizontal: 16),
+            onPressed:
+                _notifications.any((n) => !n['isRead']) ? _markAllAsRead : null,
             child: Text(
               'Mark all read',
               style: TextStyle(
@@ -177,8 +179,6 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 fontWeight: FontWeight.w500,
               ),
             ),
-            onPressed:
-                _notifications.any((n) => !n['isRead']) ? _markAllAsRead : null,
           ),
         ],
       ),

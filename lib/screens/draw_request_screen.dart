@@ -112,7 +112,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
             Divider(color: Colors.grey[200]),
           ],
         ),
-        content: Container(
+        content: SizedBox(
           width: 400,
           child: Column(
             mainAxisSize: MainAxisSize.min,

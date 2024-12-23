@@ -214,7 +214,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          Icon(Icons.search, color: const Color(0xFF374151), size: 20),
+          const Icon(Icons.search, color: Color(0xFF374151), size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -281,7 +281,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
                 ),
                 Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 14, color: const Color(0xFF6B7280)),
+                    const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF6B7280)),
                     const SizedBox(width: 4),
                     Text(
                       'American Fork, UT',
@@ -322,7 +322,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          Icon(Icons.chevron_right, color: const Color(0xFF6B7280), size: 20),
+          const Icon(Icons.chevron_right, color: Color(0xFF6B7280), size: 20),
         ],
       ),
     );

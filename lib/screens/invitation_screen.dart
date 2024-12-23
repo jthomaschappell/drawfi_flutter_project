@@ -5,7 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:math' as math;
 
 class InvitationScreen extends StatefulWidget {
-  const InvitationScreen({Key? key}) : super(key: key);
+  const InvitationScreen({super.key});
 
   @override
   State<InvitationScreen> createState() => _InvitationScreenState();
@@ -397,9 +397,9 @@ class _InvitationScreenState extends State<InvitationScreen> {
                 bottom: BorderSide(color: Colors.grey[200]!),
               ),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Expanded(
+                Expanded(
                   flex: 3,
                   child: Text(
                     'Description',
@@ -410,7 +410,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                     ),
                   ),
                 ),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Amount',
                     style: TextStyle(
@@ -420,7 +420,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 48),
+                SizedBox(width: 48),
               ],
             ),
           ),
@@ -531,7 +531,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
         ],
       ),
     );
@@ -670,7 +670,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                     ],
                   ),
                 ))
-            .toList(),
+            ,
       ],
     );
   }
@@ -1078,7 +1078,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                       ],
                     ),
                   ))
-              .toList(),
+              ,
         ],
       ),
     );

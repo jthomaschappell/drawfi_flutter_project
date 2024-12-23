@@ -182,12 +182,12 @@ class NavigationIconButton extends StatelessWidget {
   final String label;
 
   const NavigationIconButton({
-    Key? key,
+    super.key,
     required this.icon,
     required this.isSelected,
     required this.onTap,
     required this.label,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -249,10 +249,10 @@ class ProjectCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const ProjectCard({
-    Key? key,
+    super.key,
     required this.project,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
@@ -1066,9 +1066,9 @@ class ProjectDetailsModal extends StatelessWidget {
   final Project project;
 
   const ProjectDetailsModal({
-    Key? key,
+    super.key,
     required this.project,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

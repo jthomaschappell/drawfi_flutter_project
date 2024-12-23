@@ -28,7 +28,7 @@ class Project {
 }
 
 class ProjectsScreen extends StatefulWidget {
-  const ProjectsScreen({Key? key}) : super(key: key);
+  const ProjectsScreen({super.key});
 
   @override
   State<ProjectsScreen> createState() => _ProjectsScreenState();
@@ -72,17 +72,15 @@ class _ProjectsScreenState extends State<ProjectsScreen>
           .select()
           .order('created_at', ascending: false);
 
-      if (response is List) {
-        final projects = response
-            .map((data) => Project.fromDatabase(data as Map<String, dynamic>))
-            .toList();
+      final projects = response
+          .map((data) => Project.fromDatabase(data as Map<String, dynamic>))
+          .toList();
 
-        setState(() {
-          _projects.addAll(projects);
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
+      setState(() {
+        _projects.addAll(projects);
+        _isLoading = false;
+      });
+        } catch (e) {
       _showError('Error loading projects');
     } finally {
       setState(() => _isLoading = false);
@@ -656,8 +654,8 @@ class _ProjectsScreenState extends State<ProjectsScreen>
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
           isDestructiveAction: true,
+          child: const Text('Cancel'),
         ),
       ),
     );

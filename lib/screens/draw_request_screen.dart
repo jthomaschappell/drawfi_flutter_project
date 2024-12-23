@@ -327,7 +327,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                   onPressed: () => Navigator.pop(context),
                 ),
                 const Text(
-                  'New Draw Request',
+                  'Draw Request',
                   style: TextStyle(
                     fontSize: 22, // Increased size
                     fontWeight: FontWeight.w800, // Bolder

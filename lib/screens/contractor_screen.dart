@@ -3,6 +3,36 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tester/screens/gc_settings_screen.dart';
 import 'package:tester/screens/draw_request_screen.dart';
 
+// ProjectDetailsScreen definition
+class ProjectDetailsScreen extends StatelessWidget {
+  const ProjectDetailsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1A1F36)),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Project Details',
+          style: TextStyle(
+            color: Color(0xFF1A1F36),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: const Center(
+        child: Text('Project Details Content'),
+      ),
+    );
+  }
+}
+
+// ContractorScreen definition
 class ContractorScreen extends StatefulWidget {
   final Map<String, dynamic> userProfile;
 
@@ -30,6 +60,13 @@ class _ContractorScreenState extends State<ContractorScreen> {
   }
 
   void _navigateToDrawRequest(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DrawRequestScreen()),
+    );
+  }
+
+  void _navigateToProjectDetails(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const DrawRequestScreen()),
@@ -204,126 +241,140 @@ class _ContractorScreenState extends State<ContractorScreen> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          const Icon(Icons.search, color: Color(0xFF374151), size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              style: const TextStyle(
-                color: Color(0xFF111827),
+  return Container(
+    height: 40,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.grey[300]!),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: 12),
+    child: Row(
+      children: [
+        const Icon(
+          Icons.search, 
+          color: Colors.black54,  // Changed to a darker color
+          size: 20
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextField(
+            style: const TextStyle(
+              color: Colors.black,  // Changed to black
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Search by name, loan & etc',
+              hintStyle: TextStyle(
+                color: Colors.grey[600],  // Made hint text slightly darker
                 fontSize: 14,
-                fontWeight: FontWeight.w500,
               ),
-              decoration: InputDecoration(
-                hintText: 'Search by name, loan & etc',
-                hintStyle: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 14,
-                ),
-                border: InputBorder.none,
-              ),
+              border: InputBorder.none,
+              fillColor: Colors.white,  // Explicitly set background color
+              filled: true,
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildProjectCard() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[200]!),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFF6500E9),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Center(
-              child: Text(
-                'KD',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+    return InkWell(
+      onTap: () => _navigateToProjectDetails(context),
+      hoverColor: Colors.grey[50],
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.grey[200]!),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'KDK Construction',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF111827),
+          color: Colors.white,
+        ),
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6500E9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: Text(
+                    'KD',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                Row(
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF6B7280)),
+                    const Text(
+                      'KDK Construction',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF6B7280)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'American Fork, UT',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              _buildMetric('Disbursed', '50%'),
+              _buildMetric('Completed', '50%'),
+              _buildMetric('Draws', '3'),
+              _buildMetric('Inspections', '2'),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 14, color: Colors.green[700]),
                     const SizedBox(width: 4),
                     Text(
-                      'American Fork, UT',
+                      'On track',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 16),
+              const Icon(Icons.chevron_right, color: Color(0xFF6B7280), size: 20),
+            ],
           ),
-          _buildMetric('Disbursed', '50%'),
-          _buildMetric('Completed', '50%'),
-          _buildMetric('Draws', '3'),
-          _buildMetric('Inspections', '2'),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.check_circle_outline, size: 14, color: Colors.green[700]),
-                const SizedBox(width: 4),
-                Text(
-                  'On track',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          const Icon(Icons.chevron_right, color: Color(0xFF6B7280), size: 20),
-        ],
+        ),
       ),
     );
   }

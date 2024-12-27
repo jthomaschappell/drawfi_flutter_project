@@ -7,13 +7,16 @@ class DrawRequest {
   bool inspected;
   double? requestedAmount;
   String status;
+  final TextEditingController amountController = TextEditingController();
 
   DrawRequest({
     required this.lineItem,
     this.inspected = false,
     this.requestedAmount,
     this.status = 'Pending', 
-  });
+  }) {
+    amountController.text = requestedAmount?.toString() ?? '';
+  }
 }
 
 class DrawRequestScreen extends StatefulWidget {
@@ -76,167 +79,6 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
         0, (sum, request) => sum + (request.requestedAmount ?? 0));
   }
 
-  void _showAmountEditDialog(DrawRequest request) {
-    final controller =
-        TextEditingController(text: request.requestedAmount?.toString() ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        contentPadding: const EdgeInsets.all(24),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Edit Request Amount',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF111827),
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              request.lineItem,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Divider(color: Colors.grey[200]),
-          ],
-        ),
-        content: SizedBox(
-          width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Amount',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: controller,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF111827),
-                    fontWeight: FontWeight.w500,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '0.00',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 16,
-                    ),
-                    prefixText: '\$ ',
-                    prefixStyle: const TextStyle(
-                      color: Color(0xFF111827),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    border: InputBorder.none,
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: Colors.grey[200]!),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey[600],
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                  ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      request.requestedAmount =
-                          double.tryParse(controller.text);
-                    });
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6500E9),
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Save Changes',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSearchBar() {
     return Container(
       decoration: BoxDecoration(
@@ -249,7 +91,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
         controller: _searchController,
         style: const TextStyle(
           fontSize: 14,
-          color: Color(0xFF111827), // Dark text color
+          color: Color(0xFF111827),
         ),
         onChanged: (value) => setState(() => _searchQuery = value),
         decoration: InputDecoration(
@@ -258,7 +100,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
           hintText: 'Search line items...',
           hintStyle: TextStyle(
             fontSize: 14,
-            color: Colors.grey[700], // Darker hint text
+            color: Colors.grey[700],
           ),
           prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey[700]),
           border: OutlineInputBorder(
@@ -295,7 +137,6 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
             padding: const EdgeInsets.only(left: 16.0),
             child: Row(
               children: [
-                // Logo
                 SvgPicture.string(
                   '''<svg width="32" height="32" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
@@ -329,10 +170,10 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                 const Text(
                   'Draw Request',
                   style: TextStyle(
-                    fontSize: 22, // Increased size
-                    fontWeight: FontWeight.w800, // Bolder
-                    color: Color(0xFF111827), // Darker text
-                    letterSpacing: -0.5, // Tighter spacing
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF111827),
+                    letterSpacing: -0.5,
                   ),
                 ),
               ],
@@ -365,10 +206,10 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
           const Text(
             'Draw Request Summary',
             style: TextStyle(
-              fontSize: 20, // Increased size
-              fontWeight: FontWeight.w800, // Bolder
-              color: Color(0xFF111827), // Darker text
-              letterSpacing: -0.5, // Tighter spacing
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF111827),
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 20),
@@ -467,7 +308,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: Color(0xFF111827), // Darker text
+                        color: Color(0xFF111827),
                       ),
                     ),
                   ),
@@ -477,7 +318,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: Color(0xFF111827), // Darker text
+                        color: Color(0xFF111827),
                       ),
                     ),
                   ),
@@ -487,7 +328,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: Color(0xFF111827), // Darker text
+                        color: Color(0xFF111827),
                       ),
                     ),
                   ),
@@ -513,7 +354,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                             child: Text(
                               request.lineItem,
                               style: const TextStyle(
-                                color: Color(0xFF111827), // Darker text
+                                color: Color(0xFF111827),
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -533,7 +374,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  request.inspected ? 'Verified' : 'Pending',
+                                  request.inspected ? 'Approved' : 'Pending',
                                   style: TextStyle(
                                     color: request.inspected
                                         ? Colors.green[700]
@@ -545,18 +386,31 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                             ),
                           ),
                           Expanded(
-                            child: GestureDetector(
-                              onTap: () => _showAmountEditDialog(request),
-                              child: Text(
-                                request.requestedAmount != null
-                                    ? '\$${request.requestedAmount!.toStringAsFixed(2)}'
-                                    : 'Add Amount',
-                                style: const TextStyle(
-                                  color: Color(0xFF6500E9),
-                                  fontWeight: FontWeight.w500,
-                                  decoration: TextDecoration.underline,
-                                ),
+                            child: TextField(
+                              controller: request.amountController,
+                              keyboardType: TextInputType.number,
+                              style: const TextStyle(
+                                color: Color(0xFF111827),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
                               ),
+                              decoration: InputDecoration(
+                                prefixText: '\$ ',
+                                prefixStyle: const TextStyle(
+                                  color: Color(0xFF111827),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                filled: true,
+                                fillColor: Colors.white,
+                              ),
+                              onChanged: (value) {
+                                setState(() {
+                                  request.requestedAmount = double.tryParse(value);
+                                });
+                              },
                             ),
                           ),
                         ],
@@ -594,7 +448,6 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
           ),
           const SizedBox(height: 16),
           DottedBorder(
-            // Using DottedBorder instead of BorderStyle.dashed
             borderType: BorderType.RRect,
             radius: const Radius.circular(12),
             color: const Color(0xFF6500E9),
@@ -638,7 +491,6 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // List of uploaded files would go here
         ],
       ),
     );
@@ -649,7 +501,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
       children: [
         Expanded(
           child: Container(
-            height: 180, // Increased height
+            height: 180,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -659,17 +511,17 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
             child: Row(
               children: [
                 SizedBox(
-                  height: 140, // Increased size (approximately 10cm)
-                  width: 140, // Increased size (approximately 10cm)
+                  height: 140,
+                  width: 140,
                   child: Stack(
-                    alignment: Alignment.center, // Center the text
+                    alignment: Alignment.center,
                     children: [
                       SizedBox(
                         height: 140,
                         width: 140,
                         child: CircularProgressIndicator(
                           value: 0.75,
-                          strokeWidth: 12, // Made stroke thicker
+                          strokeWidth: 12,
                           backgroundColor: Colors.grey[200],
                           valueColor: const AlwaysStoppedAnimation<Color>(
                             Color(0xFF6500E9),
@@ -682,7 +534,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                           Text(
                             '75%',
                             style: TextStyle(
-                              fontSize: 36, // Larger text
+                              fontSize: 36,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF111827),
                             ),
@@ -729,10 +581,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
           ),
         ),
         const SizedBox(width: 16),
-        // Second circle (Budget Status) with same changes
         Expanded(
           child: Container(
-            height: 180, // Increased height
+            height: 180,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.white,
@@ -742,8 +593,8 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
             child: Row(
               children: [
                 SizedBox(
-                  height: 140, // Increased size
-                  width: 140, // Increased size
+                  height: 140,
+                  width: 140,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
@@ -765,7 +616,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                           Text(
                             '45%',
                             style: TextStyle(
-                              fontSize: 36, // Larger text
+                              fontSize: 36,
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF111827),
                             ),
@@ -855,6 +706,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    for (var request in _drawRequests) {
+      request.amountController.dispose();
+    }
     super.dispose();
   }
 }

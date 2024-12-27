@@ -64,7 +64,7 @@ class Project {
     required this.updates,
     required this.documents,
   });
-
+  
   // yo thomas 
 
   // In the Project.fromSupabase method, replace the current completion calculation with:
@@ -118,6 +118,7 @@ factory Project.fromSupabase(Map<String, dynamic> data) {
   
   get inspections => null;
 }
+
 
 class ProjectUpdate {
   final String action;
@@ -188,7 +189,7 @@ class NavigationIconButton extends StatelessWidget {
     required this.onTap,
     required this.label,
   });
-
+  
   @override
   Widget build(BuildContext context) {
     return Tooltip(
@@ -433,6 +434,7 @@ class _LenderScreenState extends State<LenderScreen> {
       _filterProjects();
     });
   }
+  
 
   Future<void> _loadProjects() async {
   try {
@@ -504,7 +506,7 @@ class _LenderScreenState extends State<LenderScreen> {
       }).toList();
     });
   }
-
+  
   Widget _buildProgressCircles() {
     return Row(
       children: [
@@ -1471,3 +1473,4 @@ class ProjectDetailsModal extends StatelessWidget {
     );
   }
 }
+

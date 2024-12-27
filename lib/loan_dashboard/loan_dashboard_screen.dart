@@ -740,7 +740,7 @@ double get projectCompletion {
               ),
               if (wouldExceedBudget && isAmount) ...[
                 const SizedBox(width: 4),
-                const Tooltip(
+                Tooltip(
                   message: 'This draw would exceed the budget',
                   child: Icon(
                     Icons.warning_amber_rounded,
@@ -860,7 +860,7 @@ double get projectCompletion {
                               ),
                               if (item.totalDrawn > item.budget) ...[
                                 const SizedBox(width: 4),
-                                const Tooltip(
+                                Tooltip(
                                   message: 'Total drawn amount exceeds budget',
                                   child: Icon(
                                     Icons.warning_amber_rounded,

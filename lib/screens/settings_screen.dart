@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'auth_screen.dart';
+import 'path_to_auth_screen/auth_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Map userProfile;

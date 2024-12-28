@@ -434,7 +434,6 @@ class _LenderScreenState extends State<LenderScreen> {
       _filterProjects();
     });
   }
-  
 
   Future<void> _loadProjects() async {
   try {
@@ -506,7 +505,7 @@ class _LenderScreenState extends State<LenderScreen> {
       }).toList();
     });
   }
-  
+
   Widget _buildProgressCircles() {
     return Row(
       children: [

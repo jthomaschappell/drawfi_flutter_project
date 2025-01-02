@@ -4,6 +4,8 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:math' as math;
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 class InvitationScreen extends StatefulWidget {
   const InvitationScreen({super.key});
 
@@ -22,12 +24,14 @@ class LineItem {
     this.addedViaCSV = false,
   });
 }
+
 // Add this after the LineItem class
 double calculateTotalCSVAmount(List<LineItem> items) {
   return items
       .where((item) => item.addedViaCSV)
       .fold(0.0, (sum, item) => sum + item.amount);
 }
+
 double calculateTotalManualAmount(List<LineItem> items) {
   return items
       .where((item) => !item.addedViaCSV)
@@ -37,6 +41,7 @@ double calculateTotalManualAmount(List<LineItem> items) {
 double calculateTotalAmount(List<LineItem> items) {
   return items.fold(0.0, (sum, item) => sum + item.amount);
 }
+
 class _InvitationScreenState extends State<InvitationScreen> {
   // Controllers
   final TextEditingController _projectNameController = TextEditingController();
@@ -86,6 +91,133 @@ class _InvitationScreenState extends State<InvitationScreen> {
 </defs>
 </svg>''';
   List<LineItem> _lineItems = [];
+
+  Future<void> createConstructionLoan() async {
+    print("The create construction loan function was called!");
+    final supabase = Supabase.instance.client;
+    try {
+      // Get IDs from the form entries
+      String? contractorEmail = _gcEmailController.text;
+      String? inspectorEmail = _inspectorEmailController.text;
+
+      // First, look up the contractor and inspector IDs using their emails
+      final contractorResponse = await supabase
+          .from('users')
+          .select('contractor_id')
+          .eq('email', contractorEmail)
+          .single();
+
+      final inspectorResponse = await supabase
+          .from('users')
+          .select('lender_id')
+          .eq('email', inspectorEmail)
+          .single();
+
+      // String contractorId =
+      //     '9d068756-40d3-4b6e-a3e5-5febce609895'; // Chretien Banza.
+      String lenderId = '13cdce7f-9cd2-417a-8d0f-ab0eaab11153'; // Remi
+      // String inspectorId =
+      //     '73d6643c-d1a0-4a9b-bbbe-eebab668d2d0'; // Allan Pinkerton.
+
+      // String? formattedStartDate = _startDate?.toIso8601String().split('T')[0];
+      double totalAmount = calculateTotalAmount(_lineItems);
+
+      final response = await supabase.from('construction_loans').insert({
+        'contractor_id': contractorResponse['contractor_id'],
+        'lender_id': lenderId, // TODO: remove hardcode
+        'inspector_id': inspectorResponse['inspector_id'],
+        'total_amount': totalAmount,
+        'location': _locationController.text.isNotEmpty
+            ? _locationController.text
+            : null,
+        'description':
+            _noteController.text.isNotEmpty ? _noteController.text : null,
+        'project_name': _projectNameController.text.isNotEmpty
+            ? _projectNameController.text
+            : null,
+      }).select(); // This will return the inserted row
+
+      /// TODO:
+      /// Test with the pulled contractor id
+      /// Test with the pulled lender id
+      /// Test with the pulled inspector id
+
+      /// TODO:
+      /// Test all types of data, optional and not.
+
+      // Handle successful insertion
+      print('Construction loan created successfully: $response');
+    } catch (error) {
+      // Handle any errors
+      print('Error creating construction loan: $error');
+    }
+  }
+
+  void addLoanToDatabase() {
+    print("Muffins and puffins");
+    createConstructionLoan();
+
+    /**
+
+| Name           | Format         | Type      |
+|----------------|----------------|-----------|
+| loan_id        | uuid           | Required  |
+| contractor_id  | uuid           | Required  |
+| lender_id      | uuid           | Required  |
+| inspector_id   | uuid           | Required  |
+| start_date     | date           | Required  |
+| total_amount   | numeric        | Required  |
+| created_at     | timestamptz    | Required  |
+| updated_at     | timestamptz    | Required  |
+| loan_name      | text           | Optional  |
+| location       | text           | Optional  |
+| draw_count     | int8           | Optional  |
+| description    | text           | Optional  |
+| project_name   | text           | Optional  |
+| end_date       | date           | Optional  |
+
+
+/// TODO: 
+/// What happens when you add something to the database without a loanId? 
+/// 
+/// 
+/// 
+
+contractor_id is 9d068756-40d3-4b6e-a3e5-5febce609895  // Chretien Banza. 
+lender_id is 13cdce7f-9cd2-417a-8d0f-ab0eaab11153 // Remi 
+inspector_id is 73d6643c-d1a0-4a9b-bbbe-eebab668d2d0 // Allan Pinkerton. 
+
+
+INSERT INTO public.construction_loans ( 
+    contractor_id, 
+    lender_id, 
+    inspector_id, 
+    start_date, 
+    total_amount, 
+    loan_name, 
+    location, 
+    description, 
+    project_name, 
+) VALUES (
+    '9d068756-40d3-4b6e-a3e5-5febce609895',   -- UUID for contractor_id (required)
+    '13cdce7f-9cd2-417a-8d0f-ab0eaab11153',       -- UUID for lender_id (required)
+    '73d6643c-d1a0-4a9b-bbbe-eebab668d2d0',    -- UUID for inspector_id (required)
+    '2025-01-02',           -- Date for start_date (required)
+    1337.00,      -- Numeric value for total_amount (required)
+    'myLoanName',       -- Text for loan_name (optional, can be NULL)
+    'myLocation',        -- Text for location (optional, can be NULL)
+    'myDescription',     -- Text for description (optional, can be NULL)
+    'myProjectName',    -- Text for project_name (optional, can be NULL)
+);
+
+437c5221-dcaf-4f22-af51-060c52843154 is the loan id for what we just made.
+
+/// TODO: 
+/// Paste this in
+/// See if there is legitimately a new one shown up. 
+
+     */
+  }
 
   Future<void> _pickFiles() async {
     try {
@@ -157,12 +289,12 @@ class _InvitationScreenState extends State<InvitationScreen> {
               final amount = double.tryParse(values[amountIndex].trim()) ?? 0.0;
 
               setState(() {
-  _lineItems.add(LineItem(
-    description: description,
-    amount: amount,
-    addedViaCSV: true,  // Add this line
-  ));
-});
+                _lineItems.add(LineItem(
+                  description: description,
+                  amount: amount,
+                  addedViaCSV: true, // Add this line
+                ));
+              });
             }
           }
 
@@ -217,7 +349,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
       });
     }
   }
-  
+
   Widget _buildStepIndicator() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -286,68 +418,68 @@ class _InvitationScreenState extends State<InvitationScreen> {
 
   Widget _buildLineItemsTable() {
     return Container(
-  padding: const EdgeInsets.all(16),
-  decoration: BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: Colors.grey[200]!),
-  ),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Line Items',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
-        ),
-        if (_lineItems.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            'Total: \$${calculateTotalAmount(_lineItems).toStringAsFixed(2)}',
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF4F46E5),
-            ),
-          ),
-        ],
-      ],
-    ),
-    ElevatedButton.icon(
-      onPressed: () {
-        setState(() {
-          _lineItems.add(LineItem(
-            description: '',
-            amount: 0,
-            addedViaCSV: false,
-          ));
-        });
-      },
-      icon: const Icon(Icons.add, size: 18),
-      label: const Text('Add Item'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF4F46E5),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 8,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
       ),
-    ),
-  ],
-),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Line Items',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                  if (_lineItems.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Total: \$${calculateTotalAmount(_lineItems).toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF4F46E5),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _lineItems.add(LineItem(
+                      description: '',
+                      amount: 0,
+                      addedViaCSV: false,
+                    ));
+                  });
+                },
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Item'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4F46E5),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -635,42 +767,39 @@ class _InvitationScreenState extends State<InvitationScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        ..._uploadedFiles
-            .map((file) => Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.insert_drive_file,
-                          color: Color(0xFF6B7280)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          file.name,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF111827),
-                          ),
-                        ),
+        ..._uploadedFiles.map((file) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.insert_drive_file, color: Color(0xFF6B7280)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      file.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF111827),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          setState(() {
-                            _uploadedFiles.remove(file);
-                          });
-                        },
-                        color: const Color(0xFF6B7280),
-                      ),
-                    ],
+                    ),
                   ),
-                ))
-            ,
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      setState(() {
+                        _uploadedFiles.remove(file);
+                      });
+                    },
+                    color: const Color(0xFF6B7280),
+                  ),
+                ],
+              ),
+            )),
       ],
     );
   }
@@ -775,7 +904,6 @@ class _InvitationScreenState extends State<InvitationScreen> {
             ),
             const SizedBox(height: 24),
             _buildLineItemsTable(),
-          
             Row(
               children: [
                 Expanded(
@@ -1046,39 +1174,37 @@ class _InvitationScreenState extends State<InvitationScreen> {
             ),
           ),
           const Divider(height: 1),
-          ...items
-              .map((item) => Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Colors.grey[200]!,
-                          width: 1,
-                        ),
+          ...items.map((item) => Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.grey[200]!,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      item.keys.first,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          item.keys.first,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          item.values.first,
-                          style: const TextStyle(
-                            color: Color(0xFF111827),
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      item.values.first,
+                      style: const TextStyle(
+                        color: Color(0xFF111827),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
                     ),
-                  ))
-              ,
+                  ],
+                ),
+              )),
         ],
       ),
     );
@@ -1160,6 +1286,11 @@ class _InvitationScreenState extends State<InvitationScreen> {
                       });
                     } else {
                       // Handle project creation
+                      /// TODO:
+                      /// Add to the database.
+                      addLoanToDatabase();
+
+                      // Show snackbar.
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: const Text('Project created successfully'),
@@ -1216,4 +1347,3 @@ class _InvitationScreenState extends State<InvitationScreen> {
 }
 
 // Mock classes for FilePicker
-

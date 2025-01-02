@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -93,23 +95,79 @@ class _InvitationScreenState extends State<InvitationScreen> {
   List<LineItem> _lineItems = [];
 
   Future<void> createConstructionLoan() async {
+    /// Adds the construction loan to the database.
     print("The create construction loan function was called!");
     final supabase = Supabase.instance.client;
+    final dynamic contractorResponse;
+    final dynamic inspectorResponse;
 
+    // Get the current user (lender) ID from the Supabase session
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('No authenticated user found');
+    } else {
+      print("Current user is $currentUser");
+    }
+
+    try {
+      String? contractorEmail = _gcEmailController.text;
+      print(contractorEmail);
+      contractorResponse = await supabase
+          .from('contractors')
+          .select('contractor_id')
+          .eq('email', contractorEmail)
+          .single();
+      print("Contractor response: $contractorResponse");
+      print("Contractor ID: ${contractorResponse['contractor_id']}");
+    } catch (e) {
+      throw Exception("Error with contractor lookup: $e");
+    }
+
+    try {
+      String? inspectorEmail = _inspectorEmailController.text;
+      print(inspectorEmail);
+      inspectorResponse = await supabase
+          .from('inspectors')
+          .select('inspector_id')
+          .eq('email', inspectorEmail)
+          .single();
+      print("Inspector response: $inspectorResponse");
+    } catch (e) {
+      throw Exception("Error with inspector lookup: $e");
+    }
+
+    /// DONE:
+    /// TEST:
+    /// Test that the inspector lookup gives an error when the
+    /// inspector email is not present in the table.
+    ///
+    /// DONE;
+    /// Do a happy test.
+    ///
+    /// done:
+    /// See if the print statement goes even when the error gets thrown.
+    ///
+    /// TODO:
+    /// Now test by adding the value from the email controller into the input for the construction loan
+    /// Test with a couple of values.
+    ///
+    /// TODO:
+
+    /// And then do the same thing for the inspector.
+    ///
+    ///
     String contractorId =
         '9d068756-40d3-4b6e-a3e5-5febce609895'; // Chretien Banza.
     String lenderId = '13cdce7f-9cd2-417a-8d0f-ab0eaab11153'; // Remi
     String inspectorId =
         '73d6643c-d1a0-4a9b-bbbe-eebab668d2d0'; // Allan Pinkerton.
-
-    // String? formattedStartDate = _startDate?.toIso8601String().split('T')[0];
     double totalAmount = calculateTotalAmount(_lineItems);
 
     try {
       final response = await supabase.from('construction_loans').insert({
-        'contractor_id': contractorId,
+        'contractor_id': contractorResponse['contractor_id'],
         'lender_id': lenderId,
-        'inspector_id': inspectorId,
+        'inspector_id': inspectorResponse['inspector_id'],
         'total_amount': totalAmount,
         'location': _locationController.text.isNotEmpty
             ? _locationController.text

@@ -95,37 +95,21 @@ class _InvitationScreenState extends State<InvitationScreen> {
   Future<void> createConstructionLoan() async {
     print("The create construction loan function was called!");
     final supabase = Supabase.instance.client;
+
+    String contractorId =
+        '9d068756-40d3-4b6e-a3e5-5febce609895'; // Chretien Banza.
+    String lenderId = '13cdce7f-9cd2-417a-8d0f-ab0eaab11153'; // Remi
+    String inspectorId =
+        '73d6643c-d1a0-4a9b-bbbe-eebab668d2d0'; // Allan Pinkerton.
+
+    // String? formattedStartDate = _startDate?.toIso8601String().split('T')[0];
+    double totalAmount = calculateTotalAmount(_lineItems);
+
     try {
-      // Get IDs from the form entries
-      String? contractorEmail = _gcEmailController.text;
-      String? inspectorEmail = _inspectorEmailController.text;
-
-      // First, look up the contractor and inspector IDs using their emails
-      final contractorResponse = await supabase
-          .from('users')
-          .select('contractor_id')
-          .eq('email', contractorEmail)
-          .single();
-
-      final inspectorResponse = await supabase
-          .from('users')
-          .select('lender_id')
-          .eq('email', inspectorEmail)
-          .single();
-
-      // String contractorId =
-      //     '9d068756-40d3-4b6e-a3e5-5febce609895'; // Chretien Banza.
-      String lenderId = '13cdce7f-9cd2-417a-8d0f-ab0eaab11153'; // Remi
-      // String inspectorId =
-      //     '73d6643c-d1a0-4a9b-bbbe-eebab668d2d0'; // Allan Pinkerton.
-
-      // String? formattedStartDate = _startDate?.toIso8601String().split('T')[0];
-      double totalAmount = calculateTotalAmount(_lineItems);
-
       final response = await supabase.from('construction_loans').insert({
-        'contractor_id': contractorResponse['contractor_id'],
-        'lender_id': lenderId, // TODO: remove hardcode
-        'inspector_id': inspectorResponse['inspector_id'],
+        'contractor_id': contractorId,
+        'lender_id': lenderId,
+        'inspector_id': inspectorId,
         'total_amount': totalAmount,
         'location': _locationController.text.isNotEmpty
             ? _locationController.text
@@ -138,9 +122,21 @@ class _InvitationScreenState extends State<InvitationScreen> {
       }).select(); // This will return the inserted row
 
       /// TODO:
-      /// Test with the pulled contractor id
-      /// Test with the pulled lender id
-      /// Test with the pulled inspector id
+      /// TEST:
+      /// I expect that when the button is pressed, it will say
+      /// "MUffins and Puffins" and then
+      /// call the createConstructionLoan() function,
+      /// creating a new entry in the construction_loans database.
+      ///
+      /// When examined in the database, it will have the values inputted and
+      /// hardcoded.
+      ///
+      ///
+      /// TODO:
+      /// Test with a lot of nothing
+      ///
+      /// TODO:
+      /// Also test with a lot of everything.
 
       /// TODO:
       /// Test all types of data, optional and not.

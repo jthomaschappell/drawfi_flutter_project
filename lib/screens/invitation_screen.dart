@@ -180,6 +180,11 @@ class _InvitationScreenState extends State<InvitationScreen> {
       }).select(); // This will return the inserted row
 
       /// TODO:
+      /// See if you put something in just according to the invitation screen,
+      /// does it work in the drop down.
+      /// "You don't have to know how the system works to use the system."
+
+      /// TODO:
       /// TEST:
       /// I expect that when the button is pressed, it will say
       /// "MUffins and Puffins" and then

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:file_picker/file_picker.dart';
+// import 'package:uuid/uuid.dart';
 import 'dart:math' as math;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -93,12 +94,10 @@ class _InvitationScreenState extends State<InvitationScreen> {
   List<LineItem> _lineItems = [];
 
   Future<void> createConstructionLoan() async {
-    /// Adds the construction loan to the database.
     print("The create construction loan function was called!");
     final supabase = Supabase.instance.client;
     final dynamic contractorResponse;
     final dynamic inspectorResponse;
-
     // Get the current user (lender) ID from the Supabase session
     final currentUser = supabase.auth.currentUser;
     if (currentUser == null) {
@@ -122,6 +121,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
       throw Exception("Error with contractor lookup: $e");
     }
 
+    /// looks up the inspector id based on inputted inspector email.
     try {
       String? inspectorEmail = _inspectorEmailController.text;
       print(inspectorEmail);
@@ -135,9 +135,10 @@ class _InvitationScreenState extends State<InvitationScreen> {
       throw Exception("Error with inspector lookup: $e");
     }
     double totalAmount = calculateTotalAmount(_lineItems);
-
     try {
+      // final loanId = const Uuid().v4();
       final response = await supabase.from('construction_loans').insert({
+        // 'loan_id': loanId,
         'contractor_id': contractorResponse['contractor_id'],
         'lender_id': currentUser.id,
         'inspector_id': inspectorResponse['inspector_id'],
@@ -153,16 +154,44 @@ class _InvitationScreenState extends State<InvitationScreen> {
             : null,
       }).select(); // This will return the inserted row
 
-      // Handle successful insertion
+      /// START HERE:
+      /// TODO:
+      /// @Thomas
+      /// Finish line items implementation.
+      ///
+      ///
+      ///
+      // Prepare line items data
+      // final lineItemsData = _lineItems
+      //     .map((item) => {
+      //           'loan_id': loanId,
+      //           'category_name': item.description,
+      //           'budgeted_amount': item.amount,
+      //           'draw1_amount': 0.0,
+      //           'draw2_amount': 0.0,
+      //           'draw3_amount': 0.0,
+      //           'inspection_percentage': 0.0,
+      //         })
+      //     .toList();
+      // // Insert line items
+      // try {
+      //   await supabase
+      //       .from('construction_loan_line_items')
+      //       .insert(lineItemsData);
+      // } catch (error) {
+      //   print('Error inserting line items: $error');
+      //   // Roll back the construction loan creation
+      //   await supabase
+      //       .from('construction_loans')
+      //       .delete()
+      //       .eq('loan_id', loanId);
+      //   throw Exception('Failed to create line items');
+      // }
       print('Construction loan created successfully: $response');
     } catch (error) {
-      // Handle any errors
       print('Error creating construction loan: $error');
+      rethrow;
     }
-
-    /**
-
-     */
   }
 
   Future<void> _pickFiles() async {

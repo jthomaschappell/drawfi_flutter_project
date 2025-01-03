@@ -92,107 +92,93 @@ class _InvitationScreenState extends State<InvitationScreen> {
 </defs>
 </svg>''';
   List<LineItem> _lineItems = [];
-
-  Future<void> createConstructionLoan() async {
-    print("The create construction loan function was called!");
-    final supabase = Supabase.instance.client;
-    final dynamic contractorResponse;
-    final dynamic inspectorResponse;
-    // Get the current user (lender) ID from the Supabase session
-    final currentUser = supabase.auth.currentUser;
-    if (currentUser == null) {
-      throw Exception('No authenticated user found');
-    } else {
-      print("Current user is $currentUser");
-    }
-
-    /// looks up the contractor id based on inputted contractor email.
-    try {
-      String? contractorEmail = _gcEmailController.text;
-      print(contractorEmail);
-      contractorResponse = await supabase
-          .from('contractors')
-          .select('contractor_id')
-          .eq('email', contractorEmail)
-          .single();
-      print("Contractor response: $contractorResponse");
-      print("Contractor ID: ${contractorResponse['contractor_id']}");
-    } catch (e) {
-      throw Exception("Error with contractor lookup: $e");
-    }
-
-    /// looks up the inspector id based on inputted inspector email.
-    try {
-      String? inspectorEmail = _inspectorEmailController.text;
-      print(inspectorEmail);
-      inspectorResponse = await supabase
-          .from('inspectors')
-          .select('inspector_id')
-          .eq('email', inspectorEmail)
-          .single();
-      print("Inspector response: $inspectorResponse");
-    } catch (e) {
-      throw Exception("Error with inspector lookup: $e");
-    }
-    double totalAmount = calculateTotalAmount(_lineItems);
-    try {
-      // final loanId = const Uuid().v4();
-      final response = await supabase.from('construction_loans').insert({
-        // 'loan_id': loanId,
-        'contractor_id': contractorResponse['contractor_id'],
-        'lender_id': currentUser.id,
-        'inspector_id': inspectorResponse['inspector_id'],
-        'total_amount': totalAmount,
-        'location': _locationController.text.isNotEmpty
-            ? _locationController.text
-            : null,
-        'draw_count': 0,
-        'description':
-            _noteController.text.isNotEmpty ? _noteController.text : null,
-        'project_name': _projectNameController.text.isNotEmpty
-            ? _projectNameController.text
-            : null,
-      }).select(); // This will return the inserted row
-
-      /// START HERE:
-      /// TODO:
-      /// @Thomas
-      /// Finish line items implementation.
-      ///
-      ///
-      ///
-      // Prepare line items data
-      // final lineItemsData = _lineItems
-      //     .map((item) => {
-      //           'loan_id': loanId,
-      //           'category_name': item.description,
-      //           'budgeted_amount': item.amount,
-      //           'draw1_amount': 0.0,
-      //           'draw2_amount': 0.0,
-      //           'draw3_amount': 0.0,
-      //           'inspection_percentage': 0.0,
-      //         })
-      //     .toList();
-      // // Insert line items
-      // try {
-      //   await supabase
-      //       .from('construction_loan_line_items')
-      //       .insert(lineItemsData);
-      // } catch (error) {
-      //   print('Error inserting line items: $error');
-      //   // Roll back the construction loan creation
-      //   await supabase
-      //       .from('construction_loans')
-      //       .delete()
-      //       .eq('loan_id', loanId);
-      //   throw Exception('Failed to create line items');
-      // }
-      print('Construction loan created successfully: $response');
-    } catch (error) {
-      print('Error creating construction loan: $error');
-      rethrow;
-    }
+Future<void> createConstructionLoan() async {
+  print("The create construction loan function was called!");
+  final supabase = Supabase.instance.client;
+  final dynamic contractorResponse;
+  final dynamic inspectorResponse;
+  
+  // Get the current user (lender) ID from the Supabase session
+  final currentUser = supabase.auth.currentUser;
+  if (currentUser == null) {
+    throw Exception('No authenticated user found');
   }
+
+  /// looks up the contractor id based on inputted contractor email.
+  try {
+    String? contractorEmail = _gcEmailController.text;
+    contractorResponse = await supabase
+        .from('contractors')
+        .select('contractor_id')
+        .eq('email', contractorEmail)
+        .single();
+  } catch (e) {
+    throw Exception("Error with contractor lookup: $e");
+  }
+
+  /// looks up the inspector id based on inputted inspector email.
+  try {
+    String? inspectorEmail = _inspectorEmailController.text;
+    inspectorResponse = await supabase
+        .from('inspectors')
+        .select('inspector_id')
+        .eq('email', inspectorEmail)
+        .single();
+  } catch (e) {
+    throw Exception("Error with inspector lookup: $e");
+  }
+
+  double totalAmount = calculateTotalAmount(_lineItems);
+  
+  try {
+    // Insert the construction loan first
+    final loanResponse = await supabase.from('construction_loans').insert({
+      'contractor_id': contractorResponse['contractor_id'],
+      'lender_id': currentUser.id,
+      'inspector_id': inspectorResponse['inspector_id'],
+      'total_amount': totalAmount,
+      'location': _locationController.text.isNotEmpty ? _locationController.text : null,
+      'draw_count': 0,
+      'description': _noteController.text.isNotEmpty ? _noteController.text : null,
+      'project_name': _projectNameController.text.isNotEmpty ? _projectNameController.text : null,
+    }).select();
+
+    // Get the loan_id from the response
+    final loanId = loanResponse[0]['loan_id'];
+
+    // Prepare line items data
+    final lineItemsData = _lineItems.map((item) => {
+      'loan_id': loanId,
+      'category_name': item.description,  // Map description to category_name
+      'budgeted_amount': item.amount,     // Map amount to budgeted_amount
+      'draw1_amount': 0.0,
+      'draw2_amount': 0.0,
+      'draw3_amount': 0.0,
+      'inspection_percentage': 0.0,
+    }).toList();
+
+    // Insert line items
+    try {
+      await supabase
+          .from('construction_loan_line_items')
+          .insert(lineItemsData);
+      print('Line items inserted successfully');
+    } catch (error) {
+      print('Error inserting line items: $error');
+      // Roll back the construction loan creation if line items insertion fails
+      await supabase
+          .from('construction_loans')
+          .delete()
+          .eq('loan_id', loanId);
+      throw Exception('Failed to create line items');
+    }
+
+    print('Construction loan and line items created successfully');
+  } catch (error) {
+    print('Error creating construction loan: $error');
+    rethrow;
+  }
+}
 
   Future<void> _pickFiles() async {
     try {

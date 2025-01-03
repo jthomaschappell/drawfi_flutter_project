@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -109,6 +107,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
       print("Current user is $currentUser");
     }
 
+    /// looks up the contractor id based on inputted contractor email.
     try {
       String? contractorEmail = _gcEmailController.text;
       print(contractorEmail);
@@ -135,43 +134,18 @@ class _InvitationScreenState extends State<InvitationScreen> {
     } catch (e) {
       throw Exception("Error with inspector lookup: $e");
     }
-
-    /// DONE:
-    /// TEST:
-    /// Test that the inspector lookup gives an error when the
-    /// inspector email is not present in the table.
-    ///
-    /// DONE;
-    /// Do a happy test.
-    ///
-    /// done:
-    /// See if the print statement goes even when the error gets thrown.
-    ///
-    /// TODO:
-    /// Now test by adding the value from the email controller into the input for the construction loan
-    /// Test with a couple of values.
-    ///
-    /// TODO:
-
-    /// And then do the same thing for the inspector.
-    ///
-    ///
-    String contractorId =
-        '9d068756-40d3-4b6e-a3e5-5febce609895'; // Chretien Banza.
-    String lenderId = '13cdce7f-9cd2-417a-8d0f-ab0eaab11153'; // Remi
-    String inspectorId =
-        '73d6643c-d1a0-4a9b-bbbe-eebab668d2d0'; // Allan Pinkerton.
     double totalAmount = calculateTotalAmount(_lineItems);
 
     try {
       final response = await supabase.from('construction_loans').insert({
         'contractor_id': contractorResponse['contractor_id'],
-        'lender_id': lenderId,
+        'lender_id': currentUser.id,
         'inspector_id': inspectorResponse['inspector_id'],
         'total_amount': totalAmount,
         'location': _locationController.text.isNotEmpty
             ? _locationController.text
             : null,
+        'draw_count': 0,
         'description':
             _noteController.text.isNotEmpty ? _noteController.text : null,
         'project_name': _projectNameController.text.isNotEmpty
@@ -179,101 +153,14 @@ class _InvitationScreenState extends State<InvitationScreen> {
             : null,
       }).select(); // This will return the inserted row
 
-      /// TODO:
-      /// See if you put something in just according to the invitation screen,
-      /// does it work in the drop down.
-      /// "You don't have to know how the system works to use the system."
-
-      /// TODO:
-      /// TEST:
-      /// I expect that when the button is pressed, it will say
-      /// "MUffins and Puffins" and then
-      /// call the createConstructionLoan() function,
-      /// creating a new entry in the construction_loans database.
-      ///
-      /// When examined in the database, it will have the values inputted and
-      /// hardcoded.
-      ///
-      ///
-      /// TODO:
-      /// Test with a lot of nothing
-      ///
-      /// TODO:
-      /// Also test with a lot of everything.
-
-      /// TODO:
-      /// Test all types of data, optional and not.
-
       // Handle successful insertion
       print('Construction loan created successfully: $response');
     } catch (error) {
       // Handle any errors
       print('Error creating construction loan: $error');
     }
-  }
-
-  void addLoanToDatabase() {
-    print("Muffins and puffins");
-    createConstructionLoan();
 
     /**
-
-| Name           | Format         | Type      |
-|----------------|----------------|-----------|
-| loan_id        | uuid           | Required  |
-| contractor_id  | uuid           | Required  |
-| lender_id      | uuid           | Required  |
-| inspector_id   | uuid           | Required  |
-| start_date     | date           | Required  |
-| total_amount   | numeric        | Required  |
-| created_at     | timestamptz    | Required  |
-| updated_at     | timestamptz    | Required  |
-| loan_name      | text           | Optional  |
-| location       | text           | Optional  |
-| draw_count     | int8           | Optional  |
-| description    | text           | Optional  |
-| project_name   | text           | Optional  |
-| end_date       | date           | Optional  |
-
-
-/// TODO: 
-/// What happens when you add something to the database without a loanId? 
-/// 
-/// 
-/// 
-
-contractor_id is 9d068756-40d3-4b6e-a3e5-5febce609895  // Chretien Banza. 
-lender_id is 13cdce7f-9cd2-417a-8d0f-ab0eaab11153 // Remi 
-inspector_id is 73d6643c-d1a0-4a9b-bbbe-eebab668d2d0 // Allan Pinkerton. 
-
-
-INSERT INTO public.construction_loans ( 
-    contractor_id, 
-    lender_id, 
-    inspector_id, 
-    start_date, 
-    total_amount, 
-    loan_name, 
-    location, 
-    description, 
-    project_name, 
-) VALUES (
-    '9d068756-40d3-4b6e-a3e5-5febce609895',   -- UUID for contractor_id (required)
-    '13cdce7f-9cd2-417a-8d0f-ab0eaab11153',       -- UUID for lender_id (required)
-    '73d6643c-d1a0-4a9b-bbbe-eebab668d2d0',    -- UUID for inspector_id (required)
-    '2025-01-02',           -- Date for start_date (required)
-    1337.00,      -- Numeric value for total_amount (required)
-    'myLoanName',       -- Text for loan_name (optional, can be NULL)
-    'myLocation',        -- Text for location (optional, can be NULL)
-    'myDescription',     -- Text for description (optional, can be NULL)
-    'myProjectName',    -- Text for project_name (optional, can be NULL)
-);
-
-437c5221-dcaf-4f22-af51-060c52843154 is the loan id for what we just made.
-
-/// TODO: 
-/// Paste this in
-/// See if there is legitimately a new one shown up. 
 
      */
   }
@@ -1345,9 +1232,8 @@ INSERT INTO public.construction_loans (
                       });
                     } else {
                       // Handle project creation
-                      /// TODO:
                       /// Add to the database.
-                      addLoanToDatabase();
+                      createConstructionLoan();
 
                       // Show snackbar.
                       ScaffoldMessenger.of(context).showSnackBar(

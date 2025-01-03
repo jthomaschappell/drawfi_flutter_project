@@ -64,61 +64,63 @@ class Project {
     required this.updates,
     required this.documents,
   });
-  
-  // yo thomas 
+
+  // yo thomas
 
   // In the Project.fromSupabase method, replace the current completion calculation with:
 
-factory Project.fromSupabase(Map<String, dynamic> data) {
-  // Get total budget
-  final totalBudget = (data['total_amount'] is int)
-      ? (data['total_amount'] as int).toDouble()
-      : data['total_amount']?.toDouble() ?? 0.0;
-      
-  // Calculate completion based on the completed inspection percentages
-  double completionPercentage = 0.0;
-  if (data['inspections'] != null) {
-    // Sum up (INSP × Budget) for each line item
-    double weightedSum = 0.0;
-    double totalBudgetSum = 0.0;
-    
-    // Iterate through inspection items
-    for (var item in data['inspections']) {
-      double inspectionPercentage = item['inspection_percentage'] ?? 0.0;
-      double itemBudget = item['budget'] ?? 0.0;
-      
-      weightedSum += (inspectionPercentage * itemBudget);
-      totalBudgetSum += itemBudget;
-    }
-    
-    // Calculate final weighted percentage
-    if (totalBudgetSum > 0) {
-      completionPercentage = (weightedSum / totalBudgetSum);
-    }
-  }
+  factory Project.fromSupabase(Map<String, dynamic> data) {
+    // Get total budget
+    final totalBudget = (data['total_amount'] is int)
+        ? (data['total_amount'] as int).toDouble()
+        : data['total_amount']?.toDouble() ?? 0.0;
 
-  return Project(
-      id: data['loan_id'] as String,
-      companyInitials: (data['contractor_id'] as String?)?.substring(0, 2).toUpperCase() ?? 'UN',
-      companyName: data['project_name'] as String? ?? 'Unknown Project',
-      location: data['location'] as String? ?? 'Location TBD',
-      disbursed: totalBudget,
-      completed: completionPercentage,
-      draws: data['draw_count'] as int? ?? 0,
-      nextInspectionDate: data['next_inspection_date'] != null 
-          ? DateTime.parse(data['next_inspection_date'] as String)
-          : null,
+    // Calculate completion based on the completed inspection percentages
+    double completionPercentage = 0.0;
+    if (data['inspections'] != null) {
+      // Sum up (INSP × Budget) for each line item
+      double weightedSum = 0.0;
+      double totalBudgetSum = 0.0;
+
+      // Iterate through inspection items
+      for (var item in data['inspections']) {
+        double inspectionPercentage = item['inspection_percentage'] ?? 0.0;
+        double itemBudget = item['budget'] ?? 0.0;
+
+        weightedSum += (inspectionPercentage * itemBudget);
+        totalBudgetSum += itemBudget;
+      }
+
+      // Calculate final weighted percentage
+      if (totalBudgetSum > 0) {
+        completionPercentage = (weightedSum / totalBudgetSum);
+      }
+    }
+
+    // TODO:
+    // Test this function that Claude gave us.
+    /// Make a New Project that has project_name as null.
+    ///
+    return Project(
+      companyInitials:
+          (data['contractor_id'] as String?)?.substring(0, 2).toUpperCase() ??
+              'UN',
+      id: data['loan_id']?.toString() ?? 'UNKNOWN',
+      companyName: data['project_name']?.toString() ?? 'Unknown Project',
+      location: data['location']?.toString() ?? 'Location TBD',
+      disbursed: 0.0,
+      completed: 0.0,
+      draws: 0,
       status: 'On track',
-      lastUpdated: DateTime.parse(data['updated_at'] as String),
-      startDate: DateTime.parse(data['start_date'] as String),
+      lastUpdated: DateTime.now(),
+      startDate: DateTime.now(),
       updates: [],
       documents: [],
     );
   }
-  
+
   get inspections => null;
 }
-
 
 class ProjectUpdate {
   final String action;
@@ -189,7 +191,7 @@ class NavigationIconButton extends StatelessWidget {
     required this.onTap,
     required this.label,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     return Tooltip(
@@ -228,6 +230,7 @@ class NavigationIconButton extends StatelessWidget {
     );
   }
 }
+
 class CompletionDataProvider {
   static final Map<String, double> _completionPercentages = {};
 
@@ -331,15 +334,16 @@ class ProjectCard extends StatelessWidget {
               ),
 
               // Metrics
-              _buildMetric('Disbursed', '${project.disbursed.toStringAsFixed(0)}%'),
-              _buildMetric('Completed', '${project.completed.toStringAsFixed(0)}%'),
+              _buildMetric(
+                  'Disbursed', '${project.disbursed.toStringAsFixed(0)}%'),
+              _buildMetric(
+                  'Completed', '${project.completed.toStringAsFixed(0)}%'),
               _buildMetric('Draws', project.draws.toString()),
               _buildMetric(
-                'Next Inspection',
-                project.nextInspectionDate != null
-                    ? DateFormat('MMM d').format(project.nextInspectionDate!)
-                    : 'N/A'
-              ),
+                  'Next Inspection',
+                  project.nextInspectionDate != null
+                      ? DateFormat('MMM d').format(project.nextInspectionDate!)
+                      : 'N/A'),
 
               // Status Badge
               Container(
@@ -436,17 +440,17 @@ class _LenderScreenState extends State<LenderScreen> {
   }
 
   Future<void> _loadProjects() async {
-  try {
-    setState(() => _isLoading = true);
+    try {
+      setState(() => _isLoading = true);
 
-    // Get the lender_id from the userProfile
-    final lenderId = widget.userProfile['user_id'];
-    print('Loading projects for lender: $lenderId'); // Debug print
+      // Get the lender_id from the userProfile
+      final lenderId = widget.userProfile['user_id'];
+      print('Loading projects for lender: $lenderId'); // Debug print
 
-    // Query construction_loans table filtered by lender_id
-    final response = await supabase
-        .from('construction_loans')
-        .select('''
+      // Query construction_loans table filtered by lender_id
+      final response = await supabase
+          .from('construction_loans')
+          .select('''
         loan_id,
         contractor_id,
         project_name,
@@ -456,37 +460,38 @@ class _LenderScreenState extends State<LenderScreen> {
         location,
         start_date
       ''')
-        .eq('lender_id', lenderId) // Filter by lender_id
-        .order('updated_at', ascending: false);
+          .eq('lender_id', lenderId) // Filter by lender_id
+          .order('updated_at', ascending: false);
 
-    print('Response from Supabase: $response'); // Debug print
+      print('Response from Supabase: $response'); // Debug print
 
-    // Convert the response data to List<Project>
-    final projects = (response as List<dynamic>)
-        .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
-        .toList();
+      // Convert the response data to List<Project>
+      final projects = (response as List<dynamic>)
+          .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
+          .toList();
 
-    setState(() {
-      _projects = projects;
-      _isLoading = false;
-    });
-  } catch (error) {
-    print('Error loading projects: $error');
-    setState(() {
-      _isLoading = false;
-      _projects = [];
-    });
+      setState(() {
+        _projects = projects;
+        _isLoading = false;
+      });
+    } catch (error) {
+      print('Error loading projects: $error');
+      setState(() {
+        _isLoading = false;
+        _projects = [];
+      });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading projects: ${error.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading projects: ${error.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
-}
+
   void _filterProjects() {
     if (_searchQuery.isEmpty && _selectedStatus == 'All') {
       _loadProjects();
@@ -1472,4 +1477,3 @@ class ProjectDetailsModal extends StatelessWidget {
     );
   }
 }
-

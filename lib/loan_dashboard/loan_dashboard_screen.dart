@@ -23,12 +23,14 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   String contractorEmail = "Loading...";
   String contractorPhone = "Loading...";
 
+  //
+
   List<LoanLineItem> _loanLineItems = [
     LoanLineItem(
       lineItem: 'Default Value: Foundation Work',
       // inspected: true,
       inspectionPercentage: 0.3,
-      draw1: 15000, // these will come from draws
+      draw1: 0, // these will come from draws
       draw1Status: 'pending',
       draw2: 25000,
       draw2Status: 'pending',
@@ -36,22 +38,22 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     ),
     LoanLineItem(
       lineItem: 'Default Value: Framing',
-      inspectionPercentage: .34,
-      draw1: 30000,
+      inspectionPercentage: 0.34,
+      draw1: 0,
       draw1Status: 'pending',
       budget: 153000,
     ),
     LoanLineItem(
       lineItem: 'Default Value: Electrical',
       inspectionPercentage: .55,
-      draw1: 12000,
+      draw1: 0,
       draw1Status: 'pending',
       budget: 111000,
     ),
     LoanLineItem(
       lineItem: 'Default Value: Plumbing',
       inspectionPercentage: .13,
-      draw1: 8000,
+      draw1: 0,
       draw2: 10000,
       draw1Status: 'pending',
       draw2Status: 'pending',
@@ -60,30 +62,26 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     LoanLineItem(
       lineItem: 'Default Value: HVAC Installation',
       inspectionPercentage: 0,
-      draw1: 20000,
+      draw1: 0,
       draw1Status: 'pending',
       budget: 153000,
     ),
     LoanLineItem(
       lineItem: 'Default Value: Roofing',
       inspectionPercentage: .4,
-      draw1: 25000,
+      draw1: 0,
       draw1Status: 'pending',
       budget: 153000,
     ),
     LoanLineItem(
       lineItem: 'Default Value: Interior Finishing',
       inspectionPercentage: .45,
-      draw1: 18000,
+      draw1: 0,
       draw1Status: 'pending',
       budget: 153000,
     ),
   ];
-  Map<int, String> drawStatuses = {
-  1: 'pending',
-  2: 'pending',
-  3: 'pending'
-};
+  Map<int, String> drawStatuses = {1: 'pending', 2: 'pending', 3: 'pending'};
 
   List<LoanLineItem> get filteredLineItems {
     if (_searchQuery.isEmpty) return _loanLineItems;
@@ -97,27 +95,30 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   }
 
   double get totalDisbursed {
-    double totalDrawn = _loanLineItems.fold<double>(0.0, (sum, request) => sum + request.totalDrawn);
-    double totalBudget = _loanLineItems.fold<double>(0.0, (sum, request) => sum + request.budget);
-    
+    double totalDrawn = _loanLineItems.fold<double>(
+        0.0, (sum, request) => sum + request.totalDrawn);
+    double totalBudget = _loanLineItems.fold<double>(
+        0.0, (sum, request) => sum + request.budget);
+
     // Calculate percentage (avoid division by zero)
     if (totalBudget == 0) return 0;
     return (totalDrawn / totalBudget) * 100;
-}
+  }
 
-double get projectCompletion {
+  double get projectCompletion {
     double weightedSum = 0;
     double totalBudget = 0;
-    
+
     for (var item in _loanLineItems) {
-        weightedSum += (item.inspectionPercentage * item.budget);
-        totalBudget += item.budget;
+      weightedSum += (item.inspectionPercentage * item.budget);
+      totalBudget += item.budget;
     }
-    
+
     // Calculate weighted percentage (avoid division by zero)
     if (totalBudget == 0) return 0;
     return (weightedSum / totalBudget) * 100;
-}
+  }
+
   @override
   void initState() {
     super.initState();
@@ -129,7 +130,9 @@ double get projectCompletion {
     print(
       "Loan line items were: $_loanLineItems",
     );
+
     try {
+      /// grabs from database.
       final response = await supabase
           .from('construction_loan_line_items')
           .select()
@@ -141,7 +144,6 @@ double get projectCompletion {
         throw Exception(
             'No line items found for loan ID: ${widget.loanId}.\nUsing default values.');
       }
-
       setState(
         () {
           _loanLineItems = response
@@ -274,20 +276,21 @@ double get projectCompletion {
                     child: Column(
                       children: [
                         Row(
-  children: [
-    _buildProgressCircle(
-      percentage: totalDisbursed, // Remove the division by 200000
-      label: 'Amount Disbursed',
-      color: const Color(0xFFE91E63),
-    ),
-    const SizedBox(width: 24),
-    _buildProgressCircle(
-      percentage: projectCompletion,
-      label: 'Project Completion',
-      color: const Color.fromARGB(255, 51, 7, 163),
-    ),
-  ],
-),
+                          children: [
+                            _buildProgressCircle(
+                              percentage:
+                                  totalDisbursed, // Remove the division by 200000
+                              label: 'Amount Disbursed',
+                              color: const Color(0xFFE91E63),
+                            ),
+                            const SizedBox(width: 24),
+                            _buildProgressCircle(
+                              percentage: projectCompletion,
+                              label: 'Project Completion',
+                              color: const Color.fromARGB(255, 51, 7, 163),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 24), // Increased spacing
                         Expanded(
                           child: _buildDataTable(),
@@ -572,8 +575,9 @@ double get projectCompletion {
     required Color color,
   }) {
     // Calculate total drawn amount (not percentage) only when needed
-    double totalDrawnAmount = label == 'Amount Disbursed' 
-        ? _loanLineItems.fold<double>(0.0, (sum, request) => sum + request.totalDrawn)
+    double totalDrawnAmount = label == 'Amount Disbursed'
+        ? _loanLineItems.fold<double>(
+            0.0, (sum, request) => sum + request.totalDrawn)
         : 0.0;
 
     return Expanded(
@@ -717,11 +721,16 @@ double get projectCompletion {
   }
 
   Widget _buildEditableTableCell(String text,
-      {bool isFirst = false, bool isAmount = false, VoidCallback? onTap, required LoanLineItem item, required int drawNumber}) {
+      {bool isFirst = false,
+      bool isAmount = false,
+      VoidCallback? onTap,
+      required LoanLineItem item,
+      required int drawNumber}) {
     // Calculate if this draw would exceed budget
     double currentAmount = double.tryParse(text) ?? 0;
     double totalWithoutThisDraw = item.totalDrawn - currentAmount;
-    bool wouldExceedBudget = (totalWithoutThisDraw + currentAmount) > item.budget;
+    bool wouldExceedBudget =
+        (totalWithoutThisDraw + currentAmount) > item.budget;
 
     return Expanded(
       child: GestureDetector(
@@ -734,7 +743,9 @@ double get projectCompletion {
                 isAmount ? '\$${double.parse(text).toStringAsFixed(2)}' : text,
                 style: TextStyle(
                   fontSize: 14,
-                  color: wouldExceedBudget ? Colors.red : (isAmount ? Colors.green[700] : Colors.black87),
+                  color: wouldExceedBudget
+                      ? Colors.red
+                      : (isAmount ? Colors.green[700] : Colors.black87),
                   decoration: onTap != null ? TextDecoration.underline : null,
                 ),
               ),
@@ -855,7 +866,9 @@ double get projectCompletion {
                                 '\$${item.totalDrawn.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: item.totalDrawn > item.budget ? Colors.red : Colors.black87,
+                                  color: item.totalDrawn > item.budget
+                                      ? Colors.red
+                                      : Colors.black87,
                                 ),
                               ),
                               if (item.totalDrawn > item.budget) ...[
@@ -920,105 +933,105 @@ double get projectCompletion {
   }
 
   Widget _buildVerticalDrawStatus(int drawNumber) {
-  Color getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return Colors.green;
-      case 'declined':
-        return Colors.red;
-      case 'pending':
-      default:
-        return Colors.orange;
+    Color getStatusColor(String status) {
+      switch (status.toLowerCase()) {
+        case 'approved':
+          return Colors.green;
+        case 'declined':
+          return Colors.red;
+        case 'pending':
+        default:
+          return Colors.orange;
+      }
     }
-  }
 
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      IconButton(
-        icon: const Icon(Icons.check_circle_outline),
-        iconSize: 16,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
-        color: Colors.green,
-        onPressed: () => _approveVerticalDraw(drawNumber),
-        tooltip: 'Approve Draw $drawNumber',
-      ),
-      const SizedBox(width: 14),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: getStatusColor(drawStatuses[drawNumber] ?? 'pending').withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.check_circle_outline),
+          iconSize: 16,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          color: Colors.green,
+          onPressed: () => _approveVerticalDraw(drawNumber),
+          tooltip: 'Approve Draw $drawNumber',
         ),
-        child: Text(
-          (drawStatuses[drawNumber] ?? 'PENDING').toUpperCase(),
-          style: TextStyle(
-            color: getStatusColor(drawStatuses[drawNumber] ?? 'pending'),
-            fontSize: 10,
-            fontWeight: FontWeight.w500,
+        const SizedBox(width: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: getStatusColor(drawStatuses[drawNumber] ?? 'pending')
+                .withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            (drawStatuses[drawNumber] ?? 'PENDING').toUpperCase(),
+            style: TextStyle(
+              color: getStatusColor(drawStatuses[drawNumber] ?? 'pending'),
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
-      ),
-      const SizedBox(width: 14),
-      IconButton(
-        icon: const Icon(Icons.cancel_outlined),
-        iconSize: 16,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
-        color: Colors.red,
-        onPressed: () => _declineVerticalDraw(drawNumber),
-        tooltip: 'Decline Draw $drawNumber',
-      ),
-    ],
-  );
-}
+        const SizedBox(width: 14),
+        IconButton(
+          icon: const Icon(Icons.cancel_outlined),
+          iconSize: 16,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          color: Colors.red,
+          onPressed: () => _declineVerticalDraw(drawNumber),
+          tooltip: 'Decline Draw $drawNumber',
+        ),
+      ],
+    );
+  }
 
 // Update the approve and decline functions
-void _approveVerticalDraw(int drawNumber) {
-  setState(() {
-    // Update the overall draw status
-    drawStatuses[drawNumber] = 'approved';
-    
-    // Update individual line items
-    for (var item in _loanLineItems) {
-      switch (drawNumber) {
-        case 1:
-          if (item.draw1 != null) item.draw1Status = 'approved';
-          break;
-        case 2:
-          if (item.draw2 != null) item.draw2Status = 'approved';
-          break;
-        case 3:
-          if (item.draw3 != null) item.draw3Status = 'approved';
-          break;
-      }
-    }
-  });
-}
+  void _approveVerticalDraw(int drawNumber) {
+    setState(() {
+      // Update the overall draw status
+      drawStatuses[drawNumber] = 'approved';
 
-void _declineVerticalDraw(int drawNumber) {
-  setState(() {
-    // Update the overall draw status
-    drawStatuses[drawNumber] = 'declined';
-    
-    // Update individual line items
-    for (var item in _loanLineItems) {
-      switch (drawNumber) {
-        case 1:
-          if (item.draw1 != null) item.draw1Status = 'declined';
-          break;
-        case 2:
-          if (item.draw2 != null) item.draw2Status = 'declined';
-          break;
-        case 3:
-          if (item.draw3 != null) item.draw3Status = 'declined';
-          break;
+      // Update individual line items
+      for (var item in _loanLineItems) {
+        switch (drawNumber) {
+          case 1:
+            if (item.draw1 != null) item.draw1Status = 'approved';
+            break;
+          case 2:
+            if (item.draw2 != null) item.draw2Status = 'approved';
+            break;
+          case 3:
+            if (item.draw3 != null) item.draw3Status = 'approved';
+            break;
+        }
       }
-    }
-  });
-}
+    });
+  }
 
+  void _declineVerticalDraw(int drawNumber) {
+    setState(() {
+      // Update the overall draw status
+      drawStatuses[drawNumber] = 'declined';
+
+      // Update individual line items
+      for (var item in _loanLineItems) {
+        switch (drawNumber) {
+          case 1:
+            if (item.draw1 != null) item.draw1Status = 'declined';
+            break;
+          case 2:
+            if (item.draw2 != null) item.draw2Status = 'declined';
+            break;
+          case 3:
+            if (item.draw3 != null) item.draw3Status = 'declined';
+            break;
+        }
+      }
+    });
+  }
 
   Widget _buildSidebar() {
     return Container(

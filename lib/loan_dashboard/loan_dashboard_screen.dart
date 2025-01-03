@@ -1069,11 +1069,6 @@ void _declineVerticalDraw(int drawNumber) {
           _buildSidebarItem(count: "2", label: "Draw Requests"),
           _buildSidebarItem(count: "6", label: "Inspections"),
           const Spacer(),
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: LoanChatSection(),
-          ),
-          const SizedBox(height: 16),
         ],
       ),
     );

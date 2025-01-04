@@ -3,6 +3,9 @@ import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/loan_dashboard/chat/loan_chat_section.dart';
 import 'package:tester/loan_dashboard/models/loan_line_item.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -1136,10 +1139,14 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
                   icon: Icons.settings_outlined,
                   onTap: _showSettings,
                 ),
-              ],
-            ),
+               _buildNavItem(
+                icon: Icons.share_outlined,
+                onTap: _shareLoanDashboard,
+              ),
+            ],
           ),
-          const Spacer(),
+        ),
+        const Spacer(),
         ],
       ),
     );
@@ -1162,7 +1169,105 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       ),
     );
   }
+  Future<void> _shareLoanDashboard() async {
+  final pdf = pw.Document();
+  
 
+  // Create PDF content
+  pdf.addPage(
+    pw.MultiPage(
+      build: (context) => [
+        // Header
+        pw.Header(
+          level: 0,
+          child: pw.Text(
+            '$companyName - Construction Loan Details',
+            style: pw.TextStyle(
+              fontSize: 24,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ),
+        pw.SizedBox(height: 20),
+
+        // Contractor Info
+        pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text('Contractor: $contractorName'),
+            pw.Text('Phone: $contractorPhone'),
+            pw.Text('Email: $contractorEmail'),
+          ],
+        ),
+        pw.SizedBox(height: 20),
+
+        // Project Progress
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Amount Disbursed: ${totalDisbursed.toStringAsFixed(1)}%',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+                pw.Text(
+                  'Total Amount: \$${_loanLineItems.fold<double>(0.0, (sum, item) => sum + item.totalDrawn).toStringAsFixed(2)}',
+                ),
+              ],
+            ),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Project Completion: ${projectCompletion.toStringAsFixed(1)}%',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+              ],
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 20),
+
+        // Line Items Table
+        pw.Table.fromTextArray(
+          context: context,
+          headerAlignment: pw.Alignment.centerLeft,
+          cellAlignment: pw.Alignment.centerLeft,
+          headerDecoration: pw.BoxDecoration(
+            color: PdfColors.grey300,
+          ),
+          headerHeight: 25,
+          cellHeight: 40,
+          headerStyle: pw.TextStyle(
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.black,
+          ),
+          cellStyle: const pw.TextStyle(
+            color: PdfColors.black,
+          ),
+          headers: ['Line Item', 'INSP', 'Draw 1', 'Draw 2', 'Draw 3', 'Total Drawn', 'Budget'],
+          data: _loanLineItems.map((item) => [
+            item.lineItem,
+            '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+            item.draw1 != null ? '\$${item.draw1!.toStringAsFixed(2)}' : '-',
+            item.draw2 != null ? '\$${item.draw2!.toStringAsFixed(2)}' : '-',
+            item.draw3 != null ? '\$${item.draw3!.toStringAsFixed(2)}' : '-',
+            '\$${item.totalDrawn.toStringAsFixed(2)}',
+            '\$${item.budget.toStringAsFixed(2)}',
+          ]).toList(),
+        ),
+      ],
+    ),
+  );
+
+  // Share PDF
+  await Printing.sharePdf(
+    bytes: await pdf.save(),
+    filename: '${companyName.replaceAll(' ', '_')}_loan_details.pdf',
+  );
+}
   @override
   void dispose() {
     _searchController.dispose();

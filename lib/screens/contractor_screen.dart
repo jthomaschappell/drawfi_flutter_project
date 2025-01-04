@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tester/screens/gc_settings_screen.dart';
 import 'package:tester/screens/draw_request_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-// ProjectDetailsScreen definition
+// ProjectDetailsScreen definition remains the same
 class ProjectDetailsScreen extends StatelessWidget {
   const ProjectDetailsScreen({super.key});
 
@@ -50,6 +51,31 @@ class ContractorScreen extends StatefulWidget {
 }
 
 class _ContractorScreenState extends State<ContractorScreen> {
+  final _supabase = Supabase.instance.client;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _loans = [];
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadLoans();
+  }
+
+  Future<void> _loadLoans() async {
+    try {
+      final response = await _supabase
+          .from('construction_loans')
+          .select();
+      
+      setState(() {
+        _loans = List<Map<String, dynamic>>.from(response ?? []);
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading loans: $e');
+      setState(() => _isLoading = false);
+    }
+}
   void _navigateToSettings(BuildContext context) {
     Navigator.push(
       context,
@@ -59,19 +85,24 @@ class _ContractorScreenState extends State<ContractorScreen> {
     );
   }
 
-  void _navigateToDrawRequest(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DrawRequestScreen()),
-    );
-  }
-
-  void _navigateToProjectDetails(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DrawRequestScreen()),
-    );
-  }
+  // When navigating to the DrawRequestScreen, pass the actual loan ID
+void _navigateToDrawRequest(BuildContext context, String actualLoanId) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => DrawRequestScreen(loanId: actualLoanId)
+    ),
+  );
+}
+  // Update _navigateToProjectDetails method
+void _navigateToProjectDetails(BuildContext context, String loanId) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => DrawRequestScreen(loanId: loanId),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +120,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
   }
 
   Widget _buildLeftNavigation() {
+    // Left navigation remains the same
     return Container(
       width: 72,
       decoration: BoxDecoration(
@@ -139,6 +171,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
   }
 
   Widget _buildNavItem(IconData icon, bool isSelected, {VoidCallback? onTap}) {
+    // Nav item remains the same
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -182,10 +215,12 @@ class _ContractorScreenState extends State<ContractorScreen> {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: ListView.builder(
-              itemCount: 7,
-              itemBuilder: (context, index) => _buildProjectCard(),
-            ),
+            child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.builder(
+                  itemCount: _loans.length,
+                  itemBuilder: (context, index) => _buildProjectCard(_loans[index]),
+                ),
           ),
         ],
       ),
@@ -193,6 +228,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
   }
 
   Widget _buildHeader() {
+    // Header remains mostly the same, but we'll update the project count
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -208,82 +244,94 @@ class _ContractorScreenState extends State<ContractorScreen> {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              '36 Active Projects',
-              style: TextStyle(
+            Text(
+              '${_loans.length} Active Projects',
+              style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF6B7280),
               ),
             ),
           ],
         ),
-        ElevatedButton(
-          onPressed: () => _navigateToDrawRequest(context),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6500E9),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add, size: 20),
-              SizedBox(width: 8),
-              Text('New Project'),
-            ],
-          ),
-        ),
+        // If you have access to a loan ID when creating the button:
+ElevatedButton(
+  onPressed: () => _navigateToDrawRequest(context, "your-actual-loan-id"),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: const Color(0xFF6500E9),
+    foregroundColor: Colors.white,
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+    ),
+  ),
+  child: const Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(Icons.add, size: 20),
+      SizedBox(width: 8),
+      Text('New Project'),
+    ],
+  ),
+)
+         
       ],
     );
   }
 
   Widget _buildSearchBar() {
-  return Container(
-    height: 40,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: Colors.grey[300]!),
-    ),
-    padding: const EdgeInsets.symmetric(horizontal: 12),
-    child: Row(
-      children: [
-        const Icon(
-          Icons.search, 
-          color: Colors.black54,  // Changed to a darker color
-          size: 20
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            style: const TextStyle(
-              color: Colors.black,  // Changed to black
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Search by name, loan & etc',
-              hintStyle: TextStyle(
-                color: Colors.grey[600],  // Made hint text slightly darker
+    // Search bar remains the same
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.search, 
+            color: Colors.black54,
+            size: 20
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              style: const TextStyle(
+                color: Colors.black,
                 fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
-              border: InputBorder.none,
-              fillColor: Colors.white,  // Explicitly set background color
-              filled: true,
+              decoration: InputDecoration(
+                hintText: 'Search by name, loan & etc',
+                hintStyle: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+                border: InputBorder.none,
+                fillColor: Colors.white,
+                filled: true,
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
-  Widget _buildProjectCard() {
+  Widget _buildProjectCard(Map<String, dynamic> loan) {
+    final projectName = loan['project_name'] ?? 'Unknown Project';
+    final location = loan['location'] ?? 'Unknown Location';
+    final initials = projectName
+        .split(' ')
+        .take(2)
+        .map((word) => word.isNotEmpty ? word[0] : '')
+        .join('')
+        .toUpperCase();
+
     return InkWell(
-      onTap: () => _navigateToProjectDetails(context),
+      onTap: () => _navigateToProjectDetails(context, loan['id'].toString()),
       hoverColor: Colors.grey[50],
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
@@ -305,10 +353,10 @@ class _ContractorScreenState extends State<ContractorScreen> {
                   color: const Color(0xFF6500E9),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'KD',
-                    style: TextStyle(
+                    initials,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
@@ -317,13 +365,12 @@ class _ContractorScreenState extends State<ContractorScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                flex: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'KDK Construction',
-                      style: TextStyle(
+                    Text(
+                      projectName,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w500,
                         color: Color(0xFF111827),
                       ),
@@ -333,7 +380,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
                         const Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF6B7280)),
                         const SizedBox(width: 4),
                         Text(
-                          'American Fork, UT',
+                          location,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -344,63 +391,10 @@ class _ContractorScreenState extends State<ContractorScreen> {
                   ],
                 ),
               ),
-              _buildMetric('Disbursed', '50%'),
-              _buildMetric('Completed', '50%'),
-              _buildMetric('Draws', '3'),
-              _buildMetric('Inspections', '2'),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_circle_outline, size: 14, color: Colors.green[700]),
-                    const SizedBox(width: 4),
-                    Text(
-                      'On track',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.green[700],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
               const Icon(Icons.chevron_right, color: Color(0xFF6B7280), size: 20),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildMetric(String label, String value) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF6B7280),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF111827),
-            ),
-          ),
-        ],
       ),
     );
   }

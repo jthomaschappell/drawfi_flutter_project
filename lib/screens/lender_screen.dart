@@ -251,11 +251,13 @@ void updateCompletionPercentage(double completionPercentage, dynamic widget) {
 class ProjectCard extends StatelessWidget {
   final Project project;
   final VoidCallback onTap;
+  final Function(String) onDelete;  // Add this line
 
   const ProjectCard({
     super.key,
     required this.project,
     required this.onTap,
+    required this.onDelete,  // Add this line
   });
 
   Color _getStatusColor(String status) {
@@ -363,7 +365,14 @@ class ProjectCard extends StatelessWidget {
               ),
 
               // Arrow
+              // Arrow and Delete button
               const SizedBox(width: 16),
+              IconButton(
+                icon: const Icon(Icons.delete_outline),
+                color: Colors.red.withOpacity(0.7),
+                onPressed: () => _showDeleteConfirmation(context),
+                tooltip: 'Delete project',
+              ),
               Icon(
                 Icons.chevron_right,
                 size: 20,
@@ -373,6 +382,33 @@ class ProjectCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Project'),
+          content: Text('Are you sure you want to delete ${project.companyName}? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                onDelete(project.id);
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -672,7 +708,48 @@ class _LenderScreenState extends State<LenderScreen> {
       ],
     );
   }
+   Future<void> _deleteProject(String projectId) async {
+  try {
+    setState(() => _isLoading = true);
 
+    // First delete related records from construction_loan_line_items
+    await supabase
+      .from('construction_loan_line_items')
+      .delete()
+      .eq('loan_id', projectId);
+
+    // Then delete the main loan record
+    await supabase
+      .from('construction_loans')
+      .delete()
+      .eq('loan_id', projectId);
+
+    // Show success message
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Project deleted successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+
+    // Reload the projects list
+    await _loadProjects();
+  } catch (error) {
+    print('Error deleting project: $error');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting project: ${error.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } finally {
+    setState(() => _isLoading = false);
+  }
+}
   @override
   Widget build(BuildContext context) {
     // userProfile
@@ -1013,8 +1090,8 @@ class _LenderScreenState extends State<LenderScreen> {
                             itemCount: _projects.length,
                             itemBuilder: (context, index) => ProjectCard(
                               project: _projects[index],
-                              onTap: () =>
-                                  _goToLoanDashboardScreen(_projects[index]),
+                              onTap: () => _goToLoanDashboardScreen(_projects[index]),
+                              onDelete: _deleteProject,  // Add this line
                             ),
                           ),
                       ],

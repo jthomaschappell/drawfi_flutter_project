@@ -248,18 +248,48 @@ void updateCompletionPercentage(double completionPercentage, dynamic widget) {
   CompletionDataProvider.setCompletion(widget.loanId, completionPercentage);
 }
 
+// 
+// ADD THIS NEW CODE INSTEAD
+// NEW CODE
 class ProjectCard extends StatelessWidget {
   final Project project;
   final VoidCallback onTap;
-  final Function(String) onDelete;  // Add this line
+  final VoidCallback onDelete;  // Changed to VoidCallback
 
   const ProjectCard({
     super.key,
     required this.project,
     required this.onTap,
-    required this.onDelete,  // Add this line
+    required this.onDelete,
   });
 
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Project'),
+          content: Text('Are you sure you want to delete ${project.companyName}? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+    Navigator.of(context).pop();
+    onDelete();  // Changed to not pass project.id
+},
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'on track':
@@ -384,33 +414,6 @@ class ProjectCard extends StatelessWidget {
       ),
     );
   }
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Project'),
-          content: Text('Are you sure you want to delete ${project.companyName}? This action cannot be undone.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                onDelete(project.id);
-              },
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   Widget _buildMetric(String label, String value) {
     return Expanded(
@@ -467,7 +470,21 @@ class _LenderScreenState extends State<LenderScreen> {
     _loadProjects();
     _searchController.addListener(_onSearchChanged);
   }
-
+  // Add this method to handle UI-only deletion
+void _handleDelete(int index) {
+  setState(() {
+    _projects.removeAt(index);
+  });
+  
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Project removed from view'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+}
   void _onSearchChanged() {
     setState(() {
       _searchQuery = _searchController.text;
@@ -708,48 +725,7 @@ class _LenderScreenState extends State<LenderScreen> {
       ],
     );
   }
-   Future<void> _deleteProject(String projectId) async {
-  try {
-    setState(() => _isLoading = true);
 
-    // First delete related records from construction_loan_line_items
-    await supabase
-      .from('construction_loan_line_items')
-      .delete()
-      .eq('loan_id', projectId);
-
-    // Then delete the main loan record
-    await supabase
-      .from('construction_loans')
-      .delete()
-      .eq('loan_id', projectId);
-
-    // Show success message
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Project deleted successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-
-    // Reload the projects list
-    await _loadProjects();
-  } catch (error) {
-    print('Error deleting project: $error');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error deleting project: ${error.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  } finally {
-    setState(() => _isLoading = false);
-  }
-}
   @override
   Widget build(BuildContext context) {
     // userProfile
@@ -1084,16 +1060,17 @@ class _LenderScreenState extends State<LenderScreen> {
                             ),
                           )
                         else
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _projects.length,
-                            itemBuilder: (context, index) => ProjectCard(
-                              project: _projects[index],
-                              onTap: () => _goToLoanDashboardScreen(_projects[index]),
-                              onDelete: _deleteProject,  // Add this line
-                            ),
-                          ),
+                          // NEW CODE
+ListView.builder(
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  itemCount: _projects.length,
+  itemBuilder: (context, index) => ProjectCard(
+    project: _projects[index],
+    onTap: () => _goToLoanDashboardScreen(_projects[index]),
+    onDelete: () => _handleDelete(index),  // Changed to use index-based deletion
+  ),
+),
                       ],
                     ),
                   ),

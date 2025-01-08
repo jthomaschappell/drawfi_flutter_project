@@ -84,7 +84,56 @@ class _ContractorScreenState extends State<ContractorScreen> {
       ),
     );
   }
+  void _showDeleteConfirmation(BuildContext context, Map<String, dynamic> loan) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Delete Project'),
+        content: Text('Are you sure you want to delete ${loan['project_name']}? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _handleDelete(loan);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
+void _handleDelete(Map<String, dynamic> loan) {
+  setState(() {
+    // Print debug information
+    print('Before deletion: ${_loans.length} loans');
+    print('Trying to delete loan with ID: ${loan['loan_id']}');
+    
+    // Use loan_id instead of id
+    _loans.removeWhere((item) => item['loan_id'] == loan['loan_id']);
+    
+    // Print after deletion
+    print('After deletion: ${_loans.length} loans');
+  });
+  
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Project removed from view'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+}
   // When navigating to the DrawRequestScreen, pass the actual loan ID
 void _navigateToDrawRequest(BuildContext context, String actualLoanId) {
   Navigator.push(
@@ -217,15 +266,42 @@ void _navigateToProjectDetails(BuildContext context, String loanId) {
           Expanded(
             child: _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : ListView.builder(
-                  itemCount: _loans.length,
-                  itemBuilder: (context, index) => _buildProjectCard(_loans[index]),
-                ),
+              : _loans.isEmpty  // Add this check
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 40),
+                          Icon(
+                            Icons.folder_open_outlined,
+                            size: 48,
+                            color: Colors.black.withOpacity(0.2),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No projects found',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black.withOpacity(0.4),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: _loadLoans,
+                            child: const Text('Refresh'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: _loans.length,
+                      itemBuilder: (context, index) => _buildProjectCard(_loans[index]),
+                    ),
           ),
         ],
       ),
     );
-  }
+}
 
   Widget _buildHeader() {
     // Header remains mostly the same, but we'll update the project count
@@ -391,6 +467,13 @@ ElevatedButton(
                   ],
                 ),
               ),
+              // Add delete button here
+              IconButton(
+  icon: const Icon(Icons.delete_outline),
+  color: Colors.red.withOpacity(0.7),
+  onPressed: () => _showDeleteConfirmation(context, loan),  // Pass the entire loan object
+  tooltip: 'Delete project',
+),
               const Icon(Icons.chevron_right, color: Color(0xFF6B7280), size: 20),
             ],
           ),

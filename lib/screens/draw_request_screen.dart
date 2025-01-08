@@ -1,169 +1,174 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'dart:async';
+import 'package:intl/intl.dart';
+
+// Add this enum at the top of the file
+enum DrawStatus {
+  pending,
+  submitted,
+  underReview,
+  approved,
+  declined
+}
 
 class DrawRequest {
   final String lineItem;
   double inspectionPercentage;
   Map<int, double?> draws;  
-  Map<int, String> drawStatuses;
+  Map<int, DrawStatus> drawStatuses;  // Changed from String to DrawStatus
   double budget;
+  String? lenderNote;     // New field
+  DateTime? reviewedAt;   // New field
 
   DrawRequest({
     required this.lineItem,
     required this.inspectionPercentage,
     Map<int, double?>? draws,
-    Map<int, String>? drawStatuses,
+    Map<int, DrawStatus>? drawStatuses,
     required this.budget,
+    this.lenderNote,
+    this.reviewedAt,
   }) : 
     draws = draws ?? {1: null, 2: null, 3: null, 4: null},
-    drawStatuses = drawStatuses ?? {1: 'pending', 2: 'pending', 3: 'pending', 4: 'pending'};
+    drawStatuses = drawStatuses ?? {
+      1: DrawStatus.pending, 
+      2: DrawStatus.pending, 
+      3: DrawStatus.pending, 
+      4: DrawStatus.pending
+    };
 
   double get totalDrawn {
     return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
   }
 }
 
+class LenderReview {
+  final String drawId;
+  final DrawStatus status;
+  final String? note;
+  final DateTime timestamp;
+
+  LenderReview({
+    required this.drawId,
+    required this.status,
+    this.note,
+    required this.timestamp,
+  });
+}
+
 class DrawRequestScreen extends StatefulWidget {
   final String loanId;
-  const DrawRequestScreen({super.key, required this.loanId});
+  final bool isLender; // Add this parameter
+  
+  const DrawRequestScreen({
+    super.key, 
+    required this.loanId,
+    this.isLender = false, // Default to builder view
+  });
 
   @override
   State<DrawRequestScreen> createState() => _DrawRequestScreenState();
 }
-
-// At the top of your _DrawRequestScreenState class
-final Map<String, TextEditingController> _controllers = {};
 
 class _DrawRequestScreenState extends State<DrawRequestScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
   String _searchQuery = '';
   Map<String, TextEditingController> _controllers = {};
+  Timer? _refreshTimer;
+  List<LenderReview> _lenderReviews = [];
+  
   String companyName = "ABC Construction";
   String contractorName = "John Builder";
   String contractorEmail = "john@builder.com";
   String contractorPhone = "(555) 123-4567";
   
   int numberOfDraws = 4;
-  
+
   List<DrawRequest> _drawRequests = [
     DrawRequest(
       lineItem: 'Foundation Work',
       inspectionPercentage: 0.3,
       budget: 153000,
-      draws: {
-        1: 45000,
-        2: 25000,
-        3: 30000,
-        4: null
-      },
+      draws: {1: 45000, 2: 25000, 3: 30000, 4: null},
       drawStatuses: {
-        1: 'approved',
-        2: 'pending',
-        3: 'pending',
-        4: 'pending'
+        1: DrawStatus.approved,
+        2: DrawStatus.pending,
+        3: DrawStatus.pending,
+        4: DrawStatus.pending
       },
     ),
     DrawRequest(
       lineItem: 'Framing',
       inspectionPercentage: 0.34,
       budget: 153000,
-      draws: {
-        1: 35000,
-        2: 40000,
-        3: null,
-        4: null
-      },
+      draws: {1: 35000, 2: 40000, 3: null, 4: null},
       drawStatuses: {
-        1: 'approved',
-        2: 'pending',
-        3: 'pending',
-        4: 'pending'
+        1: DrawStatus.approved,
+        2: DrawStatus.pending,
+        3: DrawStatus.pending,
+        4: DrawStatus.pending
       },
     ),
     DrawRequest(
       lineItem: 'Electrical',
       inspectionPercentage: 0.55,
       budget: 111000,
-      draws: {
-        1: 28000,
-        2: 32000,
-        3: null,
-        4: null
-      },
+      draws: {1: 28000, 2: 32000, 3: null, 4: null},
       drawStatuses: {
-        1: 'approved',
-        2: 'pending',
-        3: 'pending',
-        4: 'pending'
+        1: DrawStatus.approved,
+        2: DrawStatus.pending,
+        3: DrawStatus.pending,
+        4: DrawStatus.pending
       },
     ),
     DrawRequest(
       lineItem: 'Plumbing',
       inspectionPercentage: 0.13,
       budget: 153000,
-      draws: {
-        1: 42000,
-        2: 10000,
-        3: null,
-        4: null
-      },
+      draws: {1: 42000, 2: 10000, 3: null, 4: null},
       drawStatuses: {
-        1: 'approved',
-        2: 'pending',
-        3: 'pending',
-        4: 'pending'
+        1: DrawStatus.approved,
+        2: DrawStatus.pending,
+        3: DrawStatus.pending,
+        4: DrawStatus.pending
       },
     ),
     DrawRequest(
       lineItem: 'HVAC Installation',
       inspectionPercentage: 0.0,
       budget: 153000,
-      draws: {
-        1: 38000,
-        2: 45000,
-        3: null,
-        4: null
-      },
+      draws: {1: 38000, 2: 45000, 3: null, 4: null},
       drawStatuses: {
-        1: 'pending',
-        2: 'pending',
-        3: 'pending',
-        4: 'pending'
+        1: DrawStatus.pending,
+        2: DrawStatus.pending,
+        3: DrawStatus.pending,
+        4: DrawStatus.pending
       },
     ),
     DrawRequest(
       lineItem: 'Roofing',
       inspectionPercentage: 0.4,
       budget: 153000,
-      draws: {
-        1: 50000,
-        2: 35000,
-        3: null,
-        4: null
-      },
+      draws: {1: 50000, 2: 35000, 3: null, 4: null},
       drawStatuses: {
-        1: 'approved',
-        2: 'pending',
-        3: 'pending',
-        4: 'pending'
+        1: DrawStatus.approved,
+        2: DrawStatus.pending,
+        3: DrawStatus.pending,
+        4: DrawStatus.pending
       },
     ),
     DrawRequest(
       lineItem: 'Interior Finishing',
       inspectionPercentage: 0.45,
       budget: 153000,
-      draws: {
-        1: 40000,
-        2: 38000,
-        3: 25000,
-        4: null
-      },
+      draws: {1: 40000, 2: 38000, 3: 25000, 4: null},
       drawStatuses: {
-        1: 'approved',
-        2: 'pending',
-        3: 'pending',
-        4: 'pending'
+        1: DrawStatus.approved,
+        2: DrawStatus.pending,
+        3: DrawStatus.pending,
+        4: DrawStatus.pending
       },
     ),
   ];
@@ -172,6 +177,11 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
   void initState() {
     super.initState();
     _initializeControllers();
+    if (!widget.isLender) {
+      _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+        _checkLenderUpdates();
+      });
+    }
   }
 
   void _initializeControllers() {
@@ -184,17 +194,35 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     }
   }
 
-  void _addNewDraw() {
+  Future<void> _checkLenderUpdates() async {
+    // Simulate API call to check for updates
+    await Future.delayed(const Duration(seconds: 1));
     setState(() {
-      numberOfDraws++;
-      // Add new draw for each request
+      for (var review in _lenderReviews) {
+        for (var request in _drawRequests) {
+          int drawNumber = int.parse(review.drawId.split('_')[1]);
+          request.drawStatuses[drawNumber] = review.status;
+          request.lenderNote = review.note;
+          request.reviewedAt = review.timestamp;
+        }
+      }
+    });
+  }
+
+  void _reviewDraw(int drawNumber, DrawStatus status, String? note) {
+    setState(() {
+      final review = LenderReview(
+        drawId: 'draw_$drawNumber',
+        status: status,
+        note: note,
+        timestamp: DateTime.now(),
+      );
+      _lenderReviews.add(review);
+      
       for (var request in _drawRequests) {
-        request.draws[numberOfDraws] = null;
-        request.drawStatuses[numberOfDraws] = 'pending';
-        
-        // Add new controller
-        final key = '${request.lineItem}_$numberOfDraws';
-        _controllers[key] = TextEditingController();
+        request.drawStatuses[drawNumber] = status;
+        request.lenderNote = note;
+        request.reviewedAt = review.timestamp;
       }
     });
   }
@@ -203,8 +231,21 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     setState(() {
       for (var request in _drawRequests) {
         if (request.draws[drawNumber] != null) {
-          request.drawStatuses[drawNumber] = 'submitted';
+          request.drawStatuses[drawNumber] = DrawStatus.submitted;
         }
+      }
+    });
+  }
+
+  void _addNewDraw() {
+    setState(() {
+      numberOfDraws++;
+      for (var request in _drawRequests) {
+        request.draws[numberOfDraws] = null;
+        request.drawStatuses[numberOfDraws] = DrawStatus.pending;
+        
+        final key = '${request.lineItem}_$numberOfDraws';
+        _controllers[key] = TextEditingController();
       }
     });
   }
@@ -243,60 +284,598 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     return (weightedSum / totalBudget) * 100;
   }
 
-  Widget _buildDrawStatusSection(int drawNumber) {
-    String status = drawNumber <= numberOfDraws ? 
-      (_drawRequests.any((request) => request.drawStatuses[drawNumber] == 'submitted') ? 'submitted' : 'pending') : '';
-    Color statusColor = _getStatusColor(status);
+  Future<void> _showReviewDialog(int drawNumber, DrawStatus status) async {
+    final TextEditingController noteController = TextEditingController();
     
-    return Container(
-      width: 120,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: Colors.grey[200]!),
-          top: BorderSide(color: Colors.grey[200]!),
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(status == DrawStatus.approved ? 'Approve Draw' : 'Decline Draw'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: noteController,
+              decoration: const InputDecoration(
+                labelText: 'Add a note (optional)',
+                hintText: 'Enter feedback for the builder',
+              ),
+              maxLines: 3,
+            ),
+          ],
         ),
-      ),
-      child: Column(
-        children: [
-          // Status indicator
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              status.toUpperCase(),
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-          const SizedBox(height: 8),
-          // Submit button
           ElevatedButton(
-            onPressed: status != 'submitted' ? () => _submitDraw(drawNumber) : null,
+            onPressed: () {
+              _reviewDraw(drawNumber, status, noteController.text);
+              Navigator.pop(context);
+            },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 61, 143, 96),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              minimumSize: const Size(80, 32),
+              backgroundColor: status == DrawStatus.approved ? 
+                Colors.green : Colors.red,
             ),
-            child: Text(
-              status == 'submitted' ? 'Submitted' : 'Submit',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            child: Text(status == DrawStatus.approved ? 'Approve' : 'Decline'),
           ),
         ],
       ),
     );
   }
 
+  String _getButtonText(DrawStatus status) {
+    switch (status) {
+      case DrawStatus.approved:
+        return 'Approved';
+      case DrawStatus.declined:
+        return 'Declined';
+      case DrawStatus.submitted:
+        return 'Submitted';
+      case DrawStatus.underReview:
+        return 'Under Review';
+      case DrawStatus.pending:
+      default:
+        return 'Submit';
+    }
+  }
+
+  Color _getStatusColor(DrawStatus status) {
+    switch (status) {
+      case DrawStatus.approved:
+        return const Color(0xFF22C55E);
+      case DrawStatus.declined:
+        return const Color(0xFFEF4444);
+      case DrawStatus.submitted:
+        return const Color(0xFF6500E9);
+      case DrawStatus.underReview:
+        return const Color(0xFF6366F1);
+      case DrawStatus.pending:
+      default:
+        return const Color(0xFFF97316);
+    }
+  }
+
+  bool _wouldExceedBudget(DrawRequest item, int drawNumber) {
+    final amount = item.draws[drawNumber];
+    if (amount == null) return false;
+    double totalWithoutThisDraw = item.totalDrawn - amount;
+    return (totalWithoutThisDraw + amount) > item.budget;
+  }
+
+  void _moveDrawAmount(DrawRequest item, int drawNumber, String direction) {
+    setState(() {
+      if (direction == 'left' && drawNumber > 1) {
+        double? tempAmount = item.draws[drawNumber - 1];
+        DrawStatus tempStatus = item.drawStatuses[drawNumber - 1] ?? DrawStatus.pending;
+        
+        item.draws[drawNumber - 1] = item.draws[drawNumber];
+        item.drawStatuses[drawNumber - 1] = item.drawStatuses[drawNumber] ?? DrawStatus.pending;
+        
+        item.draws[drawNumber] = tempAmount;
+        item.drawStatuses[drawNumber] = tempStatus;
+        
+        String currentKey = '${item.lineItem}_$drawNumber';
+        _controllers[currentKey]?.text = item.draws[drawNumber]?.toString() ?? '';
+        
+        String prevKey = '${item.lineItem}_${drawNumber - 1}';
+        _controllers[prevKey]?.text = item.draws[drawNumber - 1]?.toString() ?? '';
+        
+      } else if (direction == 'right' && drawNumber < numberOfDraws) {
+        double? tempAmount = item.draws[drawNumber + 1];
+        DrawStatus tempStatus = item.drawStatuses[drawNumber + 1] ?? DrawStatus.pending;
+        
+        item.draws[drawNumber + 1] = item.draws[drawNumber];
+        item.drawStatuses[drawNumber + 1] = item.drawStatuses[drawNumber] ?? DrawStatus.pending;
+        
+        item.draws[drawNumber] = tempAmount;
+        item.drawStatuses[drawNumber] = tempStatus;
+        
+        String currentKey = '${item.lineItem}_$drawNumber';
+        _controllers[currentKey]?.text = item.draws[drawNumber]?.toString() ?? '';
+        
+        String nextKey = '${item.lineItem}_${drawNumber + 1}';
+        _controllers[nextKey]?.text = item.draws[drawNumber + 1]?.toString() ?? '';
+      }
+    });
+  }
+
+  Widget _buildDrawCell(DrawRequest item, int drawNumber) {
+    final String key = '${item.lineItem}_$drawNumber';
+    final bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber);
+    final bool isEditable = item.drawStatuses[drawNumber] == DrawStatus.pending;
+
+    return Container(
+      width: 120,
+      height: 50,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: Colors.grey[200]!),
+          bottom: BorderSide(color: Colors.grey[200]!),
+        ),
+        color: Colors.white,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (drawNumber > 1 && isEditable)
+            IconButton(
+              icon: const Icon(Icons.arrow_back, size: 16),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+              onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
+            ),
+          Expanded(
+            child: TextField(
+              controller: _controllers[key] ?? TextEditingController(),
+              textAlign: TextAlign.center,
+              enabled: isEditable,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.white,
+                border: InputBorder.none,
+                hintText: '-',
+                prefixText: _controllers[key]?.text.isNotEmpty ?? false ? '\$' : '',
+                prefixStyle: TextStyle(
+                  color: wouldExceedBudget ? Colors.red : const Color.fromARGB(120, 39, 133, 5),
+                ),
+              ),
+              style: TextStyle(
+                fontSize: 14,
+                color: wouldExceedBudget ? Colors.red : const Color.fromARGB(120, 39, 133, 5),
+                fontWeight: FontWeight.w500,
+              ),
+              onChanged: (value) {
+                final newAmount = value.isEmpty ? null : double.tryParse(value);
+                setState(() {
+                  item.draws[drawNumber] = newAmount;
+                });
+              },
+            ),
+          ),
+          if (drawNumber < numberOfDraws && isEditable)
+            IconButton(
+              icon: const Icon(Icons.arrow_forward, size: 16),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+              onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalDrawnCell(DrawRequest item) {
+    return Container(
+      width: 120,
+      height: 50,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: Colors.grey[200]!),
+          bottom: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '\$${item.totalDrawn.toStringAsFixed(2)}',
+            style: TextStyle(
+              color: item.totalDrawn > item.budget ? Colors.red : Colors.black87,
+            ),
+          ),
+          if (item.totalDrawn > item.budget) ...[
+            const SizedBox(width: 4),
+            Tooltip(
+              message: 'Total drawn amount exceeds budget',
+              child: Icon(
+                Icons.warning_amber_rounded,
+                size: 16,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawStatusSection(int drawNumber) {
+    DrawStatus status = DrawStatus.pending;
+    String? lenderNote;
+    DateTime? reviewedAt;
+
+    if (drawNumber <= numberOfDraws) {
+      status = _drawRequests.first.drawStatuses[drawNumber] ?? DrawStatus.pending;
+      lenderNote = _drawRequests.first.lenderNote;
+      reviewedAt = _drawRequests.first.reviewedAt;
+    }
+
+    Color statusColor = _getStatusColor(status);
+    
+    return Stack(
+      children: [
+        Container(
+          width: 120,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(color: Colors.grey[200]!),
+              top: BorderSide(color: Colors.grey[200]!),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Status indicator with timestamp
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      status.toString().split('.').last.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (reviewedAt != null && status != DrawStatus.pending)
+                      Text(
+                        DateFormat('MM/dd/yy HH:mm').format(reviewedAt),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              // Show different buttons based on user type
+              if (widget.isLender && status == DrawStatus.submitted)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                      onPressed: () => _showReviewDialog(drawNumber, DrawStatus.approved),
+                      tooltip: 'Approve',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.cancel, color: Colors.red),
+                      onPressed: () => _showReviewDialog(drawNumber, DrawStatus.declined),
+                      tooltip: 'Decline',
+                    ),
+                  ],
+                )
+              else if (!widget.isLender)
+                ElevatedButton(
+                  onPressed: status == DrawStatus.pending ? 
+                    () => _submitDraw(drawNumber) : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 61, 143, 96),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    minimumSize: const Size(80, 32),
+                    disabledBackgroundColor: Colors.grey[400],
+                  ),
+                  child: Text(
+                    _getButtonText(status),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                
+              // Show lender note if available
+              if (lenderNote != null && lenderNote.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Tooltip(
+                    message: lenderNote,
+                    child: const Icon(Icons.comment, size: 16),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        // Status banner
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 3,
+            color: statusColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDataTable() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Fixed left column (Line Item + INSP)
+                Container(
+                  width: 280,
+                  child: Column(
+                    children: [
+                      // Header for fixed column
+                      Row(
+                        children: [
+                          Container(
+                            width: 200,
+                            height: 50,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            alignment: Alignment.centerLeft,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Colors.grey[200]!),
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                            child: const Text(
+                              'Line Item',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 80,
+                            height: 50,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                            child: const Text(
+                              'INSP',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Data rows for fixed column
+                      ...filteredRequests.map((item) => Row(
+                        children: [
+                          Container(
+                            width: 200,
+                            height: 50,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            alignment: Alignment.centerLeft,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Colors.grey[200]!),
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                            child: Text(
+                              item.lineItem,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 80,
+                            height: 50,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[200]!),
+                              ),
+                            ),
+                            child: Text(
+                              '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )).toList(),
+                      // Spacer for status section
+                      Container(
+                        height: 92,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: Colors.grey[200]!),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Scrollable section
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _horizontalScrollController,
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: (120.0 * numberOfDraws) + 170,
+                      child: Column(
+                        children: [
+                          // Header row for scrollable section
+                          Row(
+                            children: [
+                              ...List.generate(
+                                numberOfDraws,
+                                (index) => Container(
+                                  width: 120,
+                                  height: 50,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(color: Colors.grey[200]!),
+                                      bottom: BorderSide(color: Colors.grey[200]!),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Draw ${index + 1}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Add Draw Button
+                              if (!widget.isLender)
+                                Container(
+                                  width: 50,
+                                  height: 50,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(color: Colors.grey[200]!),
+                                      bottom: BorderSide(color: Colors.grey[200]!),
+                                    ),
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.add_circle_outline),
+                                    onPressed: _addNewDraw,
+                                    tooltip: 'Add New Draw',
+                                    color: Color(0xFF6500E9),
+                                  ),
+                                ),
+                              // Total Drawn header
+                              Container(
+                                width: 120,
+                                height: 50,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    left: BorderSide(color: Colors.grey[200]!),
+                                    bottom: BorderSide(color: Colors.grey[200]!),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Total Drawn',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Data rows for scrollable section
+                          ...filteredRequests.map((item) => Row(
+                            children: [
+                              ...List.generate(
+                                numberOfDraws,
+                                (drawIndex) => _buildDrawCell(item, drawIndex + 1),
+                              ),
+                              if (!widget.isLender)
+                                Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(color: Colors.grey[200]!),
+                                      bottom: BorderSide(color: Colors.grey[200]!),
+                                    ),
+                                  ),
+                                ),
+                              _buildTotalDrawnCell(item),
+                            ],
+                          )).toList(),
+                          // Status section
+                          Row(
+                            children: [
+                              ...List.generate(
+                                numberOfDraws,
+                                (index) => _buildDrawStatusSection(index + 1),
+                              ),
+                              if (!widget.isLender)
+                                Container(
+                                  width: 50,
+                                  height: 92,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(color: Colors.grey[200]!),
+                                      top: BorderSide(color: Colors.grey[200]!),
+                                    ),
+                                  ),
+                                ),
+                              Container(
+                                width: 120,
+                                height: 92,
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    left: BorderSide(color: Colors.grey[200]!),
+                                    top: BorderSide(color: Colors.grey[200]!),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildTopNav() {
     return Container(
       height: 64,
@@ -349,9 +928,9 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
                   icon: const Icon(Icons.arrow_back),
                   onPressed: () => Navigator.pop(context),
                 ),
-                const Text(
-                  'Draw Request',
-                  style: TextStyle(
+                Text(
+                  widget.isLender ? 'Review Draw Request' : 'Draw Request',
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF111827),
@@ -564,417 +1143,6 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     );
   }
 
- Widget _buildDataTable() {
-  return Container(
-    decoration: BoxDecoration(
-      border: Border.all(color: Colors.grey[300]!),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Column(
-      children: [
-        Expanded(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Fixed left column (Line Item + INSP)
-              Container(
-                width: 280,
-                child: Column(
-                  children: [
-                    // Header for fixed column
-                    Row(
-                      children: [
-                        Container(
-                          width: 200,
-                          height: 50,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          alignment: Alignment.centerLeft,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              right: BorderSide(color: Colors.grey[200]!),
-                              bottom: BorderSide(color: Colors.grey[200]!),
-                            ),
-                          ),
-                          child: const Text(
-                            'Line Item',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 80,
-                          height: 50,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: Colors.grey[200]!),
-                            ),
-                          ),
-                          child: const Text(
-                            'INSP',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    // Data rows for fixed column
-                    ...filteredRequests.map((item) => Row(
-                      children: [
-                        Container(
-                          width: 200,
-                          height: 50,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          alignment: Alignment.centerLeft,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              right: BorderSide(color: Colors.grey[200]!),
-                              bottom: BorderSide(color: Colors.grey[200]!),
-                            ),
-                          ),
-                          child: Text(
-                            item.lineItem,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 80,
-                          height: 50,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: Colors.grey[200]!),
-                            ),
-                          ),
-                          child: Text(
-                            '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )).toList(),
-                    // Spacer for status section
-                    Container(
-                      height: 92,
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(color: Colors.grey[200]!),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Scrollable section
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: _horizontalScrollController,
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: (120.0 * numberOfDraws) + 170, // Width for draws + button + total
-                    child: Column(
-                      children: [
-                        // Header row for scrollable section
-                        Row(
-                          children: [
-                            ...List.generate(
-                              numberOfDraws,
-                              (index) => Container(
-                                width: 120,
-                                height: 50,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    left: BorderSide(color: Colors.grey[200]!),
-                                    bottom: BorderSide(color: Colors.grey[200]!),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Draw ${index + 1}',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // Add Draw Button
-                            Container(
-                              width: 50,
-                              height: 50,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  left: BorderSide(color: Colors.grey[200]!),
-                                  bottom: BorderSide(color: Colors.grey[200]!),
-                                ),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.add_circle_outline),
-                                onPressed: _addNewDraw,
-                                tooltip: 'Add New Draw',
-                                color: Color(0xFF6500E9),
-                              ),
-                            ),
-                            // Total Drawn header
-                            Container(
-                              width: 120,
-                              height: 50,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  left: BorderSide(color: Colors.grey[200]!),
-                                  bottom: BorderSide(color: Colors.grey[200]!),
-                                ),
-                              ),
-                              child: const Text(
-                                'Total Drawn',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Data rows for scrollable section
-                        ...filteredRequests.map((item) => Row(
-                          children: [
-                            ...List.generate(
-                              numberOfDraws,
-                              (drawIndex) => _buildDrawCell(item, drawIndex + 1),
-                            ),
-                            // Placeholder for + button in data rows
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  left: BorderSide(color: Colors.grey[200]!),
-                                  bottom: BorderSide(color: Colors.grey[200]!),
-                                ),
-                              ),
-                            ),
-                            _buildTotalDrawnCell(item),
-                          ],
-                        )).toList(),
-                        // Status section
-                        Row(
-                          children: [
-                            ...List.generate(
-                              numberOfDraws,
-                              (index) => _buildDrawStatusSection(index + 1),
-                            ),
-                            Container(
-                              width: 50,
-                              height: 92,
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  left: BorderSide(color: Colors.grey[200]!),
-                                  top: BorderSide(color: Colors.grey[200]!),
-                                ),
-                              ),
-                            ),
-                            Container(
-                              width: 120,
-                              height: 92,
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  left: BorderSide(color: Colors.grey[200]!),
-                                  top: BorderSide(color: Colors.grey[200]!),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}
-  Widget _buildDrawCell(DrawRequest item, int drawNumber) {
-  final String key = '${item.lineItem}_$drawNumber';  // Explicitly define key as String
-  final bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber);  // Use the method we defined
-
-  return Container(
-    width: 120,
-    height: 50,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      border: Border(
-        left: BorderSide(color: Colors.grey[200]!),
-        bottom: BorderSide(color: Colors.grey[200]!),
-      ),
-      color: Colors.white,
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (drawNumber > 1)
-          IconButton(
-            icon: const Icon(Icons.arrow_back, size: 16),
-            padding: const EdgeInsets.all(4),
-            constraints: const BoxConstraints(),
-            onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
-          ),
-        Expanded(
-          child: TextField(
-            controller: _controllers[key] ?? TextEditingController(),
-            textAlign: TextAlign.center,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: InputBorder.none,
-              hintText: '-',
-              prefixText: _controllers[key]?.text.isNotEmpty ?? false ? '\$' : '',
-              prefixStyle: TextStyle(
-                color: wouldExceedBudget ? Colors.red : const Color.fromARGB(120, 39, 133, 5),
-              ),
-            ),
-            style: TextStyle(
-              fontSize: 14,
-              color: wouldExceedBudget ? Colors.red : const Color.fromARGB(120, 39, 133, 5),
-              fontWeight: FontWeight.w500,
-            ),
-            onChanged: (value) {
-              final newAmount = value.isEmpty ? null : double.tryParse(value);
-              setState(() {
-                item.draws[drawNumber] = newAmount;
-              });
-            },
-          ),
-        ),
-        if (drawNumber < numberOfDraws)
-          IconButton(
-            icon: const Icon(Icons.arrow_forward, size: 16),
-            padding: const EdgeInsets.all(4),
-            constraints: const BoxConstraints(),
-            onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
-          ),
-      ],
-    ),
-  );
-}
-
-  Widget _buildTotalDrawnCell(DrawRequest item) {
-    return Container(
-      width: 120,
-      height: 50,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: Colors.grey[200]!),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '\$${item.totalDrawn.toStringAsFixed(2)}',
-            style: TextStyle(
-              color: item.totalDrawn > item.budget ? Colors.red : Colors.black87,
-            ),
-          ),
-          if (item.totalDrawn > item.budget) ...[
-            const SizedBox(width: 4),
-            Tooltip(
-              message: 'Total drawn amount exceeds budget',
-              child: Icon(
-                Icons.warning_amber_rounded,
-                size: 16,
-                color: Colors.red,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  void _moveDrawAmount(DrawRequest item, int drawNumber, String direction) {
-    setState(() {
-      if (direction == 'left' && drawNumber > 1) {
-        double? tempAmount = item.draws[drawNumber - 1];
-        String tempStatus = item.drawStatuses[drawNumber - 1] ?? 'pending';
-        
-        item.draws[drawNumber - 1] = item.draws[drawNumber];
-        item.drawStatuses[drawNumber - 1] = item.drawStatuses[drawNumber] ?? 'pending';
-        
-        item.draws[drawNumber] = tempAmount;
-        item.drawStatuses[drawNumber] = tempStatus;
-        
-        // Update the controllers
-        String currentKey = '${item.lineItem}_$drawNumber';
-        _controllers[currentKey]?.text = item.draws[drawNumber]?.toString() ?? '';
-        
-        String prevKey = '${item.lineItem}_${drawNumber - 1}';
-        _controllers[prevKey]?.text = item.draws[drawNumber - 1]?.toString() ?? '';
-        
-      } else if (direction == 'right' && drawNumber < numberOfDraws) {
-        double? tempAmount = item.draws[drawNumber + 1];
-        String tempStatus = item.drawStatuses[drawNumber + 1] ?? 'pending';
-        
-        item.draws[drawNumber + 1] = item.draws[drawNumber];
-        item.drawStatuses[drawNumber + 1] = item.drawStatuses[drawNumber] ?? 'pending';
-        
-        item.draws[drawNumber] = tempAmount;
-        item.drawStatuses[drawNumber] = tempStatus;
-        
-        // Update the controllers
-        String currentKey = '${item.lineItem}_$drawNumber';
-        _controllers[currentKey]?.text = item.draws[drawNumber]?.toString() ?? '';
-        
-        String nextKey = '${item.lineItem}_${drawNumber + 1}';
-        _controllers[nextKey]?.text = item.draws[drawNumber + 1]?.toString() ?? '';
-      }
-    });
-  }
-
-  bool _wouldExceedBudget(DrawRequest item, int drawNumber) {
-  final amount = item.draws[drawNumber];
-  if (amount == null) return false;
-  double totalWithoutThisDraw = item.totalDrawn - amount;
-  return (totalWithoutThisDraw + amount) > item.budget;
-}
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return Colors.green;
-      case 'declined':
-        return Colors.red;
-      case 'submitted':
-        return const Color(0xFF6500E9);
-      case 'pending':
-      default:
-        return Colors.orange;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1027,6 +1195,7 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _searchController.dispose();
     _horizontalScrollController.dispose();
     for (var controller in _controllers.values) {

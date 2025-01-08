@@ -476,7 +476,6 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
           ),
           const SizedBox(height: 16),
           _buildSidebarItem(count: "2", label: "Draw Requests"),
-          _buildSidebarItem(count: "6", label: "Inspections"),
           const Spacer(),
         ],
       ),

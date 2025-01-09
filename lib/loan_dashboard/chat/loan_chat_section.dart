@@ -17,7 +17,9 @@ class _LoanChatSectionState extends State<LoanChatSection> {
       LoanChatMessage(
         sender: 'Thomas Chappell',
         message: 'Hi Sarah, do you have a moment to discuss the timeline?',
-        timestamp: DateTime.now().subtract(const Duration(days: 2)),
+        timestamp: DateTime.now().subtract(
+          const Duration(days: 2),
+        ),
         role: 'Contractor',
         avatarUrl: 'TC',
       ),

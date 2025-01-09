@@ -95,184 +95,250 @@ class _InvitationScreenState extends State<InvitationScreen> {
   List<LineItem> _lineItems = [];
 
   Future<List<String>> _uploadFiles(String loanId) async {
-  final supabase = Supabase.instance.client;
-  List<String> uploadedFileUrls = [];
+    final supabase = Supabase.instance.client;
+    List<String> uploadedFileUrls = [];
 
-  for (PlatformFile file in _uploadedFiles) {
+    for (PlatformFile file in _uploadedFiles) {
+      try {
+        // Show upload progress
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Uploading ${file.name}...'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+
+        // Generate unique filename under loan ID folder
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileExtension = path.extension(file.name);
+        final fileName = '$loanId/${timestamp}_${file.name}';
+
+        // Upload file to Supabase Storage
+        await supabase.storage.from('project_documents').uploadBinary(
+              fileName,
+              file.bytes!,
+              fileOptions: FileOptions(
+                contentType:
+                    file.bytes != null ? 'application/octet-stream' : null,
+              ),
+            );
+
+        // Get public URL
+        final fileUrl =
+            supabase.storage.from('project_documents').getPublicUrl(fileName);
+
+        uploadedFileUrls.add(fileUrl);
+      } catch (e) {
+        print('Error uploading file: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading ${file.name}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+
+    return uploadedFileUrls;
+  }
+
+  Future<void> testMultipleLineItems() async {
+    final supabase = Supabase.instance.client;
+
     try {
-      // Show upload progress
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Uploading ${file.name}...'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
+      const testLoanId = '24a4e75c-fad3-474d-a9e1-ecb9c60255da';
+      final lineItems = [
+        {
+          'loan_id': testLoanId,
+          'category_name': 'Darth Bane',
+          'budgeted_amount': 10000.00,
+          'draw1_amount': 0.0,
+          'draw2_amount': 0.0,
+          'draw3_amount': 0.0,
+          'inspection_percentage': 0.0,
+        },
+        {
+          'loan_id': testLoanId,
+          'category_name': 'Darth Revan',
+          'budgeted_amount': 15000.00,
+          'draw1_amount': 0.0,
+          'draw2_amount': 0.0,
+          'draw3_amount': 0.0,
+          'inspection_percentage': 0.0,
+        }
+      ];
 
-      // Generate unique filename under loan ID folder
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileExtension = path.extension(file.name);
-      final fileName = '$loanId/${timestamp}_${file.name}';
+      final response = await supabase
+          .from('construction_loan_line_items')
+          .insert(lineItems)
+          .select();
 
-      // Upload file to Supabase Storage
-      await supabase.storage
-          .from('project_documents')
-          .uploadBinary(
-            fileName,
-            file.bytes!,
-            fileOptions: FileOptions(
-              contentType: file.bytes != null ? 'application/octet-stream' : null,
+      print('Success! Inserted line items: $response');
+    } catch (e) {
+      print('Error inserting line items: $e');
+    }
+  }
+  /// TODO: 
+  /// See if the create construction loans happens. 
+  /// TODO: 
+  /// Look for Picard, etc. in the thing. 
+
+  Future<bool> createConstructionLoan() async {
+    print("ATTENTION EVERYONE"); 
+    print("\n"); 
+    print("The 'create construction loan' function was called"); 
+    final supabase = Supabase.instance.client;
+
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF4F46E5),
             ),
           );
+        },
+      );
 
-      // Get public URL
-      final fileUrl = supabase.storage
-          .from('project_documents')
-          .getPublicUrl(fileName);
+      // Get the current user
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('No authenticated user found');
+      }
 
-      uploadedFileUrls.add(fileUrl);
+      // Get contractor and inspector IDs
+      final contractorResponse = await supabase
+          .from('contractors')
+          .select('contractor_id')
+          .eq('email', _gcEmailController.text)
+          .single();
 
-    } catch (e) {
-      print('Error uploading file: $e');
+      final inspectorResponse = await supabase
+          .from('inspectors')
+          .select('inspector_id')
+          .eq('email', _inspectorEmailController.text)
+          .single();
+
+      double totalAmount = calculateTotalAmount(_lineItems);
+
+      // Create the construction loan
+      final loanResponse = await supabase.from('construction_loans').insert({
+        'contractor_id': contractorResponse['contractor_id'],
+        'lender_id': currentUser.id,
+        'inspector_id': inspectorResponse['inspector_id'],
+        'total_amount': totalAmount,
+        'location': _locationController.text,
+        'draw_count': 0,
+        'description': _noteController.text,
+        'project_name': _projectNameController.text,
+        'start_date': _startDate?.toIso8601String(),
+        'end_date': _endDate?.toIso8601String(),
+      }).select();
+
+      final loanId = loanResponse[0]['loan_id'];
+
+      // Upload files
+      final fileUrls = await _uploadFiles(loanId);
+
+      // Insert file records if any files were uploaded
+      if (fileUrls.isNotEmpty) {
+        final fileRecords = fileUrls
+            .map((url) => {
+                  'loan_id': loanId,
+                  'file_url': url,
+                  'file_name': _uploadedFiles[fileUrls.indexOf(url)].name,
+                  'uploaded_by': currentUser.id,
+                  'file_type': path
+                      .extension(_uploadedFiles[fileUrls.indexOf(url)].name)
+                      .substring(1),
+                  'file_status': 'active'
+                })
+            .toList();
+
+        await supabase.from('project_documents').insert(fileRecords);
+      }
+
+      // THIS IS WHERE MY UPDATED CODE GOES
+      // Validate and prepare line items
+      final lineItemsData = _lineItems
+          .map((item) => {
+                'loan_id': loanId,
+                'category_name': item.description.trim(),
+                'budgeted_amount': double.parse(item.amount.toStringAsFixed(2)),
+                'draw1_amount': 0.0,
+                'draw2_amount': 0.0,
+                'draw3_amount': 0.0,
+                'inspection_percentage': 0.0,
+              })
+          .toList();
+
+      // Validate line items before insertion
+      if (lineItemsData.any((item) => item['category_name'].isEmpty)) {
+        throw Exception('All line items must have a description');
+      }
+
+      if (lineItemsData
+          .any((item) => (item['budgeted_amount'] as double) <= 0)) {
+        throw Exception('All line items must have a positive amount');
+      }
+
+      try {
+        // Insert all line items in a single transaction
+        await supabase
+            .from('construction_loan_line_items')
+            .insert(lineItemsData);
+      } catch (e) {
+        print('Error inserting line items: $e');
+        throw Exception('Failed to create line items: ${e.toString()}');
+      }
+
+      // Remove loading indicator
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+
+      return true;
+    } catch (error) {
+      print('Error creating project: $error');
+
+      // Remove loading indicator if still showing
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+
+      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error uploading ${file.name}'),
+          content: Text('Error: ${error.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
+      return false;
     }
   }
 
-  return uploadedFileUrls;
-}
-
-// Update the createConstructionLoan function
-Future<bool> createConstructionLoan() async {
-  final supabase = Supabase.instance.client;
-  
-  try {
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return const Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFF4F46E5),
-          ),
-        );
-      },
-    );
-
-    // Get the current user
-    final currentUser = supabase.auth.currentUser;
-    if (currentUser == null) {
-      throw Exception('No authenticated user found');
-    }
-
-    // Get contractor and inspector IDs
-    final contractorResponse = await supabase
-        .from('contractors')
-        .select('contractor_id')
-        .eq('email', _gcEmailController.text)
-        .single();
-
-    final inspectorResponse = await supabase
-        .from('inspectors')
-        .select('inspector_id')
-        .eq('email', _inspectorEmailController.text)
-        .single();
-
-    double totalAmount = calculateTotalAmount(_lineItems);
-
-    // Create the construction loan
-    final loanResponse = await supabase.from('construction_loans').insert({
-      'contractor_id': contractorResponse['contractor_id'],
-      'lender_id': currentUser.id,
-      'inspector_id': inspectorResponse['inspector_id'],
-      'total_amount': totalAmount,
-      'location': _locationController.text,
-      'draw_count': 0,
-      'description': _noteController.text,
-      'project_name': _projectNameController.text,
-      'start_date': _startDate?.toIso8601String(),
-      'end_date': _endDate?.toIso8601String(),
-    }).select();
-
-    final loanId = loanResponse[0]['loan_id'];
-
-    // Upload files
-    final fileUrls = await _uploadFiles(loanId);
-
-    // Insert file records if any files were uploaded
-    if (fileUrls.isNotEmpty) {
-      final fileRecords = fileUrls.map((url) => {
-        'loan_id': loanId,
-        'file_url': url,
-        'file_name': _uploadedFiles[fileUrls.indexOf(url)].name,
-        'uploaded_by': currentUser.id,
-        'file_type': path.extension(_uploadedFiles[fileUrls.indexOf(url)].name).substring(1),
-        'file_status': 'active'
-      }).toList();
-
-      await supabase.from('project_documents').insert(fileRecords);
-    }
-
-    // Insert line items
-    final lineItemsData = _lineItems.map((item) => {
-      'loan_id': loanId,
-      'category_name': item.description,
-      'budgeted_amount': item.amount,
-      'draw1_amount': 0.0,
-      'draw2_amount': 0.0,
-      'draw3_amount': 0.0,
-      'inspection_percentage': 0.0,
-    }).toList();
-
-    await supabase.from('construction_loan_line_items').insert(lineItemsData);
-
-    // Remove loading indicator
-    if (context.mounted) {
-      Navigator.pop(context);
-    }
-
-    return true;
-
-  } catch (error) {
-    print('Error creating project: $error');
-    
-    // Remove loading indicator if still showing
-    if (context.mounted) {
-      Navigator.pop(context);
-    }
-
-    // Show error message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: ${error.toString()}'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return false;
-  }
-}
 // Add this function to retrieve files for a loan
-Future<List<Map<String, dynamic>>> getProjectFiles(String loanId) async {
-  final supabase = Supabase.instance.client;
-  
-  try {
-    final response = await supabase
-        .from('project_documents')
-        .select('*')
-        .eq('loan_id', loanId)
-        .eq('file_status', 'active')
-        .order('uploaded_at', ascending: false);
+  Future<List<Map<String, dynamic>>> getProjectFiles(String loanId) async {
+    final supabase = Supabase.instance.client;
 
-    return List<Map<String, dynamic>>.from(response);
-  } catch (e) {
-    print('Error fetching project files: $e');
-    return [];
+    try {
+      final response = await supabase
+          .from('project_documents')
+          .select('*')
+          .eq('loan_id', loanId)
+          .eq('file_status', 'active')
+          .order('uploaded_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error fetching project files: $e');
+      return [];
+    }
   }
-}
+
   Future<void> _pickFiles() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -469,93 +535,96 @@ Future<List<Map<String, dynamic>>> getProjectFiles(String loanId) async {
       ),
     );
   }
+
   // Add this widget to the left sidebar, below Draw Requests
-Widget _buildSidebarUploadSection() {
-  return Container(
-    margin: const EdgeInsets.only(top: 16),
-    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: const Color(0xFFE5E7EB)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Icon(
-              Icons.upload_file,
-              size: 20,
-              color: Color(0xFF6B7280),
-            ),
-            SizedBox(width: 8),
-            Text(
-              'Upload Files',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF111827),
+  Widget _buildSidebarUploadSection() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.upload_file,
+                size: 20,
+                color: Color(0xFF6B7280),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        DottedBorder(
-          borderType: BorderType.RRect,
-          radius: const Radius.circular(8),
-          color: const Color(0xFF4F46E5),
-          dashPattern: const [6, 3],
-          strokeWidth: 1,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            child: Column(
-              children: [
-                const Icon(
-                  Icons.cloud_upload_outlined,
-                  size: 24,
-                  color: Color(0xFF4F46E5),
+              SizedBox(width: 8),
+              Text(
+                'Upload Files',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF111827),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Drag & drop or',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          DottedBorder(
+            borderType: BorderType.RRect,
+            radius: const Radius.circular(8),
+            color: const Color(0xFF4F46E5),
+            dashPattern: const [6, 3],
+            strokeWidth: 1,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.cloud_upload_outlined,
+                    size: 24,
+                    color: Color(0xFF4F46E5),
                   ),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final result = await FilePicker.platform.pickFiles(
-                      allowMultiple: true,
-                      type: FileType.custom,
-                      allowedExtensions: ['pdf', 'jpg', 'png', 'doc', 'docx'],
-                    );
-                    if (result != null) {
-                      // Handle file upload
-                    }
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    minimumSize: Size.zero,
-                  ),
-                  child: const Text(
-                    'browse files',
+                  const SizedBox(height: 8),
+                  Text(
+                    'Drag & drop or',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF4F46E5),
+                      color: Colors.grey[600],
                     ),
                   ),
-                ),
-              ],
+                  TextButton(
+                    onPressed: () async {
+                      final result = await FilePicker.platform.pickFiles(
+                        allowMultiple: true,
+                        type: FileType.custom,
+                        allowedExtensions: ['pdf', 'jpg', 'png', 'doc', 'docx'],
+                      );
+                      if (result != null) {
+                        // Handle file upload
+                      }
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                    ),
+                    child: const Text(
+                      'browse files',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF4F46E5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
+
   Widget _buildLineItemsTable() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1067,99 +1136,99 @@ Widget _buildSidebarUploadSection() {
         );
 
       case 1:
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildGradientText('Invite General Contractor'),
-        const SizedBox(height: 8),
-        Text(
-          'Add your general contractor to the project.',
-          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-        ),
-        const SizedBox(height: 32),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildGradientText('Invite General Contractor'),
+            const SizedBox(height: 8),
+            Text(
+              'Add your general contractor to the project.',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: _buildFormField(
-            controller: _gcEmailController,
-            label: 'Email Address',
-            hint: 'Enter email address',
-            prefixIcon: Icons.email,
-          ),
-        ),
-        const SizedBox(height: 24),
-        const Text(
-          'Required Documents',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF111827),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Upload any relevant project documents for your contractor.',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildFileUpload(),
-      ],
-    );
+              child: _buildFormField(
+                controller: _gcEmailController,
+                label: 'Email Address',
+                hint: 'Enter email address',
+                prefixIcon: Icons.email,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Required Documents',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF111827),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Upload any relevant project documents for your contractor.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildFileUpload(),
+          ],
+        );
 
-  // Modify the inspector section in case 2
-  case 2:
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildGradientText('Invite Inspector'),
-        const SizedBox(height: 8),
-        Text(
-          'Add your inspector to the project.',
-          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-        ),
-        const SizedBox(height: 32),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+      // Modify the inspector section in case 2
+      case 2:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildGradientText('Invite Inspector'),
+            const SizedBox(height: 8),
+            Text(
+              'Add your inspector to the project.',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: _buildFormField(
-            controller: _inspectorEmailController,
-            label: 'Email Address',
-            hint: 'Enter email address',
-            prefixIcon: Icons.email,
-          ),
-        ),
-        const SizedBox(height: 24),
-        _buildFormField(
-          controller: _noteController,
-          label: 'Additional Notes',
-          hint: 'Add any notes for the inspector...',
-          isMultiline: true,
-        ),
-      ],
-    );
+              child: _buildFormField(
+                controller: _inspectorEmailController,
+                label: 'Email Address',
+                hint: 'Enter email address',
+                prefixIcon: Icons.email,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildFormField(
+              controller: _noteController,
+              label: 'Additional Notes',
+              hint: 'Add any notes for the inspector...',
+              isMultiline: true,
+            ),
+          ],
+        );
       case 3:
         return _buildReviewStep();
 
@@ -1296,6 +1365,10 @@ Widget _buildSidebarUploadSection() {
       ),
       body: Column(
         children: [
+          ElevatedButton(
+            onPressed: testMultipleLineItems,
+            child: Text('Test Multiple Insert'),
+          ),
           _buildStepIndicator(),
           Expanded(
             child: SingleChildScrollView(
@@ -1333,110 +1406,119 @@ Widget _buildSidebarUploadSection() {
                 else
                   const SizedBox.shrink(),
                 ElevatedButton(
-  onPressed: () {
-    if (_currentStep < _steps.length - 1) {
-      setState(() {
-        _currentStep++;
-      });
-    } else {
-      // Check for empty required fields
-      List<String> missingFields = [];
-      
-      if (_projectNameController.text.trim().isEmpty) missingFields.add('Project name');
-      if (_locationController.text.trim().isEmpty) missingFields.add('Location');
-      if (_gcEmailController.text.trim().isEmpty) missingFields.add('Contractor email');
-      if (_inspectorEmailController.text.trim().isEmpty) missingFields.add('Inspector email');
-      if (_lineItems.isEmpty) missingFields.add('Line items');
+                  onPressed: () {
+                    if (_currentStep < _steps.length - 1) {
+                      setState(() {
+                        _currentStep++;
+                      });
+                    } else {
+                      // Check for empty required fields
+                      List<String> missingFields = [];
 
-      if (missingFields.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.info_outline,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
+                      if (_projectNameController.text.trim().isEmpty)
+                        missingFields.add('Project name');
+                      if (_locationController.text.trim().isEmpty)
+                        missingFields.add('Location');
+                      if (_gcEmailController.text.trim().isEmpty)
+                        missingFields.add('Contractor email');
+                      if (_inspectorEmailController.text.trim().isEmpty)
+                        missingFields.add('Inspector email');
+                      if (_lineItems.isEmpty) missingFields.add('Line items');
+
+                      if (missingFields.isNotEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Missing: ${missingFields.join(", ")}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: const Color(0xFF6366F1),
+                            duration: const Duration(seconds: 4),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            margin: const EdgeInsets.all(16),
+                            action: SnackBarAction(
+                              label: 'OK',
+                              textColor: Colors.white,
+                              onPressed: () {},
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // If validation passes, create the project
+                      createConstructionLoan();
+
+                      /// TODO:
+                      /// Change the message to show the state of the error.
+
+                      // Show success message
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle_outline,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'Project created successfully',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: const Color(0xFF4F46E5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          margin: const EdgeInsets.all(16),
+                        ),
+                      );
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F46E5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   child: Text(
-                    'Missing: ${missingFields.join(", ")}',
+                    _currentStep < _steps.length - 1
+                        ? 'Continue'
+                        : 'Create Project',
                     style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-              ],
-            ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFF6366F1),
-            duration: const Duration(seconds: 4),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            margin: const EdgeInsets.all(16),
-            action: SnackBarAction(
-              label: 'OK',
-              textColor: Colors.white,
-              onPressed: () {},
-            ),
-          ),
-        );
-        return;
-      }
-
-      // If validation passes, create the project
-      createConstructionLoan();
-      
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(
-                Icons.check_circle_outline,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Project created successfully',
-                style: TextStyle(fontSize: 14),
-              ),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFF4F46E5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-      Navigator.pop(context);
-    }
-  },
-  style: ElevatedButton.styleFrom(
-    backgroundColor: const Color(0xFF4F46E5),
-    foregroundColor: Colors.white,
-    padding: const EdgeInsets.symmetric(
-      horizontal: 32,
-      vertical: 16,
-    ),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-  ),
-  child: Text(
-    _currentStep < _steps.length - 1 ? 'Continue' : 'Create Project',
-    style: const TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-    ),
-  ),
-),
               ],
             ),
           ),

@@ -178,15 +178,11 @@ class _InvitationScreenState extends State<InvitationScreen> {
       print('Error inserting line items: $e');
     }
   }
-  /// TODO: 
-  /// See if the create construction loans happens. 
-  /// TODO: 
-  /// Look for Picard, etc. in the thing. 
 
   Future<bool> createConstructionLoan() async {
-    print("ATTENTION EVERYONE"); 
-    print("\n"); 
-    print("The 'create construction loan' function was called"); 
+    print("ATTENTION EVERYONE");
+    print("\n");
+    print("The 'create construction loan' function was called");
     final supabase = Supabase.instance.client;
 
     try {
@@ -1411,18 +1407,24 @@ class _InvitationScreenState extends State<InvitationScreen> {
                       setState(() {
                         _currentStep++;
                       });
+
+                      /// THIS IS THE SUBMISSION STAGE
                     } else {
                       // Check for empty required fields
                       List<String> missingFields = [];
 
-                      if (_projectNameController.text.trim().isEmpty)
+                      if (_projectNameController.text.trim().isEmpty) {
                         missingFields.add('Project name');
-                      if (_locationController.text.trim().isEmpty)
+                      }
+                      if (_locationController.text.trim().isEmpty) {
                         missingFields.add('Location');
-                      if (_gcEmailController.text.trim().isEmpty)
+                      }
+                      if (_gcEmailController.text.trim().isEmpty) {
                         missingFields.add('Contractor email');
-                      if (_inspectorEmailController.text.trim().isEmpty)
+                      }
+                      if (_inspectorEmailController.text.trim().isEmpty) {
                         missingFields.add('Inspector email');
+                      }
                       if (_lineItems.isEmpty) missingFields.add('Line items');
 
                       if (missingFields.isNotEmpty) {
@@ -1465,37 +1467,102 @@ class _InvitationScreenState extends State<InvitationScreen> {
                       }
 
                       // If validation passes, create the project
-                      createConstructionLoan();
+                      /// EDIT FROM CLAUDE HERE:
+// Replace the immediate success message with proper error handling
+                      createConstructionLoan().then((success) {
+                        if (success) {
+                          // Only show success message if creation actually succeeded
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle_outline,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'Project created successfully',
+                                    style: TextStyle(fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: const Color(0xFF4F46E5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              margin: const EdgeInsets.all(16),
+                            ),
+                          );
+                          Navigator.pop(context);
+                        }
+                      }).catchError((error) {
+                        // Show error message if creation failed
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Error creating project: ${error.toString()}',
+                                    style: const TextStyle(fontSize: 14),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            margin: const EdgeInsets.all(16),
+                          ),
+                        );
+                      });
+                      /// END EDIT FROM CLAUDE HERE
 
                       /// TODO:
-                      /// Change the message to show the state of the error.
+                      /// Currently, this snackbar only ever shows "project created successfully"
+                      /// What it SHOULD do is show a relevant error message. These are probably the
+                      /// same error messages that show up in the logs.
 
                       // Show success message
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(
-                                Icons.check_circle_outline,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Project created successfully',
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ],
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: const Color(0xFF4F46E5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          margin: const EdgeInsets.all(16),
-                        ),
-                      );
-                      Navigator.pop(context);
+                      // ScaffoldMessenger.of(context).showSnackBar(
+                      //   SnackBar(
+                      //     content: Row(
+                      //       children: [
+                      //         const Icon(
+                      //           Icons.check_circle_outline,
+                      //           color: Colors.white,
+                      //           size: 20,
+                      //         ),
+                      //         const SizedBox(width: 12),
+                      //         const Text(
+                      //           'Project created successfully',
+                      //           style: TextStyle(fontSize: 14),
+                      //         ),
+                      //       ],
+                      //     ),
+                      //     behavior: SnackBarBehavior.floating,
+                      //     backgroundColor: const Color(0xFF4F46E5),
+                      //     shape: RoundedRectangleBorder(
+                      //       borderRadius: BorderRadius.circular(8),
+                      //     ),
+                      //     margin: const EdgeInsets.all(16),
+                      //   ),
+                      // );
+                      // Navigator.pop(context);
                     }
                   },
                   style: ElevatedButton.styleFrom(

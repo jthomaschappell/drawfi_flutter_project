@@ -9,6 +9,9 @@ import 'package:printing/printing.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
+import 'dart:html' as html;
+import 'package:collection/collection.dart';
+
 
 final supabase = Supabase.instance.client;
 class LoanLineItem {
@@ -42,6 +45,20 @@ class LoanLineItem {
     return (draw1 ?? 0) + (draw2 ?? 0) + (draw3 ?? 0) + (draw4 ?? 0);
   }
 }
+// Add after imports, before LoanLineItem class
+class DocumentRequirement {
+  final String category;
+  final bool isRequired;
+  final IconData icon;
+  final Color color;
+
+  DocumentRequirement({
+    required this.category,
+    this.isRequired = false,
+    required this.icon,
+    required this.color,
+  });
+}
 
 class LoanDashboardScreen extends StatefulWidget {
   final String loanId;
@@ -55,6 +72,28 @@ class LoanDashboardScreen extends StatefulWidget {
 class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
+  // Add near the top of _LoanDashboardScreenState, where other variables are defined
+List<DocumentRequirement> documentRequirements = [
+  
+  DocumentRequirement(
+    category: 'Construction Photos',
+    isRequired: false,
+    icon: Icons.photo_library,
+    color: Color(0xFF6500E9),
+  ),
+  DocumentRequirement(
+    category: 'Draw Documentation',
+    isRequired: false,
+    icon: Icons.description,
+    color: Color(0xFF6500E9),
+  ),
+  DocumentRequirement(
+    category: 'Other',
+    isRequired: false,
+    icon: Icons.folder,
+    color: Color(0xFF6500E9),
+  ),
+];
   String _searchQuery = '';
   String companyName = "Loading...";
   String contractorName = "Loading...";
@@ -343,6 +382,224 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
       filename: '${companyName.replaceAll(' ', '_')}_loan_details.pdf',
     );
   }
+  // Add this widget to show the file list
+Widget _buildFileViewer() {
+  return Container(
+    width: 280,
+    margin: const EdgeInsets.only(top: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: Colors.grey[300]!),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Inside the Project Files header in _buildSidebar()
+Padding(
+  padding: const EdgeInsets.all(16),
+  child: Row(
+    children: [
+      const Icon(
+        Icons.folder_outlined,
+        size: 20,
+        color: Color(0xFF6B7280),
+      ),
+      const SizedBox(width: 8),
+      const Text(
+        'Project Files',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF111827),
+        ),
+      ),
+      const Spacer(),
+      IconButton(
+        icon: const Icon(Icons.settings_outlined, size: 20),
+        color: const Color(0xFF6B7280),
+        onPressed: _showRequirementsDialog,
+      ),
+    ],
+  ),
+),
+        StreamBuilder<List<Map<String, dynamic>>>(
+  stream: supabase
+      .from('project_documents')
+      .stream(primaryKey: ['id'])
+      .eq('loan_id', widget.loanId)
+      .order('uploaded_at', ascending: false),  // Changed from created_at to uploaded_at
+  builder: (context, snapshot) {
+    if (snapshot.hasError) {
+      return Center(child: Text('Error: ${snapshot.error}'));
+    }
+
+    if (!snapshot.hasData) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final files = snapshot.data!;
+    if (files.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text('No files uploaded yet'),
+      );
+    }
+
+    return Column(
+      children: files.map((file) => _buildFileListItem(file)).toList(),
+    );
+  },
+)
+      ],
+    ),
+  );
+}
+
+Widget _buildFileFilterButton() {
+  return PopupMenuButton<String>(
+    icon: const Icon(Icons.filter_list, size: 20),
+    onSelected: (String filter) {
+      // Implement filtering logic
+    },
+    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+      const PopupMenuItem<String>(
+        value: 'all',
+        child: Text('All Files'),
+      ),
+      const PopupMenuItem<String>(
+        value: 'pdf',
+        child: Text('PDF Files'),
+      ),
+      const PopupMenuItem<String>(
+        value: 'image',
+        child: Text('Images'),
+      ),
+      const PopupMenuItem<String>(
+        value: 'document',
+        child: Text('Documents'),
+      ),
+    ],
+  );
+}
+
+Widget _buildFileListItem(Map<String, dynamic> file) {
+  final fileType = file['file_type'] as String;
+  final fileName = file['file_name'] as String;
+  final fileUrl = file['file_url'] as String;
+  final uploadDate = DateTime.parse(file['uploaded_at']); 
+
+  IconData getFileIcon() {
+    switch (fileType.toLowerCase()) {
+      case 'pdf':
+        return Icons.picture_as_pdf;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return Icons.image;
+      case 'doc':
+      case 'docx':
+        return Icons.description;
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
+
+  return InkWell(
+    onTap: () => _downloadFile(fileUrl, fileName),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            getFileIcon(),
+            size: 24,
+            color: Colors.grey[600],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fileName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Uploaded ${_formatDate(uploadDate)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            iconSize: 20,
+            color: Colors.grey[600],
+            onPressed: () => _downloadFile(fileUrl, fileName),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+String _formatDate(DateTime date) {
+  final now = DateTime.now();
+  final difference = now.difference(date);
+
+  if (difference.inDays == 0) {
+    if (difference.inHours == 0) {
+      return '${difference.inMinutes}m ago';
+    }
+    return '${difference.inHours}h ago';
+  } else if (difference.inDays < 7) {
+    return '${difference.inDays}d ago';
+  } else {
+    return '${date.month}/${date.day}/${date.year}';
+  }
+}
+
+Future<void> _downloadFile(String fileUrl, String fileName) async {
+  try {
+    final response = await supabase.storage
+        .from('project_documents')
+        .download(fileUrl.split('/').last);
+
+    // Use a plugin like path_provider to get the local path
+    // and save the file there, then open it with a relevant app
+    // This implementation may vary based on platform (web/mobile)
+    
+    // For web, you can create a download link
+    final blob = html.Blob([response]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement()
+      ..href = url
+      ..style.display = 'none'
+      ..download = fileName;
+    html.document.body!.children.add(anchor);
+    anchor.click();
+    html.document.body!.children.remove(anchor);
+    html.Url.revokeObjectUrl(url);
+  } catch (e) {
+    print('Error downloading file: $e');
+    // Show error message to user
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -480,7 +737,42 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
         const SizedBox(height: 16),
         _buildSidebarItem(count: "2", label: "Draw Requests"),
         const SizedBox(height: 16),
-        _buildUploadSection(), // Add this line
+        _buildUploadSection(),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Colors.grey[300]!),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.folder_outlined,
+                      size: 20,
+                      color: Color(0xFF6B7280),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Project Files',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _buildFileList(),
+            ],
+          ),
+        ),
         const Spacer(),
       ],
     ),
@@ -488,12 +780,9 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
 }
 
 // Add this method to handle file uploads
-Future<void> _handleFileUpload(List<PlatformFile> files) async {
-  final supabase = Supabase.instance.client;
-
+Future<void> _handleFileUpload(List<PlatformFile> files, String category) async {
   for (final file in files) {
     try {
-      // Show upload progress
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Uploading ${file.name}...'),
@@ -501,12 +790,10 @@ Future<void> _handleFileUpload(List<PlatformFile> files) async {
         ),
       );
 
-      // Generate unique filename under loan ID folder
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileExtension = path.extension(file.name);
       final fileName = '${widget.loanId}/${timestamp}_${file.name}';
 
-      // Upload file to Supabase Storage
       if (file.bytes != null) {
         await supabase.storage
             .from('project_documents')
@@ -518,19 +805,18 @@ Future<void> _handleFileUpload(List<PlatformFile> files) async {
               ),
             );
 
-        // Get public URL
         final fileUrl = supabase.storage
             .from('project_documents')
             .getPublicUrl(fileName);
 
-        // Insert file record into database
         await supabase.from('project_documents').insert({
           'loan_id': widget.loanId,
           'file_url': fileUrl,
           'file_name': file.name,
           'uploaded_by': supabase.auth.currentUser!.id,
           'file_type': fileExtension.replaceAll('.', ''),
-          'file_status': 'active'
+          'file_status': 'active',
+          'file_category': category  // Add category here
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -551,8 +837,265 @@ Future<void> _handleFileUpload(List<PlatformFile> files) async {
     }
   }
 }
+final List<String> fileCategories = [
+  'Draw Documentation',
+  'Inspection Reports',
+  'Permits & Licenses',
+  'Contracts',
+  'Insurance Documents',
+  'Construction Photos',
+  'Invoices',
+  'W9 Forms',  // Added W9 category
+  'Other'
+];
 
+// Special handling for W9 files
+bool isW9FilePresent(List<Map<String, dynamic>> files) {
+  return files.any((file) => 
+    file['file_category'] == 'W9 Forms' && 
+    file['file_status'] == 'active'
+  );
+}
+Widget _buildW9Warning() {
+  return Container(
+    margin: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.orange[50],
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.orange),
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.warning_amber_rounded, color: Colors.orange[700]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'W9 form required',
+            style: TextStyle(
+              color: Colors.orange[900],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+Widget _buildFileList() {
+  return StreamBuilder<List<Map<String, dynamic>>>(
+    stream: supabase
+        .from('project_documents')
+        .stream(primaryKey: ['id'])
+        .eq('loan_id', widget.loanId)
+        .order('uploaded_at', ascending: false),
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      }
+
+      if (!snapshot.hasData) {
+        return const Center(child: CircularProgressIndicator(
+          color: Color(0xFF6500E9),
+        ));
+      }
+
+      final files = snapshot.data!;
+      final filesByCategory = files.groupListsBy((file) => file['file_category'] ?? 'Other');
+
+      if (files.isEmpty) {
+        return const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('No files uploaded yet'),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Required documents warnings
+          ...documentRequirements.where((req) => req.isRequired).map((req) {
+            final hasFiles = filesByCategory.containsKey(req.category);
+            if (!hasFiles) {
+              return Container(
+                // New (correct) code:
+margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF4E5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, size: 16, color: Colors.orange[700]),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${req.category} required', 
+                      style: TextStyle(
+                        color: Colors.orange[700],
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+
+          // File categories
+          ...filesByCategory.entries.map((entry) {
+            final requirement = documentRequirements
+                .firstWhere(
+                  (req) => req.category == entry.key,
+                  orElse: () => DocumentRequirement(
+                    category: 'Other',
+                    icon: Icons.folder,
+                    color: const Color(0xFF6500E9),
+                  ),
+                );
+
+            return ExpansionTile(
+              leading: Icon(requirement.icon, color: requirement.color),
+              title: Row(
+                children: [
+                  Text(
+                    entry.key,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6500E9).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${entry.value.length}',
+                      style: const TextStyle(
+                        color: Color(0xFF6500E9),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  if (requirement.isRequired)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: Icon(
+                        Icons.check_circle,
+                        size: 16,
+                        color: Colors.green[600],
+                      ),
+                    ),
+                ],
+              ),
+              children: entry.value.map((file) => _buildFileListItem(file)).toList(),
+            );
+          }),
+        ],
+      );
+    },
+  );
+}
+
+IconData _getCategoryIcon(String category) {
+  switch (category) {
+    case 'Draw Documentation':
+      return Icons.description;
+    case 'Inspection Reports':
+      return Icons.assignment;
+    case 'Permits & Licenses':
+      return Icons.card_membership;
+    case 'Contracts':
+      return Icons.handshake;
+    case 'Insurance Documents':
+      return Icons.security;
+    case 'Construction Photos':
+      return Icons.photo_library;
+    case 'Invoices':
+      return Icons.receipt;
+    case 'W9 Forms':
+      return Icons.article;
+    default:
+      return Icons.folder;
+  }
+}
+
+Color _getCategoryColor(String category) {
+  switch (category) {
+    case 'Draw Documentation':
+      return Colors.blue;
+    case 'Inspection Reports':
+      return Colors.green;
+    case 'Permits & Licenses':
+      return Colors.purple;
+    case 'Contracts':
+      return Colors.indigo;
+    case 'Insurance Documents':
+      return Colors.teal;
+    case 'Construction Photos':
+      return Colors.amber;
+    case 'Invoices':
+      return Colors.deepOrange;
+    case 'W9 Forms':
+      return Colors.red;
+    default:
+      return Colors.grey;
+  }
+}
+
+void _showRequirementsDialog() {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Document Requirements'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView(
+          shrinkWrap: true,
+          children: documentRequirements.map((req) =>
+            CheckboxListTile(
+              title: Row(
+                children: [
+                  Icon(req.icon, size: 20, color: req.color),
+                  const SizedBox(width: 8),
+                  Text(req.category),
+                ],
+              ),
+              value: req.isRequired,
+              activeColor: const Color(0xFF6500E9),
+              onChanged: (value) {
+                setState(() {
+                  final index = documentRequirements.indexOf(req);
+                  documentRequirements[index] = DocumentRequirement(
+                    category: req.category,
+                    isRequired: value ?? false,
+                    icon: req.icon,
+                    color: req.color,
+                  );
+                });
+                Navigator.pop(context);
+              },
+            ),
+          ).toList(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          child: const Text('Close'),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
+    ),
+  );
+}
 Widget _buildUploadSection() {
+  String selectedCategory = documentRequirements[0].category; // Default to first category
+  
   return Container(
     margin: const EdgeInsets.symmetric(horizontal: 16),
     padding: const EdgeInsets.all(12),
@@ -582,7 +1125,41 @@ Widget _buildUploadSection() {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
+        // Add category dropdown
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: selectedCategory,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down),
+              items: documentRequirements.map((DocumentRequirement req) {
+                return DropdownMenuItem(
+                  value: req.category,
+                  child: Row(
+                    children: [
+                      Icon(req.icon, size: 18, color: req.color),
+                      const SizedBox(width: 8),
+                      Text(req.category),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  selectedCategory = newValue;
+                }
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Existing DottedBorder section
         DottedBorder(
           borderType: BorderType.RRect,
           radius: const Radius.circular(8),
@@ -616,7 +1193,7 @@ Widget _buildUploadSection() {
                       withData: true,
                     );
                     if (result != null) {
-                      await _handleFileUpload(result.files);
+                      await _handleFileUpload(result.files, selectedCategory);
                     }
                   },
                   style: TextButton.styleFrom(
@@ -639,7 +1216,7 @@ Widget _buildUploadSection() {
     ),
   );
 }
-
+  
   Widget _buildProgressCircle({
     required double percentage,
     required String label,

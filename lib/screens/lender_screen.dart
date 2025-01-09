@@ -854,12 +854,12 @@ void _handleRestore(int index) {
                   icon: Icons.grid_view_outlined,
                   isSelected: _selectedNavIndex == 2,
                   onTap: () => setState(() {
-                    _selectedNavIndex = 2;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const ProjectsScreen()),
-                    );
+                    // _selectedNavIndex = 2;
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //       builder: (context) => const ProjectsScreen()),
+                    // );
                   }),
                   label: 'Projects',
                 ),

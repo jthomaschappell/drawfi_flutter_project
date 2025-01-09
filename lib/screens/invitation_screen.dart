@@ -1468,7 +1468,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
 
                       // If validation passes, create the project
                       /// EDIT FROM CLAUDE HERE:
-// Replace the immediate success message with proper error handling
+                      // Replace the immediate success message with proper error handling
                       createConstructionLoan().then((success) {
                         if (success) {
                           // Only show success message if creation actually succeeded
@@ -1484,7 +1484,10 @@ class _InvitationScreenState extends State<InvitationScreen> {
                                   const SizedBox(width: 12),
                                   const Text(
                                     'Project created successfully',
-                                    style: TextStyle(fontSize: 14),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1530,6 +1533,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
                           ),
                         );
                       });
+
                       /// END EDIT FROM CLAUDE HERE
 
                       /// TODO:

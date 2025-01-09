@@ -6,6 +6,9 @@ import 'package:tester/loan_dashboard/models/loan_line_item.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:dotted_border/dotted_border.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
 
 final supabase = Supabase.instance.client;
 class LoanLineItem {
@@ -430,57 +433,212 @@ class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
     }
   }
   Widget _buildSidebar() {
-    return Container(
-      width: 280,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: _buildSearchBar(),
+  return Container(
+    width: 280,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: Colors.grey[300]!),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: _buildSearchBar(),
+        ),
+        Text(
+          companyName,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
           ),
-          Text(
-            companyName,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
+        ),
+        const Text(
+          "Construction Loan",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
           ),
-          const Text(
-            "Construction Loan",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
-            ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          contractorName,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.black,
           ),
-          const SizedBox(height: 8),
-          Text(
-            contractorName,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black,
-            ),
+        ),
+        Text(
+          contractorPhone,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
           ),
-          Text(
-            contractorPhone,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
+        ),
+        const SizedBox(height: 16),
+        _buildSidebarItem(count: "2", label: "Draw Requests"),
+        const SizedBox(height: 16),
+        _buildUploadSection(), // Add this line
+        const Spacer(),
+      ],
+    ),
+  );
+}
+
+// Add this method to handle file uploads
+Future<void> _handleFileUpload(List<PlatformFile> files) async {
+  final supabase = Supabase.instance.client;
+
+  for (final file in files) {
+    try {
+      // Show upload progress
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Uploading ${file.name}...'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+
+      // Generate unique filename under loan ID folder
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileExtension = path.extension(file.name);
+      final fileName = '${widget.loanId}/${timestamp}_${file.name}';
+
+      // Upload file to Supabase Storage
+      if (file.bytes != null) {
+        await supabase.storage
+            .from('project_documents')
+            .uploadBinary(
+              fileName,
+              file.bytes!,
+              fileOptions: FileOptions(
+                contentType: file.bytes != null ? 'application/octet-stream' : null,
+              ),
+            );
+
+        // Get public URL
+        final fileUrl = supabase.storage
+            .from('project_documents')
+            .getPublicUrl(fileName);
+
+        // Insert file record into database
+        await supabase.from('project_documents').insert({
+          'loan_id': widget.loanId,
+          'file_url': fileUrl,
+          'file_name': file.name,
+          'uploaded_by': supabase.auth.currentUser!.id,
+          'file_type': fileExtension.replaceAll('.', ''),
+          'file_status': 'active'
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${file.name} uploaded successfully'),
+            backgroundColor: Colors.green,
           ),
-          const SizedBox(height: 16),
-          _buildSidebarItem(count: "2", label: "Draw Requests"),
-          const Spacer(),
-        ],
-      ),
-    );
+        );
+      }
+    } catch (e) {
+      print('Error uploading file: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading ${file.name}: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
+}
+
+Widget _buildUploadSection() {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 16),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(
+              Icons.upload_file,
+              size: 20,
+              color: Color(0xFF6B7280),
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Upload Files',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF111827),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        DottedBorder(
+          borderType: BorderType.RRect,
+          radius: const Radius.circular(8),
+          color: const Color(0xFF4F46E5),
+          dashPattern: const [6, 3],
+          strokeWidth: 1,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.cloud_upload_outlined,
+                  size: 24,
+                  color: Color(0xFF4F46E5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Drag & drop or',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final result = await FilePicker.platform.pickFiles(
+                      allowMultiple: true,
+                      type: FileType.custom,
+                      allowedExtensions: ['pdf', 'jpg', 'png', 'doc', 'docx'],
+                      withData: true,
+                    );
+                    if (result != null) {
+                      await _handleFileUpload(result.files);
+                    }
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                  ),
+                  child: const Text(
+                    'browse files',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF4F46E5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildProgressCircle({
     required double percentage,

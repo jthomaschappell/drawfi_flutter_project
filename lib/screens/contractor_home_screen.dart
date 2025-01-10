@@ -61,24 +61,6 @@ class _ContractorScreenState extends State<ContractorScreen> {
     _loadLoans();
   }
 
-  // Future<void> _loadLoans() async {
-  //   try {
-  //     final response = await _supabase.from('construction_loans').select();
-
-  //     setState(() {
-  //       _loans = List<Map<String, dynamic>>.from(response ?? []);
-  //       _isLoading = false;
-  //     });
-  //   } catch (e) {
-  //     print('Error loading loans: $e');
-  //     setState(() => _isLoading = false);
-  //   }
-  // }
-  /// TODO:
-  /// I expect that when the page loads it will grab the customer ID:
-  /// Sun:
-  /// sun@gmail.com
-  /// 36432c33-0aec-4d5d-8b52-dc0c38281e61
   Future<void> _loadLoans() async {
     try {
       final contractorId = widget.userProfile['user_id'];
@@ -164,7 +146,23 @@ class _ContractorScreenState extends State<ContractorScreen> {
     }
   }
 
-  void _navigateToContractorLoanScreen(BuildContext context, String loanId) {
+  // When navigating to the DrawRequestScreen, pass the actual loan ID
+  void _navigateToDrawRequest(BuildContext context, String actualLoanId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => ContractorLoanScreen(loanId: actualLoanId)),
+    );
+  }
+
+  // Update _navigateToProjectDetails method
+  void _navigateToProjectDetails(BuildContext context, String loanId) {
+    /// DONE: 
+    /// Press the project card and see if THIS shows up. 
+    print("\n"); 
+    print("HEY Y'ALL"); 
+    print("What is the loan ID passed into navigate to project details?"); 
+    print("Loan ID: $loanId");
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -396,6 +394,17 @@ class _ContractorScreenState extends State<ContractorScreen> {
     );
   }
 
+  void _testNavigationSetup(Map<String, dynamic> loan) {
+    /// DONE:
+    /// Run the app
+    /// See if it comes up with a whole bunch of these.
+    print("");
+    print("Testing navigation setup...");
+    print("Loan ID being passed: ${loan['loan_id']}");
+    print("Full loan object: $loan");
+    print("");
+  }
+
   Widget _buildProjectCard(Map<String, dynamic> loan) {
     final projectName = loan['project_name'] ?? 'Unknown Project';
     final location = loan['location'] ?? 'Unknown Location';
@@ -406,9 +415,13 @@ class _ContractorScreenState extends State<ContractorScreen> {
         .join('')
         .toUpperCase();
 
+    _testNavigationSetup(loan);
+
     return InkWell(
-      onTap: () =>
-          _navigateToContractorLoanScreen(context, loan['id'].toString()),
+      onTap: () => _navigateToProjectDetails(
+        context,
+        loan['loan_id'].toString(),
+      ),
       hoverColor: Colors.grey[50],
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),

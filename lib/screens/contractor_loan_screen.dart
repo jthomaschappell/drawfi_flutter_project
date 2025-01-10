@@ -72,114 +72,167 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   String _searchQuery = '';
   final Map<String, TextEditingController> _controllers = {};
   Timer? _refreshTimer;
-  final List<LenderReview> _lenderReviews = [];
-
-  String companyName = "ABC Construction";
-  String contractorName = "John Builder";
-  String contractorEmail = "john@builder.com";
-  String contractorPhone = "(555) 123-4567";
+  List<LenderReview> _lenderReviews = [];
   bool _isLoading = false;
+
+  String companyName = "Loading...";
+  String contractorName = "Loading...";
+  String contractorEmail = "Loading...";
+  String contractorPhone = "Loading...";
+
   final supabase = Supabase.instance.client;
 
   int numberOfDraws = 4;
 
   List<DrawRequest> _drawRequests = [
     DrawRequest(
-      lineItem: 'Foundation Work',
-      inspectionPercentage: 0.3,
-      budget: 153000,
-      draws: {1: 45000, 2: 25000, 3: 30000, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'Framing',
-      inspectionPercentage: 0.34,
-      budget: 153000,
-      draws: {1: 35000, 2: 40000, 3: null, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'Electrical',
-      inspectionPercentage: 0.55,
-      budget: 111000,
-      draws: {1: 28000, 2: 32000, 3: null, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'Plumbing',
-      inspectionPercentage: 0.13,
-      budget: 153000,
-      draws: {1: 42000, 2: 10000, 3: null, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'HVAC Installation',
+      lineItem: 'No Line Items Yet',
       inspectionPercentage: 0.0,
-      budget: 153000,
-      draws: {1: 38000, 2: 45000, 3: null, 4: null},
+      budget: 0.0,
+      draws: {
+        1: null,
+        2: null,
+        3: null,
+        4: null,
+      },
       drawStatuses: {
         1: DrawStatus.pending,
         2: DrawStatus.pending,
         3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'Roofing',
-      inspectionPercentage: 0.4,
-      budget: 153000,
-      draws: {1: 50000, 2: 35000, 3: null, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'Interior Finishing',
-      inspectionPercentage: 0.45,
-      budget: 153000,
-      draws: {1: 40000, 2: 38000, 3: 25000, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
+        4: DrawStatus.pending,
       },
     ),
   ];
+
+  void testInitialSetup() {
+    print("\n");
+    print("Testing ContractorLoanScreen setup...");
+    print("Loan ID received: ${widget.loanId}");
+    print("Is Lender view: ${widget.isLender}");
+  }
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+    testInitialSetup();
     _loadLoanData();
     if (!widget.isLender) {
       _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
         _checkLenderUpdates();
       });
     }
+  }
+
+  /// CLAUDE MADE A CHANGE HERE
+  Future<void> _loadLoanData() async {
+    try {
+      print("Starting data load for loan ID: ${widget.loanId}");
+      setState(() => _isLoading = true);
+
+      // Fetch loan details
+      final loanResponse = await supabase
+          .from('construction_loans')
+          .select()
+          .eq('loan_id', widget.loanId)
+          .single();
+      print("Loan data fetched: $loanResponse");
+
+      // Fetch contractor details
+      final contractorResponse = await supabase
+          .from('contractors')
+          .select()
+          .eq('contractor_id', loanResponse['contractor_id'])
+          .single();
+      print("Contractor data fetched: $contractorResponse");
+
+      // Fetch line items
+      final lineItemsResponse = await supabase
+          .from('construction_loan_line_items')
+          .select()
+          .eq('loan_id', widget.loanId);
+      print("Line items fetched: ${lineItemsResponse.length} items");
+
+      setState(() {
+        companyName = contractorResponse['company_name'] ?? "Unknown Company";
+        contractorName =
+            contractorResponse['full_name'] ?? "Unknown Contractor";
+        contractorEmail = contractorResponse['email'] ?? "No Email";
+        contractorPhone = contractorResponse['phone'] ?? "No Phone";
+
+        if (lineItemsResponse.isEmpty) {
+          // Create a default line item if none exist
+          _drawRequests = [
+            DrawRequest(
+              lineItem: 'No Line Items Yet',
+              inspectionPercentage: 0.0,
+              budget: 0.0,
+              draws: {
+                1: null,
+                2: null,
+                3: null,
+                4: null,
+              },
+              drawStatuses: {
+                1: DrawStatus.pending,
+                2: DrawStatus.pending,
+                3: DrawStatus.pending,
+                4: DrawStatus.pending,
+              },
+            ),
+          ];
+        } else {
+          _drawRequests = lineItemsResponse
+              .map<DrawRequest>((item) => DrawRequest(
+                    lineItem: item['category_name'],
+                    inspectionPercentage: item['inspection_percentage'] ?? 0.0,
+                    budget: item['budgeted_amount'].toDouble(),
+                    draws: {
+                      1: item['draw1_amount']?.toDouble(),
+                      2: item['draw2_amount']?.toDouble(),
+                      3: item['draw3_amount']?.toDouble(),
+                      4: null,
+                    },
+                    drawStatuses: {
+                      1: _getDrawStatusFromAmount(item['draw1_amount']),
+                      2: _getDrawStatusFromAmount(item['draw2_amount']),
+                      3: _getDrawStatusFromAmount(item['draw3_amount']),
+                      4: DrawStatus.pending,
+                    },
+                  ))
+              .toList();
+        }
+
+        _isLoading = false;
+      });
+
+      print("Data load completed successfully");
+      print("Company Name: $companyName");
+      print("Number of draw requests: ${_drawRequests.length}");
+    } catch (e) {
+      print('Error loading loan data: $e');
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading loan data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// TODO:
+  /// This is hardcoded.
+  /// Remove it when the time comes.
+  DrawStatus _getDrawStatusFromAmount(double? amount) {
+    if (amount == null || amount == 0) {
+      print("Amount $amount interpreted as PENDING");
+      return DrawStatus.pending;
+    }
+    print("Amount $amount interpreted as APPROVED");
+    return DrawStatus.approved;
   }
 
   void _initializeControllers() {
@@ -595,11 +648,13 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   }
 
   Widget _buildDrawStatusSection(int drawNumber) {
+    // Initialize with default values
     DrawStatus status = DrawStatus.pending;
     String? lenderNote;
     DateTime? reviewedAt;
 
-    if (drawNumber <= numberOfDraws) {
+    // Only try to access first item if list is not empty
+    if (_drawRequests.isNotEmpty && drawNumber <= numberOfDraws) {
       status =
           _drawRequests.first.drawStatuses[drawNumber] ?? DrawStatus.pending;
       lenderNote = _drawRequests.first.lenderNote;
@@ -607,6 +662,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
 
     Color statusColor = _getStatusColor(status);
+
+    // Rest of your existing _buildDrawStatusSection code...
 
     return Stack(
       children: [
@@ -728,133 +785,180 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       child: Column(
         children: [
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Fixed left column (Line Item + INSP)
-                Container(
-                  width: 280,
-                  child: Column(
-                    children: [
-                      // Header for fixed column
-                      Row(
-                        children: [
-                          Container(
-                            width: 200,
-                            height: 50,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            alignment: Alignment.centerLeft,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                right: BorderSide(color: Colors.grey[200]!),
-                                bottom: BorderSide(color: Colors.grey[200]!),
+            child: SingleChildScrollView(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Fixed left column (Line Item + INSP)
+                  Container(
+                    width: 280,
+                    child: Column(
+                      children: [
+                        // Header for fixed column
+                        Row(
+                          children: [
+                            Container(
+                              width: 200,
+                              height: 50,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              alignment: Alignment.centerLeft,
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  right: BorderSide(color: Colors.grey[200]!),
+                                  bottom: BorderSide(color: Colors.grey[200]!),
+                                ),
+                              ),
+                              child: const Text(
+                                'Line Item',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
-                            child: const Text(
-                              'Line Item',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                            Container(
+                              width: 80,
+                              height: 50,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey[200]!),
+                                ),
+                              ),
+                              child: const Text(
+                                'INSP',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
-                          ),
-                          Container(
-                            width: 80,
-                            height: 50,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Colors.grey[200]!),
-                              ),
-                            ),
-                            child: const Text(
-                              'INSP',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Data rows for fixed column
-                      ...filteredRequests
-                          .map((item) => Row(
-                                children: [
-                                  Container(
-                                    width: 200,
-                                    height: 50,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16),
-                                    alignment: Alignment.centerLeft,
-                                    decoration: BoxDecoration(
-                                      border: Border(
-                                        right: BorderSide(
-                                            color: Colors.grey[200]!),
-                                        bottom: BorderSide(
-                                            color: Colors.grey[200]!),
+                          ],
+                        ),
+                        // Data rows for fixed column
+                        ...filteredRequests
+                            .map((item) => Row(
+                                  children: [
+                                    Container(
+                                      width: 200,
+                                      height: 50,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16),
+                                      alignment: Alignment.centerLeft,
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          right: BorderSide(
+                                              color: Colors.grey[200]!),
+                                          bottom: BorderSide(
+                                              color: Colors.grey[200]!),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        item.lineItem,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
-                                    child: Text(
-                                      item.lineItem,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w500,
+                                    Container(
+                                      width: 80,
+                                      height: 50,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                              color: Colors.grey[200]!),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Container(
-                                    width: 80,
+                                  ],
+                                ))
+                            .toList(),
+                        // Spacer for status section
+                        Container(
+                          height: 92,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(color: Colors.grey[200]!),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Scrollable section
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: _horizontalScrollController,
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: (120.0 * numberOfDraws) + 170,
+                        child: Column(
+                          children: [
+                            // Header row for scrollable section
+                            Row(
+                              children: [
+                                ...List.generate(
+                                  numberOfDraws,
+                                  (index) => Container(
+                                    width: 120,
                                     height: 50,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       border: Border(
+                                        left: BorderSide(
+                                            color: Colors.grey[200]!),
                                         bottom: BorderSide(
                                             color: Colors.grey[200]!),
                                       ),
                                     ),
                                     child: Text(
-                                      '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+                                      'Draw ${index + 1}',
                                       style: const TextStyle(
                                         fontSize: 14,
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
                                       ),
                                     ),
                                   ),
-                                ],
-                              ))
-                          .toList(),
-                      // Spacer for status section
-                      Container(
-                        height: 92,
-                        decoration: BoxDecoration(
-                          border: Border(
-                            top: BorderSide(color: Colors.grey[200]!),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Scrollable section
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _horizontalScrollController,
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: (120.0 * numberOfDraws) + 170,
-                      child: Column(
-                        children: [
-                          // Header row for scrollable section
-                          Row(
-                            children: [
-                              ...List.generate(
-                                numberOfDraws,
-                                (index) => Container(
+                                ),
+                                // Add Draw Button
+                                if (!widget.isLender)
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        left: BorderSide(
+                                            color: Colors.grey[200]!),
+                                        bottom: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                    ),
+                                    child: IconButton(
+                                      icon:
+                                          const Icon(Icons.add_circle_outline),
+                                      onPressed: _addNewDraw,
+                                      tooltip: 'Add New Draw',
+                                      color: Color(0xFF6500E9),
+                                    ),
+                                  ),
+                                // Total Drawn header
+                                Container(
                                   width: 120,
                                   height: 50,
                                   alignment: Alignment.center,
@@ -866,96 +970,65 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                                           BorderSide(color: Colors.grey[200]!),
                                     ),
                                   ),
-                                  child: Text(
-                                    'Draw ${index + 1}',
-                                    style: const TextStyle(
+                                  child: const Text(
+                                    'Total Drawn',
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
                                     ),
                                   ),
                                 ),
-                              ),
-                              // Add Draw Button
-                              if (!widget.isLender)
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      left:
-                                          BorderSide(color: Colors.grey[200]!),
-                                      bottom:
-                                          BorderSide(color: Colors.grey[200]!),
-                                    ),
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.add_circle_outline),
-                                    onPressed: _addNewDraw,
-                                    tooltip: 'Add New Draw',
-                                    color: Color(0xFF6500E9),
-                                  ),
-                                ),
-                              // Total Drawn header
-                              Container(
-                                width: 120,
-                                height: 50,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    left: BorderSide(color: Colors.grey[200]!),
-                                    bottom:
-                                        BorderSide(color: Colors.grey[200]!),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Total Drawn',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          // Data rows for scrollable section
-                          ...filteredRequests
-                              .map((item) => Row(
-                                    children: [
-                                      ...List.generate(
-                                        numberOfDraws,
-                                        (drawIndex) =>
-                                            _buildDrawCell(item, drawIndex + 1),
-                                      ),
-                                      if (!widget.isLender)
-                                        Container(
-                                          width: 50,
-                                          height: 50,
-                                          decoration: BoxDecoration(
-                                            border: Border(
-                                              left: BorderSide(
-                                                  color: Colors.grey[200]!),
-                                              bottom: BorderSide(
-                                                  color: Colors.grey[200]!),
+                              ],
+                            ),
+                            // Data rows for scrollable section
+                            ...filteredRequests
+                                .map((item) => Row(
+                                      children: [
+                                        ...List.generate(
+                                          numberOfDraws,
+                                          (drawIndex) => _buildDrawCell(
+                                              item, drawIndex + 1),
+                                        ),
+                                        if (!widget.isLender)
+                                          Container(
+                                            width: 50,
+                                            height: 50,
+                                            decoration: BoxDecoration(
+                                              border: Border(
+                                                left: BorderSide(
+                                                    color: Colors.grey[200]!),
+                                                bottom: BorderSide(
+                                                    color: Colors.grey[200]!),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      _buildTotalDrawnCell(item),
-                                    ],
-                                  ))
-                              .toList(),
-                          // Status section
-                          Row(
-                            children: [
-                              ...List.generate(
-                                numberOfDraws,
-                                (index) => _buildDrawStatusSection(index + 1),
-                              ),
-                              if (!widget.isLender)
+                                        _buildTotalDrawnCell(item),
+                                      ],
+                                    ))
+                                .toList(),
+                            // Status section
+                            Row(
+                              children: [
+                                ...List.generate(
+                                  numberOfDraws,
+                                  (index) => _buildDrawStatusSection(index + 1),
+                                ),
+                                if (!widget.isLender)
+                                  Container(
+                                    width: 50,
+                                    height: 92,
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        left: BorderSide(
+                                            color: Colors.grey[200]!),
+                                        top: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                    ),
+                                  ),
                                 Container(
-                                  width: 50,
+                                  width: 120,
                                   height: 92,
                                   decoration: BoxDecoration(
                                     border: Border(
@@ -965,24 +1038,15 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                                     ),
                                   ),
                                 ),
-                              Container(
-                                width: 120,
-                                height: 92,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    left: BorderSide(color: Colors.grey[200]!),
-                                    top: BorderSide(color: Colors.grey[200]!),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -1043,7 +1107,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                   onPressed: () => Navigator.pop(context),
                 ),
                 Text(
-                  widget.isLender ? 'Review Draw Request' : 'Draw Request',
+                  "Construction Loan Dashboard",
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,

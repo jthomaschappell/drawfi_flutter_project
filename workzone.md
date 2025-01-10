@@ -10,3 +10,5 @@ Finished 1.9.24 "#10.92 On the lender screen, connect the project card to the co
 And pushed. 
 
 
+Finished "Connect contractor loan dashboard screen to DB"
+

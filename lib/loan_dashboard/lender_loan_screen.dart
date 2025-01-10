@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tester/loan_dashboard/chat/loan_chat_section.dart';
-import 'package:tester/loan_dashboard/models/loan_line_item.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -12,6 +10,36 @@ import 'package:path/path.dart' as path;
 import 'dart:html' as html;
 import 'package:collection/collection.dart';
 
+
+enum DownloadStatus {
+  inProgress,
+  completed,
+  failed
+}
+
+class DownloadProgress {
+  final DownloadStatus status;
+  final String message;
+  final double? progress;
+
+  DownloadProgress({
+    required this.status,
+    required this.message,
+    this.progress,
+  });
+}
+
+final List<String> builderFileCategories = [
+  'Construction Photos',
+  'Progress Reports',
+  'Material Receipts',
+  'Inspection Reports',
+  'Permits',
+  'Change Orders',
+  'Safety Reports',
+  'Quality Control Documents',
+  'Other'
+];
 
 final supabase = Supabase.instance.client;
 class LoanLineItem {
@@ -68,13 +96,14 @@ class LenderLoanScreen extends StatefulWidget {
   @override
   State<LenderLoanScreen> createState() => _LenderLoanScreenState();
 }
-
 class _LenderLoanScreenState extends State<LenderLoanScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
+  
+  late String _selectedCategory;
+  
   // Add near the top of _LoanDashboardScreenState, where other variables are defined
 List<DocumentRequirement> documentRequirements = [
-  
   DocumentRequirement(
     category: 'Construction Photos',
     isRequired: false,
@@ -85,6 +114,24 @@ List<DocumentRequirement> documentRequirements = [
     category: 'Draw Documentation',
     isRequired: false,
     icon: Icons.description,
+    color: Color(0xFF6500E9),
+  ),
+  DocumentRequirement(
+    category: 'Material Receipts',
+    isRequired: false,
+    icon: Icons.receipt,
+    color: Color(0xFF6500E9),
+  ),
+  DocumentRequirement(
+    category: 'Inspection Reports',
+    isRequired: false,
+    icon: Icons.fact_check,
+    color: Color(0xFF6500E9),
+  ),
+  DocumentRequirement(
+    category: 'Permits',
+    isRequired: false,
+    icon: Icons.card_membership,
     color: Color(0xFF6500E9),
   ),
   DocumentRequirement(
@@ -165,7 +212,7 @@ List<DocumentRequirement> documentRequirements = [
   @override
   void initState() {
     super.initState();
-    // Initialize draw statuses for all possible draws
+    _selectedCategory = documentRequirements[0].category;
     for (int i = 1; i <= numberOfDraws; i++) {
       drawStatuses[i] = 'pending';
     }
@@ -273,6 +320,7 @@ List<DocumentRequirement> documentRequirements = [
       ),
     );
   }
+  
   Widget _buildNavItem({
     required IconData icon,
     bool isActive = false,
@@ -395,62 +443,97 @@ Widget _buildFileViewer() {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Inside the Project Files header in _buildSidebar()
-Padding(
-  padding: const EdgeInsets.all(16),
-  child: Row(
-    children: [
-      const Icon(
-        Icons.folder_outlined,
-        size: 20,
-        color: Color(0xFF6B7280),
-      ),
-      const SizedBox(width: 8),
-      const Text(
-        'Project Files',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF111827),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.folder_outlined,
+                size: 20,
+                color: Color(0xFF6B7280),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Builder Documents',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              const Spacer(),
+              _buildFileFilterButton(),
+            ],
+          ),
         ),
-      ),
-      const Spacer(),
-      IconButton(
-        icon: const Icon(Icons.settings_outlined, size: 20),
-        color: const Color(0xFF6B7280),
-        onPressed: _showRequirementsDialog,
-      ),
-    ],
-  ),
-),
         StreamBuilder<List<Map<String, dynamic>>>(
-  stream: supabase
-      .from('project_documents')
-      .stream(primaryKey: ['id'])
-      .eq('loan_id', widget.loanId)
-      .order('uploaded_at', ascending: false),  // Changed from created_at to uploaded_at
-  builder: (context, snapshot) {
-    if (snapshot.hasError) {
-      return Center(child: Text('Error: ${snapshot.error}'));
-    }
+          stream: supabase
+              .from('project_documents')
+              .stream(primaryKey: ['id'])
+              .eq('loan_id', widget.loanId)
+              .order('uploaded_at', ascending: false),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
 
-    if (!snapshot.hasData) {
-      return const Center(child: CircularProgressIndicator());
-    }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-    final files = snapshot.data!;
-    if (files.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('No files uploaded yet'),
-      );
-    }
+            final files = snapshot.data!;
+            if (files.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('No builder documents uploaded yet'),
+              );
+            }
 
-    return Column(
-      children: files.map((file) => _buildFileListItem(file)).toList(),
-    );
-  },
-)
+            // Group files by category
+            final filesByCategory = groupBy(files, (Map<String, dynamic> file) => file['file_category'] as String);
+
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filesByCategory.length,
+              itemBuilder: (context, index) {
+                final category = filesByCategory.keys.elementAt(index);
+                final categoryFiles = filesByCategory[category]!;
+
+                return ExpansionTile(
+                  leading: Icon(_getCategoryIcon(category), color: _getCategoryColor(category)),
+                  title: Row(
+                    children: [
+                      Text(
+                        category,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6500E9).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${categoryFiles.length}',
+                          style: const TextStyle(
+                            color: Color(0xFF6500E9),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  children: categoryFiles.map((file) => _buildFileListItem(file)).toList(),
+                );
+              },
+            );
+          },
+        ),
       ],
     ),
   );
@@ -462,100 +545,63 @@ Widget _buildFileFilterButton() {
     onSelected: (String filter) {
       // Implement filtering logic
     },
-    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+    itemBuilder: (BuildContext context) => [
       const PopupMenuItem<String>(
         value: 'all',
-        child: Text('All Files'),
+        child: Text('All Documents'),
       ),
-      const PopupMenuItem<String>(
-        value: 'pdf',
-        child: Text('PDF Files'),
-      ),
-      const PopupMenuItem<String>(
-        value: 'image',
-        child: Text('Images'),
-      ),
-      const PopupMenuItem<String>(
-        value: 'document',
-        child: Text('Documents'),
-      ),
+      ...documentRequirements.map((req) => PopupMenuItem<String>(
+        value: req.category.toLowerCase(),
+        child: Text(req.category),
+      )),
     ],
   );
 }
 
-Widget _buildFileListItem(Map<String, dynamic> file) {
-  final fileType = file['file_type'] as String;
-  final fileName = file['file_name'] as String;
-  final fileUrl = file['file_url'] as String;
-  final uploadDate = DateTime.parse(file['uploaded_at']); 
-
-  IconData getFileIcon() {
-    switch (fileType.toLowerCase()) {
-      case 'pdf':
-        return Icons.picture_as_pdf;
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-        return Icons.image;
-      case 'doc':
-      case 'docx':
-        return Icons.description;
-      default:
-        return Icons.insert_drive_file;
-    }
+IconData _getCategoryIcon(String category) {
+  switch (category.toLowerCase()) {
+    case 'construction photos':
+      return Icons.photo_library;
+    case 'progress reports':
+      return Icons.assignment;
+    case 'material receipts':
+      return Icons.receipt;
+    case 'inspection reports':
+      return Icons.fact_check;
+    case 'permits':
+      return Icons.card_membership;
+    case 'change orders':
+      return Icons.change_circle;
+    case 'safety reports':
+      return Icons.health_and_safety;
+    case 'quality control documents':
+      return Icons.verified;
+    default:
+      return Icons.folder;
   }
+}
 
-  return InkWell(
-    onTap: () => _downloadFile(fileUrl, fileName),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[200]!),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            getFileIcon(),
-            size: 24,
-            color: Colors.grey[600],
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fileName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Uploaded ${_formatDate(uploadDate)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.download),
-            iconSize: 20,
-            color: Colors.grey[600],
-            onPressed: () => _downloadFile(fileUrl, fileName),
-          ),
-        ],
-      ),
-    ),
-  );
+Color _getCategoryColor(String category) {
+  switch (category.toLowerCase()) {
+    case 'construction photos':
+      return Colors.blue;
+    case 'progress reports':
+      return Colors.green;
+    case 'material receipts':
+      return Colors.orange;
+    case 'inspection reports':
+      return Colors.purple;
+    case 'permits':
+      return Colors.red;
+    case 'change orders':
+      return Colors.teal;
+    case 'safety reports':
+      return Colors.amber;
+    case 'quality control documents':
+      return Colors.indigo;
+    default:
+      return Colors.grey;
+  }
 }
 
 String _formatDate(DateTime date) {
@@ -573,18 +619,118 @@ String _formatDate(DateTime date) {
     return '${date.month}/${date.day}/${date.year}';
   }
 }
+Widget _buildFileListItem(Map<String, dynamic> file) {
+  final fileName = file['file_name'] as String;
+  final fileUrl = file['file_url'] as String;
+  final uploadDate = DateTime.parse(file['uploaded_at']); 
+  final fileStatus = file['file_status'] as String;
+
+  return ListTile(
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+    title: Text(
+      fileName,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+    subtitle: Text(
+      'Uploaded ${_formatDate(uploadDate)}',
+      style: TextStyle(
+        fontSize: 12,
+        color: Colors.grey[600],
+      ),
+    ),
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildStatusBadge(fileStatus),
+        IconButton(
+          icon: const Icon(Icons.download),
+          iconSize: 20,
+          color: Colors.grey[600],
+          onPressed: () => _downloadFile(fileUrl, fileName),
+        ),
+      ],
+    ),
+  );
+}
 
 Future<void> _downloadFile(String fileUrl, String fileName) async {
+  final downloadProgress = ValueNotifier<DownloadProgress?>(null);
+  
   try {
+    // 1. Show initial progress
+    downloadProgress.value = DownloadProgress(
+      status: DownloadStatus.inProgress,
+      message: 'Starting download...',
+      progress: 0
+    );
+
+    // 2. Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ValueListenableBuilder<DownloadProgress?>(
+        valueListenable: downloadProgress,
+        builder: (context, progress, _) {
+          return AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (progress?.status == DownloadStatus.inProgress) ...[
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(progress?.message ?? 'Downloading...'),
+                ] else if (progress?.status == DownloadStatus.failed) ...[
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    progress?.message ?? 'Download failed',
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ] else if (progress?.status == DownloadStatus.completed) ...[
+                  const Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
+                  const SizedBox(height: 16),
+                  const Text('Download completed successfully'),
+                ]
+              ],
+            ),
+            actions: [
+              if (progress?.status != DownloadStatus.inProgress)
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+
+    // 3. Get file path and update progress
+    final filePath = fileUrl.split('/').last;
+    downloadProgress.value = DownloadProgress(
+      status: DownloadStatus.inProgress,
+      message: 'Downloading $fileName...',
+      progress: 0.2
+    );
+
+    // 4. Download file
     final response = await supabase.storage
         .from('project_documents')
-        .download(fileUrl.split('/').last);
+        .download(filePath);
 
-    // Use a plugin like path_provider to get the local path
-    // and save the file there, then open it with a relevant app
-    // This implementation may vary based on platform (web/mobile)
-    
-    // For web, you can create a download link
+    downloadProgress.value = DownloadProgress(
+      status: DownloadStatus.inProgress,
+      message: 'Processing file...',
+      progress: 0.8
+    );
+
+    // 5. Process and trigger download
     final blob = html.Blob([response]);
     final url = html.Url.createObjectUrlFromBlob(blob);
     final anchor = html.AnchorElement()
@@ -593,13 +739,67 @@ Future<void> _downloadFile(String fileUrl, String fileName) async {
       ..download = fileName;
     html.document.body!.children.add(anchor);
     anchor.click();
+    
+    // 6. Cleanup
     html.document.body!.children.remove(anchor);
     html.Url.revokeObjectUrl(url);
+
+    // 7. Show success and close
+    downloadProgress.value = DownloadProgress(
+      status: DownloadStatus.completed,
+      message: 'Download completed'
+    );
+    await Future.delayed(const Duration(seconds: 1));
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+
   } catch (e) {
     print('Error downloading file: $e');
-    // Show error message to user
+    
+    // 8. Handle different error types
+    String errorMessage = 'An error occurred while downloading the file.';
+    if (e is StorageException) {
+      switch (e.statusCode) {
+        case 404:
+          errorMessage = 'The file could not be found. It may have been deleted or moved.';
+          break;
+        case 403:
+          errorMessage = 'You don\'t have permission to download this file.';
+          break;
+        case 500:
+          errorMessage = 'A server error occurred. Please try again later.';
+          break;
+        default:
+          errorMessage = 'Storage error: ${e.message}';
+      }
+    }
+
+    // 9. Show error state and snackbar
+    downloadProgress.value = DownloadProgress(
+      status: DownloadStatus.failed,
+      message: errorMessage
+    );
+
+    Future.delayed(const Duration(seconds: 2)).then((_) {
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Dismiss',
+              onPressed: () {},
+              textColor: Colors.white,
+            ),
+          ),
+        );
+      }
+    });
   }
 }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -689,6 +889,45 @@ Future<void> _downloadFile(String fileUrl, String fileName) async {
       print('Error fetching line items: $e');
     }
   }
+  Widget _buildStatusBadge(String status) {
+  Color color;
+  String displayText;
+
+  switch (status.toLowerCase()) {
+    case 'approved':
+      color = Colors.green;
+      displayText = 'Approved';
+      break;
+    case 'rejected':
+      color = Colors.red;
+      displayText = 'Rejected';
+      break;
+    case 'pending':
+      color = Colors.orange;
+      displayText = 'Pending';
+      break;
+    default:
+      color = Colors.grey;
+      displayText = status;
+  }
+
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      displayText,
+      style: TextStyle(
+        color: color,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
+}
+
   Widget _buildSidebar() {
   return Container(
     width: 280,
@@ -1002,51 +1241,6 @@ margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
   );
 }
 
-IconData _getCategoryIcon(String category) {
-  switch (category) {
-    case 'Draw Documentation':
-      return Icons.description;
-    case 'Inspection Reports':
-      return Icons.assignment;
-    case 'Permits & Licenses':
-      return Icons.card_membership;
-    case 'Contracts':
-      return Icons.handshake;
-    case 'Insurance Documents':
-      return Icons.security;
-    case 'Construction Photos':
-      return Icons.photo_library;
-    case 'Invoices':
-      return Icons.receipt;
-    case 'W9 Forms':
-      return Icons.article;
-    default:
-      return Icons.folder;
-  }
-}
-
-Color _getCategoryColor(String category) {
-  switch (category) {
-    case 'Draw Documentation':
-      return Colors.blue;
-    case 'Inspection Reports':
-      return Colors.green;
-    case 'Permits & Licenses':
-      return Colors.purple;
-    case 'Contracts':
-      return Colors.indigo;
-    case 'Insurance Documents':
-      return Colors.teal;
-    case 'Construction Photos':
-      return Colors.amber;
-    case 'Invoices':
-      return Colors.deepOrange;
-    case 'W9 Forms':
-      return Colors.red;
-    default:
-      return Colors.grey;
-  }
-}
 
 void _showRequirementsDialog() {
   showDialog(
@@ -1093,129 +1287,132 @@ void _showRequirementsDialog() {
     ),
   );
 }
-Widget _buildUploadSection() {
-  String selectedCategory = documentRequirements[0].category; // Default to first category
-  
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 16),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: const Color(0xFFE5E7EB)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Icon(
-              Icons.upload_file,
-              size: 20,
-              color: Color(0xFF6B7280),
+  Widget _buildUploadSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Category Selector
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(12),
             ),
-            SizedBox(width: 8),
-            Text(
-              'Upload Files',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF111827),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedCategory,  // Use the state variable here
+                isExpanded: true,
+                icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                items: documentRequirements.map((req) {
+                  return DropdownMenuItem(
+                    value: req.category,
+                    child: Row(
+                      children: [
+                        Icon(req.icon, size: 18, color: req.color),
+                        const SizedBox(width: 12),
+                        Text(
+                          req.category,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _selectedCategory = newValue;  // Update the state variable
+                    });
+                  }
+                },
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        // Add category dropdown
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-            borderRadius: BorderRadius.circular(6),
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: selectedCategory,
-              isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down),
-              items: documentRequirements.map((DocumentRequirement req) {
-                return DropdownMenuItem(
-                  value: req.category,
-                  child: Row(
-                    children: [
-                      Icon(req.icon, size: 18, color: req.color),
-                      const SizedBox(width: 8),
-                      Text(req.category),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
-                  selectedCategory = newValue;
-                }
-              },
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        // Existing DottedBorder section
-        DottedBorder(
-          borderType: BorderType.RRect,
-          radius: const Radius.circular(8),
-          color: const Color(0xFF4F46E5),
-          dashPattern: const [6, 3],
-          strokeWidth: 1,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            child: Column(
-              children: [
-                const Icon(
-                  Icons.cloud_upload_outlined,
-                  size: 24,
-                  color: Color(0xFF4F46E5),
+          const SizedBox(height: 16),
+
+          // Upload Box
+          InkWell(
+            onTap: () async {
+              final result = await FilePicker.platform.pickFiles(
+                allowMultiple: true,
+                type: FileType.custom,
+                allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+                withData: true,
+              );
+              if (result != null) {
+                await _handleFileUpload(result.files, _selectedCategory);  // Use the state variable here
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: const Color(0xFF6500E9).withOpacity(0.3),
+                  width: 1,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Drag & drop or',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFF6500E9).withOpacity(0.02),
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.cloud_upload_outlined,
+                    size: 28,
+                    color: Color(0xFF6500E9),
                   ),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final result = await FilePicker.platform.pickFiles(
-                      allowMultiple: true,
-                      type: FileType.custom,
-                      allowedExtensions: ['pdf', 'jpg', 'png', 'doc', 'docx'],
-                      withData: true,
-                    );
-                    if (result != null) {
-                      await _handleFileUpload(result.files, selectedCategory);
-                    }
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    minimumSize: Size.zero,
-                  ),
-                  child: const Text(
-                    'browse files',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF4F46E5),
+                  const SizedBox(height: 8),
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                      children: const [
+                        TextSpan(text: 'Drop files here or '),
+                        TextSpan(
+                          text: 'browse',
+                          style: TextStyle(
+                            color: Color(0xFF6500E9),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    'PDF, JPG, PNG, DOC up to 10MB',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
   
   Widget _buildProgressCircle({
     required double percentage,

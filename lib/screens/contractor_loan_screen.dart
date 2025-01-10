@@ -7,7 +7,11 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:uuid/uuid.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 // Add this enum at the top of the file
 enum DrawStatus { pending, submitted, underReview, approved, declined }
 
@@ -142,7 +146,101 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
 
   int numberOfDraws = 4;
+  Future<void> _downloadAsPdf() async {
+  final pdf = pw.Document();
 
+  pdf.addPage(
+    pw.MultiPage(
+      build: (context) => [
+        pw.Header(
+          level: 0,
+          child: pw.Text(
+            '$companyName - Construction Loan Details',
+            style: pw.TextStyle(
+              fontSize: 24,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ),
+        pw.SizedBox(height: 20),
+
+        // Contractor information
+        pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text('Contractor: $contractorName'),
+            pw.Text('Phone: $contractorPhone'),
+            pw.Text('Email: $contractorEmail'),
+          ],
+        ),
+        pw.SizedBox(height: 20),
+
+        // Summary statistics
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Amount Disbursed: ${totalDisbursed.toStringAsFixed(1)}%',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+                pw.Text(
+                  'Total Amount: \$${_drawRequests.fold<double>(0.0, (sum, item) => sum + item.totalDrawn).toStringAsFixed(2)}',
+                ),
+              ],
+            ),
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Project Completion: ${projectCompletion.toStringAsFixed(1)}%',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+              ],
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 20),
+
+        // Draw requests table
+        pw.Table.fromTextArray(
+          context: context,
+          headerAlignment: pw.Alignment.centerLeft,
+          cellAlignment: pw.Alignment.centerLeft,
+          headerDecoration: pw.BoxDecoration(
+            color: PdfColors.grey300,
+          ),
+          headerHeight: 25,
+          cellHeight: 40,
+          headerStyle: pw.TextStyle(
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.black,
+          ),
+          cellStyle: const pw.TextStyle(
+            color: PdfColors.black,
+          ),
+          headers: ['Line Item', 'INSP', ...List.generate(numberOfDraws, (i) => 'Draw ${i + 1}'), 'Total Drawn', 'Budget'],
+          data: _drawRequests.map((item) => [
+            item.lineItem,
+            '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+            ...List.generate(numberOfDraws, (i) => 
+              item.draws[i + 1] != null ? '\$${item.draws[i + 1]!.toStringAsFixed(2)}' : '-'
+            ),
+            '\$${item.totalDrawn.toStringAsFixed(2)}',
+            '\$${item.budget.toStringAsFixed(2)}',
+          ]).toList(),
+        ),
+      ],
+    ),
+  );
+
+  await Printing.sharePdf(
+    bytes: await pdf.save(),
+    filename: '${companyName.replaceAll(' ', '_')}_loan_details.pdf',
+  );
+}
   List<DrawRequest> _drawRequests = [
     DrawRequest(
 
@@ -242,7 +340,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       });
     }
   }
-
+  
   /// CLAUDE MADE A CHANGE HERE
   Future<void> _loadLoanData() async {
     try {
@@ -1267,26 +1365,26 @@ IconData _getCategoryIcon(String category) {
   }
 
   Widget _buildTopNav() {
-    return Container(
-      height: 64,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16.0),
-            child: Row(
-              children: [
-                SvgPicture.string(
+  return Container(
+    height: 64,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.1),
+          spreadRadius: 1,
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16.0),
+          child: Row(
+            children: [
+              SvgPicture.string(
                   '''
                     <svg width="32" height="32" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
@@ -1311,30 +1409,76 @@ IconData _getCategoryIcon(String category) {
                     </svg>
                   ''',
                   width: 32,
-                  height: 32,
+                height: 32,
+              ),
+              const SizedBox(width: 24),
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+              ),
+              Text(
+                "Construction Loan Dashboard",
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF111827),
+                  letterSpacing: -0.5,
                 ),
-                const SizedBox(width: 24),
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
+        
+        const Spacer(),
+        // Enhanced download button
+        Container(
+          margin: const EdgeInsets.only(right: 16),
+          height: 40,
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 95, 135, 93),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6500E9).withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: _downloadAsPdf,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.file_download_outlined,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'PDF',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  "Construction Loan Dashboard",
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF111827),
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-          const Spacer(),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
 Widget _buildSidebar() {
   return Container(

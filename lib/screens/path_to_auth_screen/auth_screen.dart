@@ -554,7 +554,7 @@ class _AuthScreenState extends State<AuthScreen> {
             });
             break;
           case UserRole.borrower:
-          // TODO: Handle this case.
+          // : Handle this case.
         }
 
         // 4. Sign out after successful registration

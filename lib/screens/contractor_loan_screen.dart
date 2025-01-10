@@ -38,7 +38,7 @@ class FileDocument {
   });
 }
 
-class DrawRequest {
+class ContractorScreenLoanLineItem {
   final String lineItemName;
   double inspectionPercentage;
   Map<int, double?> draws;  
@@ -58,7 +58,7 @@ class DrawRequest {
     'Other Documents'
   ];
 
-  DrawRequest({
+  ContractorScreenLoanLineItem({
     required this.lineItemName,
     required this.inspectionPercentage,
     Map<int, double?>? draws,
@@ -130,7 +130,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   List<LenderReview> _lenderReviews = [];
 
   late Stream<List<Map<String, dynamic>>> _fileHistoryStream;
-  String _selectedCategory = DrawRequest.fileCategories[0];
+  String _selectedCategory = ContractorScreenLoanLineItem.fileCategories[0];
   bool _isLoading = false;
 
   String companyName = "Loading...";
@@ -143,8 +143,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
   int numberOfDraws = 4;
 
-  List<DrawRequest> _drawRequests = [
-    DrawRequest(
+  List<ContractorScreenLoanLineItem> _drawRequests = [
+    ContractorScreenLoanLineItem(
       lineItemName: 'No Line Items Yet',
       inspectionPercentage: 0.0,
       budget: 0.0,
@@ -222,7 +222,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         if (lineItemsResponse.isEmpty) {
           // Create a default line item if none exist
           _drawRequests = [
-            DrawRequest(
+            ContractorScreenLoanLineItem(
               lineItemName: 'No Line Items Yet',
               inspectionPercentage: 0.0,
               budget: 0.0,
@@ -242,7 +242,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
           ];
         } else {
           _drawRequests = lineItemsResponse
-              .map<DrawRequest>((item) => DrawRequest(
+              .map<ContractorScreenLoanLineItem>((item) => ContractorScreenLoanLineItem(
                     lineItemName: item['category_name'],
                     inspectionPercentage: item['inspection_percentage'] ?? 0.0,
                     budget: item['budgeted_amount'].toDouble(),
@@ -388,7 +388,7 @@ Widget _buildFileUploadSection() {
         Expanded(
           child: SingleChildScrollView(
             child: Column(
-              children: DrawRequest.fileCategories.map((category) => InkWell(
+              children: ContractorScreenLoanLineItem.fileCategories.map((category) => InkWell(
                 onTap: () async {
                   final result = await FilePicker.platform.pickFiles(
                     allowMultiple: true,
@@ -530,7 +530,7 @@ IconData _getCategoryIcon(String category) {
     });
   }
 
-  List<DrawRequest> get filteredRequests {
+  List<ContractorScreenLoanLineItem> get filteredRequests {
     if (_searchQuery.isEmpty) return _drawRequests;
     return _drawRequests
         .where(
@@ -638,14 +638,14 @@ IconData _getCategoryIcon(String category) {
     }
   }
 
-  bool _wouldExceedBudget(DrawRequest item, int drawNumber) {
+  bool _wouldExceedBudget(ContractorScreenLoanLineItem item, int drawNumber) {
     final amount = item.draws[drawNumber];
     if (amount == null) return false;
     double totalWithoutThisDraw = item.totalDrawn - amount;
     return (totalWithoutThisDraw + amount) > item.budget;
   }
 
-  void _moveDrawAmount(DrawRequest item, int drawNumber, String direction) {
+  void _moveDrawAmount(ContractorScreenLoanLineItem item, int drawNumber, String direction) {
     setState(() {
       if (direction == 'left' && drawNumber > 1) {
         double? tempAmount = item.draws[drawNumber - 1];
@@ -689,7 +689,7 @@ IconData _getCategoryIcon(String category) {
     });
   }
 
-  Widget _buildDrawCell(DrawRequest item, int drawNumber) {
+  Widget _buildDrawCell(ContractorScreenLoanLineItem item, int drawNumber) {
     final String key = '${item.lineItemName}_$drawNumber';
     final bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber);
     final bool isEditable = item.drawStatuses[drawNumber] == DrawStatus.pending;
@@ -762,7 +762,7 @@ IconData _getCategoryIcon(String category) {
     );
   }
 
-  Widget _buildTotalDrawnCell(DrawRequest item) {
+  Widget _buildTotalDrawnCell(ContractorScreenLoanLineItem item) {
     return Container(
       width: 120,
       height: 50,

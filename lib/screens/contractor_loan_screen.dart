@@ -549,11 +549,6 @@ IconData _getCategoryIcon(String category) {
       }
     });
   }
-  /// TODO: 
-  /// Testing to see if we can propagate everything EXCEPT 
-  /// the construction loan line items. 
-
-  /// CLAUDE MADE A CHANGE HERE
   void _reviewDraw(int drawNumber, DrawStatus status, String? note) {
     setState(() {
       final review = LenderReview(

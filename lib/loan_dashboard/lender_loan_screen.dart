@@ -60,16 +60,16 @@ class DocumentRequirement {
   });
 }
 
-class LoanDashboardScreen extends StatefulWidget {
+class LenderLoanScreen extends StatefulWidget {
   final String loanId;
 
-  const LoanDashboardScreen({super.key, required this.loanId});
+  const LenderLoanScreen({super.key, required this.loanId});
 
   @override
-  State<LoanDashboardScreen> createState() => _LoanDashboardScreenState();
+  State<LenderLoanScreen> createState() => _LenderLoanScreenState();
 }
 
-class _LoanDashboardScreenState extends State<LoanDashboardScreen> {
+class _LenderLoanScreenState extends State<LenderLoanScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
   // Add near the top of _LoanDashboardScreenState, where other variables are defined

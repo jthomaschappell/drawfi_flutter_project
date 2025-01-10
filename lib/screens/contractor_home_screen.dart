@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tester/screens/gc_settings_screen.dart';
-import 'package:tester/screens/draw_request_screen.dart';
+import 'package:tester/screens/contractor_loan_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ProjectDetailsScreen definition remains the same
@@ -169,7 +169,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (context) => DrawRequestScreen(loanId: actualLoanId)),
+          builder: (context) => ContractorLoanScreen(loanId: actualLoanId)),
     );
   }
 
@@ -178,7 +178,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DrawRequestScreen(loanId: loanId),
+        builder: (context) => ContractorLoanScreen(loanId: loanId),
       ),
     );
   }
@@ -338,9 +338,6 @@ class _ContractorScreenState extends State<ContractorScreen> {
   }
 
   Widget _buildHeader() {
-    /// TODO: 
-    /// 
-    print("This is ");
     // Header remains mostly the same, but we'll update the project count
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

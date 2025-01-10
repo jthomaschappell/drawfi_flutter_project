@@ -57,21 +57,21 @@ class LenderReview {
   });
 }
 
-class DrawRequestScreen extends StatefulWidget {
+class ContractorLoanScreen extends StatefulWidget {
   final String loanId;
   final bool isLender; // Add this parameter
   
-  const DrawRequestScreen({
+  const ContractorLoanScreen({
     super.key, 
     required this.loanId,
     this.isLender = false, // Default to builder view
   });
 
   @override
-  State<DrawRequestScreen> createState() => _DrawRequestScreenState();
+  State<ContractorLoanScreen> createState() => _ContractorLoanScreenState();
 }
 
-class _DrawRequestScreenState extends State<DrawRequestScreen> {
+class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
   String _searchQuery = '';

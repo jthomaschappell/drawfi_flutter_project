@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:tester/screens/contractor_screen.dart';
+import 'package:tester/screens/contractor_home_screen.dart';
 import 'package:tester/screens/error_screen.dart';
 import 'package:tester/screens/inspector_screen.dart';
-import 'package:tester/screens/lender_screen.dart';
+import 'package:tester/screens/lender_home_screen.dart';
 import 'package:tester/services/auth_service.dart';
 
 class AuthScreen extends StatefulWidget {

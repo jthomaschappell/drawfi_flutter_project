@@ -2,64 +2,119 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:dotted_border/dotted_border.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Add this enum at the top of the file
 enum DrawStatus { pending, submitted, underReview, approved, declined }
 
+enum FileStatus {
+  pending,
+  uploaded,
+  verified,
+  rejected
+}
+
+class FileDocument {
+  final String id;
+  final String category;
+  final String fileName;
+  final String fileUrl;
+  final FileStatus status;
+  final DateTime uploadedAt;
+  final String? note;
+
+  FileDocument({
+    required this.id,
+    required this.category,
+    required this.fileName,
+    required this.fileUrl,
+    this.status = FileStatus.pending,
+    required this.uploadedAt,
+    this.note,
+  });
+}
+
 class DrawRequest {
   final String lineItemName;
   double inspectionPercentage;
-  Map<int, double?> draws;
-  Map<int, DrawStatus> drawStatuses; // Changed from String to DrawStatus
+  Map<int, double?> draws;  
+  Map<int, DrawStatus> drawStatuses;
   double budget;
-  String? lenderNote; // New field
-  DateTime? reviewedAt; // New field
+  String? lenderNote;
+  DateTime? reviewedAt;
+  List<FileDocument> documents;
+
+  static const List<String> fileCategories = [
+    'W9 Forms',
+    'Construction Photos',
+    'Building Permits',
+    'Insurance Documents',
+    'Contract Documents',
+    'Inspection Reports',
+    'Other Documents'
+  ];
 
   DrawRequest({
     required this.lineItemName,
     required this.inspectionPercentage,
     Map<int, double?>? draws,
     Map<int, DrawStatus>? drawStatuses,
-    required this.budget,
+     required this.budget,
     this.lenderNote,
     this.reviewedAt,
-  })  : draws = draws ?? {1: null, 2: null, 3: null, 4: null},
-        drawStatuses = drawStatuses ??
-            {
-              1: DrawStatus.pending,
-              2: DrawStatus.pending,
-              3: DrawStatus.pending,
-              4: DrawStatus.pending
-            };
+    List<FileDocument>? documents,
+  }) : 
+     draws = draws ?? {1: null, 2: null, 3: null, 4: null},
+    drawStatuses = drawStatuses ?? {
+      1: DrawStatus.pending, 
+      2: DrawStatus.pending, 
+      3: DrawStatus.pending, 
+      4: DrawStatus.pending
+    },
+    documents = documents ?? [];
 
   double get totalDrawn {
     return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
   }
+
+  bool hasRequiredDocuments() {
+    return documents.any((doc) => 
+      doc.category == 'W9 Forms' && doc.status == FileStatus.verified) &&
+      documents.any((doc) => 
+      doc.category == 'Building Permits' && doc.status == FileStatus.verified);
+  }
 }
+
 
 class LenderReview {
   final String drawId;
   final DrawStatus status;
   final String? note;
   final DateTime timestamp;
+  final List<FileDocument>? reviewedDocuments;
 
   LenderReview({
     required this.drawId,
     required this.status,
     this.note,
     required this.timestamp,
+    this.reviewedDocuments,
   });
 }
 
 class ContractorLoanScreen extends StatefulWidget {
   final String loanId;
+
   final bool isLender; // Add this parameter
 
   const ContractorLoanScreen({
     super.key,
     required this.loanId,
-    this.isLender = false, // Default to builder view
+    this.isLender = false,
   });
 
   @override
@@ -73,6 +128,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   final Map<String, TextEditingController> _controllers = {};
   Timer? _refreshTimer;
   List<LenderReview> _lenderReviews = [];
+
+  late Stream<List<Map<String, dynamic>>> _fileHistoryStream;
+  String _selectedCategory = DrawRequest.fileCategories[0];
   bool _isLoading = false;
 
   String companyName = "Loading...";
@@ -81,6 +139,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   String contractorPhone = "Loading...";
 
   final supabase = Supabase.instance.client;
+
 
   int numberOfDraws = 4;
 
@@ -192,7 +251,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                       2: item['draw2_amount']?.toDouble(),
                       3: item['draw3_amount']?.toDouble(),
                       4: null,
-                    },
+                     },
                     drawStatuses: {
                       1: _getDrawStatusFromAmount(item['draw1_amount']),
                       2: _getDrawStatusFromAmount(item['draw2_amount']),
@@ -239,13 +298,183 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     for (var item in _drawRequests) {
       for (int i = 1; i <= numberOfDraws; i++) {
         final key = '${item.lineItemName}_$i';
-        final amount = item.draws[i];
-        _controllers[key] =
-            TextEditingController(text: amount?.toString() ?? '');
+        // final amount = item.draws[i];
+        // _controllers[key] =
+            // TextEditingController(text: amount?.toString() ?? '');
       }
     }
   }
+Future<void> _handleFileUpload(List<PlatformFile> files, String category) async {
+  try {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
 
+    for (final file in files) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Uploading ${file.name}...'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '${widget.loanId}/${category}/${timestamp}_${file.name}';
+
+      if (file.bytes != null) {
+        // Upload to Supabase storage
+        await supabase.storage
+            .from('project_documents')
+            .uploadBinary(
+              fileName,
+              file.bytes!,
+              fileOptions: FileOptions(
+                contentType: 'application/octet-stream',
+              ),
+            );
+
+        // Get public URL
+        final fileUrl = supabase.storage
+            .from('project_documents')
+            .getPublicUrl(fileName);
+
+        // Insert into database with correct types
+        await supabase.from('project_documents').insert({
+          'loan_id': widget.loanId,
+          'file_url': fileUrl,
+          'file_name': file.name,
+          'file_status': 'active',
+          'file_category': category,
+          'uploaded_by': currentUser.id,  // This should be a UUID from auth
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('File uploaded successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  } catch (e) {
+    print('Error details: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Upload failed: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+Widget _buildFileUploadSection() {
+  return Container(
+    margin: const EdgeInsets.only(top: 16),
+    height: 300, // Fixed height to make it scrollable
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'Upload Documents',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[800],
+            ),
+          ),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              children: DrawRequest.fileCategories.map((category) => InkWell(
+                onTap: () async {
+                  final result = await FilePicker.platform.pickFiles(
+                    allowMultiple: true,
+                    type: FileType.custom,
+                    allowedExtensions: ['pdf', 'jpg', 'png', 'doc', 'docx'],
+                  );
+                  if (result != null) {
+                    await _handleFileUpload(result.files, category);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade100),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getCategoryIcon(category),
+                        size: 20,
+                        color: const Color(0xFF6500E9),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          category,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
+                      ),
+                      if (category == 'W9 Forms' || category == 'Building Permits')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF4E5),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Text(
+                            'Required',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange[700],
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.upload_file,
+                        size: 20,
+                        color: Colors.grey[400],
+                      ),
+                    ],
+                  ),
+                ),
+              )).toList(),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+IconData _getCategoryIcon(String category) {
+  switch (category) {
+    case 'W9 Forms':
+      return Icons.description;
+    case 'Construction Photos':
+      return Icons.photo_library;
+    case 'Building Permits':
+      return Icons.assignment;
+    case 'Insurance Documents':
+      return Icons.security;
+    case 'Contract Documents':
+      return Icons.handshake;
+    case 'Inspection Reports':
+      return Icons.fact_check;
+    default:
+      return Icons.folder;
+  }
+}
   Future<void> _checkLenderUpdates() async {
     // Simulate API call to check for updates
     await Future.delayed(const Duration(seconds: 1));
@@ -260,7 +489,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       }
     });
   }
-
   void _reviewDraw(int drawNumber, DrawStatus status, String? note) {
     setState(() {
       final review = LenderReview(
@@ -280,13 +508,13 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   }
 
   void _submitDraw(int drawNumber) {
-    setState(() {
-      for (var request in _drawRequests) {
-        if (request.draws[drawNumber] != null) {
-          request.drawStatuses[drawNumber] = DrawStatus.submitted;
-        }
-      }
-    });
+    // setState(() {
+      // for (var request in _drawRequests) {
+        // if (request.draws[drawNumber] != null) {
+          // request.drawStatuses[drawNumber] = DrawStatus.submitted;
+        // }
+      // }
+    // });
   }
 
   void _addNewDraw() {
@@ -1048,60 +1276,63 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     );
   }
 
-  Widget _buildSidebar() {
-    return Container(
-      width: 280,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: _buildSearchBar(),
+Widget _buildSidebar() {
+  return Container(
+    width: 280,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: Colors.grey[300]!),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: _buildSearchBar(),
+        ),
+        Text(
+          companyName,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
           ),
-          Text(
-            companyName,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
+        ),
+        const Text(
+          "Construction Loan",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
           ),
-          const Text(
-            "Construction Loan",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
-            ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          contractorName,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.black,
           ),
-          const SizedBox(height: 8),
-          Text(
-            contractorName,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black,
-            ),
+        ),
+        Text(
+          contractorPhone,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
           ),
-          Text(
-            contractorPhone,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildSidebarItem(count: "2", label: "Draw Requests"),
-          _buildSidebarItem(count: "6", label: "Inspections"),
-          const Spacer(),
-        ],
-      ),
-    );
-  }
-
+        ),
+        const SizedBox(height: 16),
+        _buildSidebarItem(count: "2", label: "Draw Requests"),
+        _buildSidebarItem(count: "6", label: "Inspections"),
+        
+        // Add the new file upload section here
+        _buildFileUploadSection(),
+        
+        const Spacer(),
+      ],
+    ),
+  );
+}
   Widget _buildSearchBar() {
     return Container(
       height: 36,

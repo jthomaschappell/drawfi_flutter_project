@@ -74,11 +74,11 @@ class _ContractorScreenState extends State<ContractorScreen> {
   //     setState(() => _isLoading = false);
   //   }
   // }
-  /// TODO: 
-  /// I expect that when the page loads it will grab the customer ID: 
-  /// Sun: 
+  /// TODO:
+  /// I expect that when the page loads it will grab the customer ID:
+  /// Sun:
   /// sun@gmail.com
-  /// 36432c33-0aec-4d5d-8b52-dc0c38281e61 
+  /// 36432c33-0aec-4d5d-8b52-dc0c38281e61
   Future<void> _loadLoans() async {
     try {
       final contractorId = widget.userProfile['user_id'];
@@ -164,17 +164,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
     }
   }
 
-  // When navigating to the DrawRequestScreen, pass the actual loan ID
-  void _navigateToDrawRequest(BuildContext context, String actualLoanId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (context) => ContractorLoanScreen(loanId: actualLoanId)),
-    );
-  }
-
-  // Update _navigateToProjectDetails method
-  void _navigateToProjectDetails(BuildContext context, String loanId) {
+  void _navigateToContractorLoanScreen(BuildContext context, String loanId) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -328,8 +318,9 @@ class _ContractorScreenState extends State<ContractorScreen> {
                       )
                     : ListView.builder(
                         itemCount: _loans.length,
-                        itemBuilder: (context, index) =>
-                            _buildProjectCard(_loans[index]),
+                        itemBuilder: (context, index) => _buildProjectCard(
+                          _loans[index],
+                        ),
                       ),
           ),
         ],
@@ -363,27 +354,6 @@ class _ContractorScreenState extends State<ContractorScreen> {
             ),
           ],
         ),
-        // If you have access to a loan ID when creating the button:
-        ElevatedButton(
-          onPressed: () =>
-              _navigateToDrawRequest(context, "your-actual-loan-id"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF6500E9),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add, size: 20),
-              SizedBox(width: 8),
-              Text('New Project'),
-            ],
-          ),
-        )
       ],
     );
   }
@@ -437,7 +407,8 @@ class _ContractorScreenState extends State<ContractorScreen> {
         .toUpperCase();
 
     return InkWell(
-      onTap: () => _navigateToProjectDetails(context, loan['id'].toString()),
+      onTap: () =>
+          _navigateToContractorLoanScreen(context, loan['id'].toString()),
       hoverColor: Colors.grey[50],
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),

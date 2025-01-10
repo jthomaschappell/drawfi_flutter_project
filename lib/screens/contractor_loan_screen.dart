@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tester/screens/contractor_home_screen.dart';
 import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -42,35 +43,23 @@ class FileDocument {
   });
 }
 
-class DrawRequest {
-  final String lineItem;
+class ContractorScreenLoanLineItem {
+  final String lineItemName;
   double inspectionPercentage;
   Map<int, double?> draws;  
   Map<int, DrawStatus> drawStatuses;
   double budget;
   String? lenderNote;
   DateTime? reviewedAt;
-  List<FileDocument> documents;
 
-  static const List<String> fileCategories = [
-    'W9 Forms',
-    'Construction Photos',
-    'Building Permits',
-    'Insurance Documents',
-    'Contract Documents',
-    'Inspection Reports',
-    'Other Documents'
-  ];
-
-  DrawRequest({
-    required this.lineItem,
-     required this.inspectionPercentage,
-     Map<int, double?>? draws,
+  ContractorScreenLoanLineItem({
+    required this.lineItemName,
+    required this.inspectionPercentage,
+    Map<int, double?>? draws,
     Map<int, DrawStatus>? drawStatuses,
      required this.budget,
     this.lenderNote,
     this.reviewedAt,
-    List<FileDocument>? documents,
   }) : 
      draws = draws ?? {1: null, 2: null, 3: null, 4: null},
     drawStatuses = drawStatuses ?? {
@@ -78,18 +67,10 @@ class DrawRequest {
       2: DrawStatus.pending, 
       3: DrawStatus.pending, 
       4: DrawStatus.pending
-    },
-    documents = documents ?? [];
+    };
 
   double get totalDrawn {
     return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
-  }
-
-  bool hasRequiredDocuments() {
-    return documents.any((doc) => 
-      doc.category == 'W9 Forms' && doc.status == FileStatus.verified) &&
-      documents.any((doc) => 
-      doc.category == 'Building Permits' && doc.status == FileStatus.verified);
   }
 }
 
@@ -134,21 +115,52 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   List<LenderReview> _lenderReviews = [];
 
   late Stream<List<Map<String, dynamic>>> _fileHistoryStream;
-  String _selectedCategory = DrawRequest.fileCategories[0];
+  // String _selectedCategory = ContractorScreenLoanLineItem.fileCategories[0];
   bool _isLoading = false;
+  final supabase = Supabase.instance.client;
+
+  /// TODO: 
+  /// Put the attribute 'documents' here. 
+  /// Hardcoded. 
+       final documents = [
+        FileDocument(
+          id: '1',
+          category: 'W9 Forms',
+          fileName: 'foundation_w9.pdf',
+          fileUrl: 'foundation_w9.pdf',
+          status: FileStatus.verified,
+          uploadedAt: DateTime.now(),
+        ),
+      ];
+
+        static const List<String> fileCategories = [
+    'W9 Forms',
+    'Construction Photos',
+    'Building Permits',
+    'Insurance Documents',
+    'Contract Documents',
+    'Inspection Reports',
+    'Other Documents'
+  ];
+
+    bool hasRequiredDocuments() {
+    return documents.any((doc) => 
+      doc.category == 'W9 Forms' && doc.status == FileStatus.verified) &&
+      documents.any((doc) => 
+      doc.category == 'Building Permits' && doc.status == FileStatus.verified);
+  }
+  
 
   String companyName = "Loading...";
   String contractorName = "Loading...";
   String contractorEmail = "Loading...";
   String contractorPhone = "Loading...";
 
-  final supabase = Supabase.instance.client;
-
-
   int numberOfDraws = 4;
+
+
   Future<void> _downloadAsPdf() async {
   final pdf = pw.Document();
-
   pdf.addPage(
     pw.MultiPage(
       build: (context) => [
@@ -187,7 +199,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                 ),
                 pw.Text(
-                  'Total Amount: \$${_drawRequests.fold<double>(0.0, (sum, item) => sum + item.totalDrawn).toStringAsFixed(2)}',
+                  'Total Amount: \$${_contractorScreenLineItems.fold<double>(0.0, (sum, item) => sum + item.totalDrawn).toStringAsFixed(2)}',
                 ),
               ],
             ),
@@ -222,8 +234,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             color: PdfColors.black,
           ),
           headers: ['Line Item', 'INSP', ...List.generate(numberOfDraws, (i) => 'Draw ${i + 1}'), 'Total Drawn', 'Budget'],
-          data: _drawRequests.map((item) => [
-            item.lineItem,
+          data: _contractorScreenLineItems.map((item) => [
+            item.lineItemName,
             '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
             ...List.generate(numberOfDraws, (i) => 
               item.draws[i + 1] != null ? '\$${item.draws[i + 1]!.toStringAsFixed(2)}' : '-'
@@ -235,82 +247,74 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       ],
     ),
   );
-
   await Printing.sharePdf(
     bytes: await pdf.save(),
     filename: '${companyName.replaceAll(' ', '_')}_loan_details.pdf',
   );
 }
-  List<DrawRequest> _drawRequests = [
-    DrawRequest(
 
-      lineItem: 'Foundation Work',
-      inspectionPercentage: 0.3,
-      budget: 153000,
-      draws: {1: 45000, 2: 25000, 3: 30000, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-      documents: [
-        FileDocument(
-          id: '1',
-          category: 'W9 Forms',
-          fileName: 'foundation_w9.pdf',
-          fileUrl: 'foundation_w9.pdf',
-          status: FileStatus.verified,
-          uploadedAt: DateTime.now(),
-        ),
-      ],
-    ),
-    DrawRequest(
-      lineItem: 'Framing',
-      inspectionPercentage: 0.34,
-      budget: 153000,
-      draws: {1: 35000, 2: 40000, 3: null, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'Electrical',
-      inspectionPercentage: 0.55,
-      budget: 111000,
-      draws: {1: 28000, 2: 32000, 3: null, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'Plumbing',
-      inspectionPercentage: 0.13,
-      budget: 153000,
-      draws: {1: 42000, 2: 10000, 3: null, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'HVAC Installation',
-
+  // List<ContractorScreenLoanLineItem> _contractorScreenLineItems = [
+  //   ContractorScreenLoanLineItem(
+  //     // default values.  
+  //     lineItemName: 'Foundation Work',
+  //     inspectionPercentage: 0.3,
+  //     budget: 153000,
+  //     draws: {1: 45000, 2: 25000, 3: 30000, 4: null},
+  //     drawStatuses: {
+  //       1: DrawStatus.approved,
+  //       2: DrawStatus.pending,
+  //       3: DrawStatus.pending,
+  //       4: DrawStatus.pending
+  //     },
+  //   ),
+  //   ContractorScreenLoanLineItem(
+  //     lineItemName: 'Framing',
+  //     inspectionPercentage: 0.34,
+  //     budget: 153000,
+  //     draws: {1: 35000, 2: 40000, 3: null, 4: null},
+  //     drawStatuses: {
+  //       1: DrawStatus.approved,
+  //       2: DrawStatus.pending,
+  //       3: DrawStatus.pending,
+  //       4: DrawStatus.pending
+  //     },
+  //   ),
+  //   ContractorScreenLoanLineItem(
+  //     lineItemName: 'Electrical',
+  //     inspectionPercentage: 0.55,
+  //     budget: 111000,
+  //     draws: {1: 28000, 2: 32000, 3: null, 4: null},
+  //     drawStatuses: {
+  //       1: DrawStatus.approved,
+  //       2: DrawStatus.pending,
+  //       3: DrawStatus.pending,
+  //       4: DrawStatus.pending
+  //     },
+  //   ),
+  //   ContractorScreenLoanLineItem(
+  //     lineItemName: 'Plumbing',
+  //     inspectionPercentage: 0.13,
+  //     budget: 153000,
+  //     draws: {1: 42000, 2: 10000, 3: null, 4: null},
+  //     drawStatuses: {
+  //       1: DrawStatus.approved,
+  //       2: DrawStatus.pending,
+  //       3: DrawStatus.pending,
+  //       4: DrawStatus.pending
+  //     },
+  //   ),
+  // ]; 
+  
+  List<ContractorScreenLoanLineItem> _contractorScreenLineItems = [
+    ContractorScreenLoanLineItem(
+      lineItemName: 'No Line Items Yet',
       inspectionPercentage: 0.0,
       budget: 0.0,
       draws: {
         1: null,
         2: null,
         3: null,
-        4: null,
+        4: null, 
       },
       drawStatuses: {
         1: DrawStatus.pending,
@@ -379,9 +383,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
         if (lineItemsResponse.isEmpty) {
           // Create a default line item if none exist
-          _drawRequests = [
-            DrawRequest(
-              lineItem: 'No Line Items Yet',
+          _contractorScreenLineItems = [
+            ContractorScreenLoanLineItem(
+              lineItemName: 'No Line Items Yet',
               inspectionPercentage: 0.0,
               budget: 0.0,
               draws: {
@@ -399,9 +403,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             ),
           ];
         } else {
-          _drawRequests = lineItemsResponse
-              .map<DrawRequest>((item) => DrawRequest(
-                    lineItem: item['category_name'],
+          _contractorScreenLineItems = lineItemsResponse
+              .map<ContractorScreenLoanLineItem>((item) => ContractorScreenLoanLineItem(
+                    lineItemName: item['category_name'],
                     inspectionPercentage: item['inspection_percentage'] ?? 0.0,
                     budget: item['budgeted_amount'].toDouble(),
                     draws: {
@@ -425,7 +429,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
       print("Data load completed successfully");
       print("Company Name: $companyName");
-      print("Number of draw requests: ${_drawRequests.length}");
+      print("Number of draw requests: ${_contractorScreenLineItems.length}");
     } catch (e) {
       print('Error loading loan data: $e');
       setState(() => _isLoading = false);
@@ -453,12 +457,12 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   }
 
   void _initializeControllers() {
-    for (var item in _drawRequests) {
+    for (var item in _contractorScreenLineItems) {
       for (int i = 1; i <= numberOfDraws; i++) {
-        final key = '${item.lineItem}_$i';
-        // final amount = item.draws[i];
-        // _controllers[key] =
-            // TextEditingController(text: amount?.toString() ?? '');
+        final key = '${item.lineItemName}_$i';
+        final amount = item.draws[i];
+        _controllers[key] =
+            TextEditingController(text: amount?.toString() ?? '');
       }
     }
   }
@@ -525,6 +529,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
     );
   }
 }
+
 Widget _buildFileUploadSection() {
   return Container(
     margin: const EdgeInsets.only(top: 16),
@@ -546,7 +551,7 @@ Widget _buildFileUploadSection() {
         Expanded(
           child: SingleChildScrollView(
             child: Column(
-              children: DrawRequest.fileCategories.map((category) => InkWell(
+              children: fileCategories.map((category) => InkWell(
                 onTap: () async {
                   final result = await FilePicker.platform.pickFiles(
                     allowMultiple: true,
@@ -638,7 +643,7 @@ IconData _getCategoryIcon(String category) {
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
       for (var review in _lenderReviews) {
-        for (var request in _drawRequests) {
+        for (var request in _contractorScreenLineItems) {
           int drawNumber = int.parse(review.drawId.split('_')[1]);
           request.drawStatuses[drawNumber] = review.status;
           request.lenderNote = review.note;
@@ -657,7 +662,7 @@ IconData _getCategoryIcon(String category) {
       );
       _lenderReviews.add(review);
 
-      for (var request in _drawRequests) {
+      for (var request in _contractorScreenLineItems) {
         request.drawStatuses[drawNumber] = status;
         request.lenderNote = note;
         request.reviewedAt = review.timestamp;
@@ -666,33 +671,33 @@ IconData _getCategoryIcon(String category) {
   }
 
   void _submitDraw(int drawNumber) {
-    // setState(() {
-      // for (var request in _drawRequests) {
-        // if (request.draws[drawNumber] != null) {
-          // request.drawStatuses[drawNumber] = DrawStatus.submitted;
-        // }
-      // }
-    // });
+    setState(() {
+      for (var lineItem in _contractorScreenLineItems) {
+        if (lineItem.draws[drawNumber] != null) {
+          lineItem.drawStatuses[drawNumber] = DrawStatus.submitted;
+        }
+      }
+    });
   }
 
   void _addNewDraw() {
     setState(() {
       numberOfDraws++;
-      for (var request in _drawRequests) {
+      for (var request in _contractorScreenLineItems) {
         request.draws[numberOfDraws] = null;
         request.drawStatuses[numberOfDraws] = DrawStatus.pending;
 
-        final key = '${request.lineItem}_$numberOfDraws';
+        final key = '${request.lineItemName}_$numberOfDraws';
         _controllers[key] = TextEditingController();
       }
     });
   }
 
-  List<DrawRequest> get filteredRequests {
-    if (_searchQuery.isEmpty) return _drawRequests;
-    return _drawRequests
+  List<ContractorScreenLoanLineItem> get filteredRequests {
+    if (_searchQuery.isEmpty) return _contractorScreenLineItems;
+    return _contractorScreenLineItems
         .where(
-          (request) => request.lineItem.toLowerCase().contains(
+          (request) => request.lineItemName.toLowerCase().contains(
                 _searchQuery.toLowerCase(),
               ),
         )
@@ -700,10 +705,10 @@ IconData _getCategoryIcon(String category) {
   }
 
   double get totalDisbursed {
-    double totalDrawn = _drawRequests.fold<double>(
+    double totalDrawn = _contractorScreenLineItems.fold<double>(
         0.0, (sum, request) => sum + request.totalDrawn);
     double totalBudget =
-        _drawRequests.fold<double>(0.0, (sum, request) => sum + request.budget);
+        _contractorScreenLineItems.fold<double>(0.0, (sum, request) => sum + request.budget);
 
     if (totalBudget == 0) return 0;
     return (totalDrawn / totalBudget) * 100;
@@ -713,7 +718,7 @@ IconData _getCategoryIcon(String category) {
     double weightedSum = 0;
     double totalBudget = 0;
 
-    for (var item in _drawRequests) {
+    for (var item in _contractorScreenLineItems) {
       weightedSum += (item.inspectionPercentage * item.budget);
       totalBudget += item.budget;
     }
@@ -796,14 +801,14 @@ IconData _getCategoryIcon(String category) {
     }
   }
 
-  bool _wouldExceedBudget(DrawRequest item, int drawNumber) {
+  bool _wouldExceedBudget(ContractorScreenLoanLineItem item, int drawNumber) {
     final amount = item.draws[drawNumber];
     if (amount == null) return false;
     double totalWithoutThisDraw = item.totalDrawn - amount;
     return (totalWithoutThisDraw + amount) > item.budget;
   }
 
-  void _moveDrawAmount(DrawRequest item, int drawNumber, String direction) {
+  void _moveDrawAmount(ContractorScreenLoanLineItem item, int drawNumber, String direction) {
     setState(() {
       if (direction == 'left' && drawNumber > 1) {
         double? tempAmount = item.draws[drawNumber - 1];
@@ -817,11 +822,11 @@ IconData _getCategoryIcon(String category) {
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
 
-        String currentKey = '${item.lineItem}_$drawNumber';
+        String currentKey = '${item.lineItemName}_$drawNumber';
         _controllers[currentKey]?.text =
             item.draws[drawNumber]?.toString() ?? '';
 
-        String prevKey = '${item.lineItem}_${drawNumber - 1}';
+        String prevKey = '${item.lineItemName}_${drawNumber - 1}';
         _controllers[prevKey]?.text =
             item.draws[drawNumber - 1]?.toString() ?? '';
       } else if (direction == 'right' && drawNumber < numberOfDraws) {
@@ -836,19 +841,19 @@ IconData _getCategoryIcon(String category) {
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
 
-        String currentKey = '${item.lineItem}_$drawNumber';
+        String currentKey = '${item.lineItemName}_$drawNumber';
         _controllers[currentKey]?.text =
             item.draws[drawNumber]?.toString() ?? '';
 
-        String nextKey = '${item.lineItem}_${drawNumber + 1}';
+        String nextKey = '${item.lineItemName}_${drawNumber + 1}';
         _controllers[nextKey]?.text =
             item.draws[drawNumber + 1]?.toString() ?? '';
       }
     });
   }
 
-  Widget _buildDrawCell(DrawRequest item, int drawNumber) {
-    final String key = '${item.lineItem}_$drawNumber';
+  Widget _buildDrawCell(ContractorScreenLoanLineItem item, int drawNumber) {
+    final String key = '${item.lineItemName}_$drawNumber';
     final bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber);
     final bool isEditable = item.drawStatuses[drawNumber] == DrawStatus.pending;
 
@@ -920,7 +925,7 @@ IconData _getCategoryIcon(String category) {
     );
   }
 
-  Widget _buildTotalDrawnCell(DrawRequest item) {
+  Widget _buildTotalDrawnCell(ContractorScreenLoanLineItem item) {
     return Container(
       width: 120,
       height: 50,
@@ -964,11 +969,11 @@ IconData _getCategoryIcon(String category) {
     DateTime? reviewedAt;
 
     // Only try to access first item if list is not empty
-    if (_drawRequests.isNotEmpty && drawNumber <= numberOfDraws) {
+    if (_contractorScreenLineItems.isNotEmpty && drawNumber <= numberOfDraws) {
       status =
-          _drawRequests.first.drawStatuses[drawNumber] ?? DrawStatus.pending;
-      lenderNote = _drawRequests.first.lenderNote;
-      reviewedAt = _drawRequests.first.reviewedAt;
+          _contractorScreenLineItems.first.drawStatuses[drawNumber] ?? DrawStatus.pending;
+      lenderNote = _contractorScreenLineItems.first.lenderNote;
+      reviewedAt = _contractorScreenLineItems.first.reviewedAt;
     }
 
     Color statusColor = _getStatusColor(status);
@@ -1167,7 +1172,7 @@ IconData _getCategoryIcon(String category) {
                                         ),
                                       ),
                                       child: Text(
-                                        item.lineItem,
+                                        item.lineItemName,
                                         style: const TextStyle(
                                           fontSize: 14,
                                           color: Colors.black,

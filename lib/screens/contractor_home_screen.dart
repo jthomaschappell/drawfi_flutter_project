@@ -157,11 +157,11 @@ class _ContractorScreenState extends State<ContractorScreen> {
 
   // Update _navigateToProjectDetails method
   void _navigateToProjectDetails(BuildContext context, String loanId) {
-    /// DONE: 
-    /// Press the project card and see if THIS shows up. 
-    print("\n"); 
-    print("HEY Y'ALL"); 
-    print("What is the loan ID passed into navigate to project details?"); 
+    /// DONE:
+    /// Press the project card and see if THIS shows up.
+    print("\n");
+    print("HEY Y'ALL");
+    print("What is the loan ID passed into navigate to project details?");
     print("Loan ID: $loanId");
     Navigator.push(
       context,
@@ -327,6 +327,9 @@ class _ContractorScreenState extends State<ContractorScreen> {
   }
 
   Widget _buildHeader() {
+    print("\n");
+    print("This is the widget user profile: ${widget.userProfile}");
+    print("\n");
     // Header remains mostly the same, but we'll update the project count
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -335,7 +338,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hi ${widget.userProfile['full_name']?.split(' ')[0]}',
+              'Hi ${widget.userProfile['email']?.split(' ')[0]}',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,

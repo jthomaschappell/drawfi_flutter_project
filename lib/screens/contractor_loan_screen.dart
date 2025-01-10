@@ -2,24 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Add this enum at the top of the file
-enum DrawStatus {
-  pending,
-  submitted,
-  underReview,
-  approved,
-  declined
-}
+enum DrawStatus { pending, submitted, underReview, approved, declined }
 
 class DrawRequest {
   final String lineItem;
   double inspectionPercentage;
-  Map<int, double?> draws;  
-  Map<int, DrawStatus> drawStatuses;  // Changed from String to DrawStatus
+  Map<int, double?> draws;
+  Map<int, DrawStatus> drawStatuses; // Changed from String to DrawStatus
   double budget;
-  String? lenderNote;     // New field
-  DateTime? reviewedAt;   // New field
+  String? lenderNote; // New field
+  DateTime? reviewedAt; // New field
 
   DrawRequest({
     required this.lineItem,
@@ -29,14 +24,14 @@ class DrawRequest {
     required this.budget,
     this.lenderNote,
     this.reviewedAt,
-  }) : 
-    draws = draws ?? {1: null, 2: null, 3: null, 4: null},
-    drawStatuses = drawStatuses ?? {
-      1: DrawStatus.pending, 
-      2: DrawStatus.pending, 
-      3: DrawStatus.pending, 
-      4: DrawStatus.pending
-    };
+  })  : draws = draws ?? {1: null, 2: null, 3: null, 4: null},
+        drawStatuses = drawStatuses ??
+            {
+              1: DrawStatus.pending,
+              2: DrawStatus.pending,
+              3: DrawStatus.pending,
+              4: DrawStatus.pending
+            };
 
   double get totalDrawn {
     return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
@@ -60,9 +55,9 @@ class LenderReview {
 class ContractorLoanScreen extends StatefulWidget {
   final String loanId;
   final bool isLender; // Add this parameter
-  
+
   const ContractorLoanScreen({
-    super.key, 
+    super.key,
     required this.loanId,
     this.isLender = false, // Default to builder view
   });
@@ -78,12 +73,15 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   Map<String, TextEditingController> _controllers = {};
   Timer? _refreshTimer;
   List<LenderReview> _lenderReviews = [];
-  
+  bool _isLoading = false;
+
   String companyName = "ABC Construction";
   String contractorName = "John Builder";
   String contractorEmail = "john@builder.com";
   String contractorPhone = "(555) 123-4567";
-  
+
+  final supabase = Supabase.instance.client;
+
   int numberOfDraws = 4;
 
   List<DrawRequest> _drawRequests = [
@@ -173,10 +171,24 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     ),
   ];
 
+  void testInitialSetup() {
+    print("\n");
+    print("Testing ContractorLoanScreen setup...");
+    print("Loan ID received: ${widget.loanId}");
+    print("Is Lender view: ${widget.isLender}");
+  }
+
+  /// DONE:
+  /// Click and have it go to the new page.
+  /// See if it gives the print statements from test
+  /// initial setup.
+
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+    testInitialSetup();
+    _loadLoanData();
     if (!widget.isLender) {
       _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
         _checkLenderUpdates();
@@ -184,12 +196,108 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
   }
 
+  /// TODO: 
+  /// Click on the project card
+  /// See if it gives all of the correct print statements. 
+  /// 
+  /// DO
+  /// 
+
+  Future<void> _loadLoanData() async {
+    try {
+      print("Starting data load for loan ID: ${widget.loanId}");
+      setState(() => _isLoading = true);
+
+      // Test loan fetch
+      final loanResponse = await supabase
+          .from('construction_loans')
+          .select()
+          .eq('loan_id', widget.loanId)
+          .single();
+      print("Loan data fetched: $loanResponse");
+
+      // Test contractor fetch
+      final contractorResponse = await supabase
+          .from('contractors')
+          .select()
+          .eq('contractor_id', loanResponse['contractor_id'])
+          .single();
+      print("Contractor data fetched: $contractorResponse");
+
+      // Test line items fetch
+      final lineItemsResponse = await supabase
+          .from('construction_loan_line_items')
+          .select()
+          .eq('loan_id', widget.loanId);
+      print("Line items fetched: ${lineItemsResponse.length} items");
+
+      setState(() {
+        companyName = contractorResponse['company_name'] ?? "Unknown Company";
+        contractorName =
+            contractorResponse['full_name'] ?? "Unknown Contractor";
+        contractorEmail = contractorResponse['email'] ?? "No Email";
+        contractorPhone = contractorResponse['phone'] ?? "No Phone";
+
+        _drawRequests = lineItemsResponse.map<DrawRequest>((item) {
+          print("Processing line item: ${item['category_name']}");
+          return DrawRequest(
+            lineItem: item['category_name'],
+            inspectionPercentage: item['inspection_percentage'] ?? 0.0,
+            budget: item['budgeted_amount'].toDouble(),
+            draws: {
+              1: item['draw1_amount']?.toDouble(),
+              2: item['draw2_amount']?.toDouble(),
+              3: item['draw3_amount']?.toDouble(),
+              4: null,
+            },
+            drawStatuses: {
+              1: _getDrawStatusFromAmount(item['draw1_amount']),
+              2: _getDrawStatusFromAmount(item['draw2_amount']),
+              3: _getDrawStatusFromAmount(item['draw3_amount']),
+              4: DrawStatus.pending,
+            },
+          );
+        }).toList();
+
+        _isLoading = false;
+      });
+
+      print("Data load completed successfully");
+      print("Company Name: $companyName");
+      print("Number of draw requests: ${_drawRequests.length}");
+    } catch (e) {
+      print('Error loading loan data: $e');
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading loan data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// TODO:
+  /// This is hardcoded.
+  /// Remove it when the time comes.
+  DrawStatus _getDrawStatusFromAmount(double? amount) {
+    if (amount == null || amount == 0) {
+      print("Amount $amount interpreted as PENDING");
+      return DrawStatus.pending;
+    }
+    print("Amount $amount interpreted as APPROVED");
+    return DrawStatus.approved;
+  }
+
   void _initializeControllers() {
     for (var item in _drawRequests) {
       for (int i = 1; i <= numberOfDraws; i++) {
         final key = '${item.lineItem}_$i';
         final amount = item.draws[i];
-        _controllers[key] = TextEditingController(text: amount?.toString() ?? '');
+        _controllers[key] =
+            TextEditingController(text: amount?.toString() ?? '');
       }
     }
   }
@@ -218,7 +326,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         timestamp: DateTime.now(),
       );
       _lenderReviews.add(review);
-      
+
       for (var request in _drawRequests) {
         request.drawStatuses[drawNumber] = status;
         request.lenderNote = note;
@@ -243,7 +351,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       for (var request in _drawRequests) {
         request.draws[numberOfDraws] = null;
         request.drawStatuses[numberOfDraws] = DrawStatus.pending;
-        
+
         final key = '${request.lineItem}_$numberOfDraws';
         _controllers[key] = TextEditingController();
       }
@@ -264,8 +372,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   double get totalDisbursed {
     double totalDrawn = _drawRequests.fold<double>(
         0.0, (sum, request) => sum + request.totalDrawn);
-    double totalBudget = _drawRequests.fold<double>(
-        0.0, (sum, request) => sum + request.budget);
+    double totalBudget =
+        _drawRequests.fold<double>(0.0, (sum, request) => sum + request.budget);
 
     if (totalBudget == 0) return 0;
     return (totalDrawn / totalBudget) * 100;
@@ -286,11 +394,12 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
   Future<void> _showReviewDialog(int drawNumber, DrawStatus status) async {
     final TextEditingController noteController = TextEditingController();
-    
+
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(status == DrawStatus.approved ? 'Approve Draw' : 'Decline Draw'),
+        title: Text(
+            status == DrawStatus.approved ? 'Approve Draw' : 'Decline Draw'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -315,8 +424,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: status == DrawStatus.approved ? 
-                Colors.green : Colors.red,
+              backgroundColor:
+                  status == DrawStatus.approved ? Colors.green : Colors.red,
             ),
             child: Text(status == DrawStatus.approved ? 'Approve' : 'Decline'),
           ),
@@ -368,35 +477,42 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     setState(() {
       if (direction == 'left' && drawNumber > 1) {
         double? tempAmount = item.draws[drawNumber - 1];
-        DrawStatus tempStatus = item.drawStatuses[drawNumber - 1] ?? DrawStatus.pending;
-        
+        DrawStatus tempStatus =
+            item.drawStatuses[drawNumber - 1] ?? DrawStatus.pending;
+
         item.draws[drawNumber - 1] = item.draws[drawNumber];
-        item.drawStatuses[drawNumber - 1] = item.drawStatuses[drawNumber] ?? DrawStatus.pending;
-        
+        item.drawStatuses[drawNumber - 1] =
+            item.drawStatuses[drawNumber] ?? DrawStatus.pending;
+
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
-        
+
         String currentKey = '${item.lineItem}_$drawNumber';
-        _controllers[currentKey]?.text = item.draws[drawNumber]?.toString() ?? '';
-        
+        _controllers[currentKey]?.text =
+            item.draws[drawNumber]?.toString() ?? '';
+
         String prevKey = '${item.lineItem}_${drawNumber - 1}';
-        _controllers[prevKey]?.text = item.draws[drawNumber - 1]?.toString() ?? '';
-        
+        _controllers[prevKey]?.text =
+            item.draws[drawNumber - 1]?.toString() ?? '';
       } else if (direction == 'right' && drawNumber < numberOfDraws) {
         double? tempAmount = item.draws[drawNumber + 1];
-        DrawStatus tempStatus = item.drawStatuses[drawNumber + 1] ?? DrawStatus.pending;
-        
+        DrawStatus tempStatus =
+            item.drawStatuses[drawNumber + 1] ?? DrawStatus.pending;
+
         item.draws[drawNumber + 1] = item.draws[drawNumber];
-        item.drawStatuses[drawNumber + 1] = item.drawStatuses[drawNumber] ?? DrawStatus.pending;
-        
+        item.drawStatuses[drawNumber + 1] =
+            item.drawStatuses[drawNumber] ?? DrawStatus.pending;
+
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
-        
+
         String currentKey = '${item.lineItem}_$drawNumber';
-        _controllers[currentKey]?.text = item.draws[drawNumber]?.toString() ?? '';
-        
+        _controllers[currentKey]?.text =
+            item.draws[drawNumber]?.toString() ?? '';
+
         String nextKey = '${item.lineItem}_${drawNumber + 1}';
-        _controllers[nextKey]?.text = item.draws[drawNumber + 1]?.toString() ?? '';
+        _controllers[nextKey]?.text =
+            item.draws[drawNumber + 1]?.toString() ?? '';
       }
     });
   }
@@ -432,20 +548,26 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
               controller: _controllers[key] ?? TextEditingController(),
               textAlign: TextAlign.center,
               enabled: isEditable,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
                 border: InputBorder.none,
                 hintText: '-',
-                prefixText: _controllers[key]?.text.isNotEmpty ?? false ? '\$' : '',
+                prefixText:
+                    _controllers[key]?.text.isNotEmpty ?? false ? '\$' : '',
                 prefixStyle: TextStyle(
-                  color: wouldExceedBudget ? Colors.red : const Color.fromARGB(120, 39, 133, 5),
+                  color: wouldExceedBudget
+                      ? Colors.red
+                      : const Color.fromARGB(120, 39, 133, 5),
                 ),
               ),
               style: TextStyle(
                 fontSize: 14,
-                color: wouldExceedBudget ? Colors.red : const Color.fromARGB(120, 39, 133, 5),
+                color: wouldExceedBudget
+                    ? Colors.red
+                    : const Color.fromARGB(120, 39, 133, 5),
                 fontWeight: FontWeight.w500,
               ),
               onChanged: (value) {
@@ -485,7 +607,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
           Text(
             '\$${item.totalDrawn.toStringAsFixed(2)}',
             style: TextStyle(
-              color: item.totalDrawn > item.budget ? Colors.red : Colors.black87,
+              color:
+                  item.totalDrawn > item.budget ? Colors.red : Colors.black87,
             ),
           ),
           if (item.totalDrawn > item.budget) ...[
@@ -510,13 +633,14 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     DateTime? reviewedAt;
 
     if (drawNumber <= numberOfDraws) {
-      status = _drawRequests.first.drawStatuses[drawNumber] ?? DrawStatus.pending;
+      status =
+          _drawRequests.first.drawStatuses[drawNumber] ?? DrawStatus.pending;
       lenderNote = _drawRequests.first.lenderNote;
       reviewedAt = _drawRequests.first.reviewedAt;
     }
 
     Color statusColor = _getStatusColor(status);
-    
+
     return Stack(
       children: [
         Container(
@@ -532,7 +656,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             children: [
               // Status indicator with timestamp
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -559,7 +684,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              
+
               // Show different buttons based on user type
               if (widget.isLender && status == DrawStatus.submitted)
                 Row(
@@ -567,23 +692,27 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.check_circle, color: Colors.green),
-                      onPressed: () => _showReviewDialog(drawNumber, DrawStatus.approved),
+                      onPressed: () =>
+                          _showReviewDialog(drawNumber, DrawStatus.approved),
                       tooltip: 'Approve',
                     ),
                     IconButton(
                       icon: const Icon(Icons.cancel, color: Colors.red),
-                      onPressed: () => _showReviewDialog(drawNumber, DrawStatus.declined),
+                      onPressed: () =>
+                          _showReviewDialog(drawNumber, DrawStatus.declined),
                       tooltip: 'Decline',
                     ),
                   ],
                 )
               else if (!widget.isLender)
                 ElevatedButton(
-                  onPressed: status == DrawStatus.pending ? 
-                    () => _submitDraw(drawNumber) : null,
+                  onPressed: status == DrawStatus.pending
+                      ? () => _submitDraw(drawNumber)
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 61, 143, 96),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     minimumSize: const Size(80, 32),
                     disabledBackgroundColor: Colors.grey[400],
                   ),
@@ -596,7 +725,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                     ),
                   ),
                 ),
-                
+
               // Show lender note if available
               if (lenderNote != null && lenderNote.isNotEmpty)
                 Padding(
@@ -684,48 +813,54 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                         ],
                       ),
                       // Data rows for fixed column
-                      ...filteredRequests.map((item) => Row(
-                        children: [
-                          Container(
-                            width: 200,
-                            height: 50,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            alignment: Alignment.centerLeft,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                right: BorderSide(color: Colors.grey[200]!),
-                                bottom: BorderSide(color: Colors.grey[200]!),
-                              ),
-                            ),
-                            child: Text(
-                              item.lineItem,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 80,
-                            height: 50,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Colors.grey[200]!),
-                              ),
-                            ),
-                            child: Text(
-                              '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      )).toList(),
+                      ...filteredRequests
+                          .map((item) => Row(
+                                children: [
+                                  Container(
+                                    width: 200,
+                                    height: 50,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
+                                    alignment: Alignment.centerLeft,
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        right: BorderSide(
+                                            color: Colors.grey[200]!),
+                                        bottom: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      item.lineItem,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 80,
+                                    height: 50,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ))
+                          .toList(),
                       // Spacer for status section
                       Container(
                         height: 92,
@@ -758,8 +893,10 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     border: Border(
-                                      left: BorderSide(color: Colors.grey[200]!),
-                                      bottom: BorderSide(color: Colors.grey[200]!),
+                                      left:
+                                          BorderSide(color: Colors.grey[200]!),
+                                      bottom:
+                                          BorderSide(color: Colors.grey[200]!),
                                     ),
                                   ),
                                   child: Text(
@@ -780,8 +917,10 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     border: Border(
-                                      left: BorderSide(color: Colors.grey[200]!),
-                                      bottom: BorderSide(color: Colors.grey[200]!),
+                                      left:
+                                          BorderSide(color: Colors.grey[200]!),
+                                      bottom:
+                                          BorderSide(color: Colors.grey[200]!),
                                     ),
                                   ),
                                   child: IconButton(
@@ -799,7 +938,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                                 decoration: BoxDecoration(
                                   border: Border(
                                     left: BorderSide(color: Colors.grey[200]!),
-                                    bottom: BorderSide(color: Colors.grey[200]!),
+                                    bottom:
+                                        BorderSide(color: Colors.grey[200]!),
                                   ),
                                 ),
                                 child: const Text(
@@ -814,26 +954,31 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                             ],
                           ),
                           // Data rows for scrollable section
-                          ...filteredRequests.map((item) => Row(
-                            children: [
-                              ...List.generate(
-                                numberOfDraws,
-                                (drawIndex) => _buildDrawCell(item, drawIndex + 1),
-                              ),
-                              if (!widget.isLender)
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      left: BorderSide(color: Colors.grey[200]!),
-                                      bottom: BorderSide(color: Colors.grey[200]!),
-                                    ),
-                                  ),
-                                ),
-                              _buildTotalDrawnCell(item),
-                            ],
-                          )).toList(),
+                          ...filteredRequests
+                              .map((item) => Row(
+                                    children: [
+                                      ...List.generate(
+                                        numberOfDraws,
+                                        (drawIndex) =>
+                                            _buildDrawCell(item, drawIndex + 1),
+                                      ),
+                                      if (!widget.isLender)
+                                        Container(
+                                          width: 50,
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            border: Border(
+                                              left: BorderSide(
+                                                  color: Colors.grey[200]!),
+                                              bottom: BorderSide(
+                                                  color: Colors.grey[200]!),
+                                            ),
+                                          ),
+                                        ),
+                                      _buildTotalDrawnCell(item),
+                                    ],
+                                  ))
+                              .toList(),
                           // Status section
                           Row(
                             children: [
@@ -847,7 +992,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                                   height: 92,
                                   decoration: BoxDecoration(
                                     border: Border(
-                                      left: BorderSide(color: Colors.grey[200]!),
+                                      left:
+                                          BorderSide(color: Colors.grey[200]!),
                                       top: BorderSide(color: Colors.grey[200]!),
                                     ),
                                   ),
@@ -876,6 +1022,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       ),
     );
   }
+
   Widget _buildTopNav() {
     return Container(
       height: 64,

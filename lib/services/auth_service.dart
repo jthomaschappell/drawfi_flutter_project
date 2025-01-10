@@ -30,7 +30,7 @@ class AuthService {
       // Create user in the users table 
       // Create a borrower, lender, etc. based on the role. 
 
-      // TODO: 
+      // : 
       // See if you can sign up and it creates a user in the users table. 
 
       await _supabase.from('users').insert({

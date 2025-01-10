@@ -30,6 +30,12 @@ TODO: I think we need drawCells
 
 TODO: Revert your changes. 
 
+TODO: Make it in the database first. 
+TODO: Then make it in the contractor_loan_screen, with the corresponding
+data structure. 
+
+TODO: Then make it in the lender_loan_screen, with the corresponding data structure. 
+
 TODO: Make the table construction_loan_line_items look like: 
 - draw1_amount
 - draw2_amount
@@ -39,6 +45,76 @@ TODO: Make the table construction_loan_line_items look like:
 - draw2_status
 - draw3_status
 - draw4_status
+
+approved
+pending
+declined 
+
+DONE: Make the change in the database. 
+DONE: Make the change on the lender loan screen. 
+DONE: Make the change on the contractor loan screen. 
+
+TODO: Test the UI on the lender loan screen and fix bugs. 
+TODO: 
+
+
+
+
+```dart
+  LoanLineItem({
+    required this.lineItem,
+    required this.inspectionPercentage,
+    this.draw1,
+    this.draw1Status = 'pending',
+    this.draw2,
+    this.draw2Status = 'pending',
+    this.draw3,
+    this.draw3Status = 'pending',
+    this.draw4,
+    this.draw4Status = 'pending',
+    required this.budget,
+  });
+```
+
+
+```dart
+class ContractorScreenLoanLineItem {
+  final String lineItemName;
+  double inspectionPercentage;
+  Map<int, double?> draws;  
+  Map<int, DrawStatus> drawStatuses;
+  double budget;
+  String? lenderNote;
+  DateTime? reviewedAt;
+
+  ContractorScreenLoanLineItem({
+    required this.lineItemName,
+    required this.inspectionPercentage,
+    Map<int, double?>? draws,
+    Map<int, DrawStatus>? drawStatuses,
+     required this.budget,
+    this.lenderNote,
+    this.reviewedAt,
+  }) : 
+     draws = draws ?? {1: null, 2: null, 3: null, 4: null},
+    drawStatuses = drawStatuses ?? {
+      1: DrawStatus.pending, 
+      2: DrawStatus.pending, 
+      3: DrawStatus.pending, 
+      4: DrawStatus.pending
+    };
+
+  double get totalDrawn {
+    return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
+  }
+}
+```
+
+
+
+
+
+
 
 
 ```

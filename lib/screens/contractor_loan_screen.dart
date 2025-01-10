@@ -2,20 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
+<<<<<<< HEAD:lib/screens/draw_request_screen.dart
 import 'package:file_picker/file_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/loan_dashboard/loan_dashboard_screen.dart';
 import 'package:uuid/uuid.dart';
+=======
+import 'package:supabase_flutter/supabase_flutter.dart';
+>>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
 
 // Add this enum at the top of the file
-enum DrawStatus {
-  pending,
-  submitted,
-  underReview,
-  approved,
-  declined
-}
+enum DrawStatus { pending, submitted, underReview, approved, declined }
 
 enum FileStatus {
   pending,
@@ -47,6 +45,7 @@ class FileDocument {
 class DrawRequest {
   final String lineItem;
   double inspectionPercentage;
+<<<<<<< HEAD:lib/screens/draw_request_screen.dart
   Map<int, double?> draws;  
   Map<int, DrawStatus> drawStatuses;
   double budget;
@@ -63,6 +62,13 @@ class DrawRequest {
     'Inspection Reports',
     'Other Documents'
   ];
+=======
+  Map<int, double?> draws;
+  Map<int, DrawStatus> drawStatuses; // Changed from String to DrawStatus
+  double budget;
+  String? lenderNote; // New field
+  DateTime? reviewedAt; // New field
+>>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
 
   DrawRequest({
     required this.lineItem,
@@ -72,6 +78,7 @@ class DrawRequest {
     required this.budget,
     this.lenderNote,
     this.reviewedAt,
+<<<<<<< HEAD:lib/screens/draw_request_screen.dart
     List<FileDocument>? documents,
   }) : 
     draws = draws ?? {1: null, 2: null, 3: null, 4: null},
@@ -82,6 +89,16 @@ class DrawRequest {
       4: DrawStatus.pending
     },
     documents = documents ?? [];
+=======
+  })  : draws = draws ?? {1: null, 2: null, 3: null, 4: null},
+        drawStatuses = drawStatuses ??
+            {
+              1: DrawStatus.pending,
+              2: DrawStatus.pending,
+              3: DrawStatus.pending,
+              4: DrawStatus.pending
+            };
+>>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
 
   double get totalDrawn {
     return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
@@ -111,27 +128,35 @@ class LenderReview {
   });
 }
 
-class DrawRequestScreen extends StatefulWidget {
+class ContractorLoanScreen extends StatefulWidget {
   final String loanId;
+<<<<<<< HEAD:lib/screens/draw_request_screen.dart
   final bool isLender;
   
   const DrawRequestScreen({
     super.key, 
+=======
+  final bool isLender; // Add this parameter
+
+  const ContractorLoanScreen({
+    super.key,
+>>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
     required this.loanId,
     this.isLender = false,
   });
 
   @override
-  State<DrawRequestScreen> createState() => _DrawRequestScreenState();
+  State<ContractorLoanScreen> createState() => _ContractorLoanScreenState();
 }
 
-class _DrawRequestScreenState extends State<DrawRequestScreen> {
+class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _horizontalScrollController = ScrollController();
   String _searchQuery = '';
-  Map<String, TextEditingController> _controllers = {};
+  final Map<String, TextEditingController> _controllers = {};
   Timer? _refreshTimer;
   List<LenderReview> _lenderReviews = [];
+<<<<<<< HEAD:lib/screens/draw_request_screen.dart
   late Stream<List<Map<String, dynamic>>> _fileHistoryStream;
   String _selectedCategory = DrawRequest.fileCategories[0];
   
@@ -140,10 +165,22 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
   String contractorEmail = "john@builder.com";
   String contractorPhone = "(555) 123-4567";
   
+=======
+  bool _isLoading = false;
+
+  String companyName = "Loading...";
+  String contractorName = "Loading...";
+  String contractorEmail = "Loading...";
+  String contractorPhone = "Loading...";
+
+  final supabase = Supabase.instance.client;
+
+>>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
   int numberOfDraws = 4;
 
   List<DrawRequest> _drawRequests = [
     DrawRequest(
+<<<<<<< HEAD:lib/screens/draw_request_screen.dart
       lineItem: 'Foundation Work',
       inspectionPercentage: 0.3,
       budget: 153000,
@@ -203,46 +240,39 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     ),
     DrawRequest(
       lineItem: 'HVAC Installation',
+=======
+      lineItem: 'No Line Items Yet',
+>>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
       inspectionPercentage: 0.0,
-      budget: 153000,
-      draws: {1: 38000, 2: 45000, 3: null, 4: null},
+      budget: 0.0,
+      draws: {
+        1: null,
+        2: null,
+        3: null,
+        4: null,
+      },
       drawStatuses: {
         1: DrawStatus.pending,
         2: DrawStatus.pending,
         3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'Roofing',
-      inspectionPercentage: 0.4,
-      budget: 153000,
-      draws: {1: 50000, 2: 35000, 3: null, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
-      },
-    ),
-    DrawRequest(
-      lineItem: 'Interior Finishing',
-      inspectionPercentage: 0.45,
-      budget: 153000,
-      draws: {1: 40000, 2: 38000, 3: 25000, 4: null},
-      drawStatuses: {
-        1: DrawStatus.approved,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending
+        4: DrawStatus.pending,
       },
     ),
   ];
+
+  void testInitialSetup() {
+    print("\n");
+    print("Testing ContractorLoanScreen setup...");
+    print("Loan ID received: ${widget.loanId}");
+    print("Is Lender view: ${widget.isLender}");
+  }
 
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+    testInitialSetup();
+    _loadLoanData();
     if (!widget.isLender) {
       _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
         _checkLenderUpdates();
@@ -250,12 +280,124 @@ class _DrawRequestScreenState extends State<DrawRequestScreen> {
     }
   }
 
+  /// CLAUDE MADE A CHANGE HERE
+  Future<void> _loadLoanData() async {
+    try {
+      print("Starting data load for loan ID: ${widget.loanId}");
+      setState(() => _isLoading = true);
+
+      // Fetch loan details
+      final loanResponse = await supabase
+          .from('construction_loans')
+          .select()
+          .eq('loan_id', widget.loanId)
+          .single();
+      print("Loan data fetched: $loanResponse");
+
+      // Fetch contractor details
+      final contractorResponse = await supabase
+          .from('contractors')
+          .select()
+          .eq('contractor_id', loanResponse['contractor_id'])
+          .single();
+      print("Contractor data fetched: $contractorResponse");
+
+      // Fetch line items
+      final lineItemsResponse = await supabase
+          .from('construction_loan_line_items')
+          .select()
+          .eq('loan_id', widget.loanId);
+      print("Line items fetched: ${lineItemsResponse.length} items");
+
+      setState(() {
+        companyName = contractorResponse['company_name'] ?? "Unknown Company";
+        contractorName =
+            contractorResponse['full_name'] ?? "Unknown Contractor";
+        contractorEmail = contractorResponse['email'] ?? "No Email";
+        contractorPhone = contractorResponse['phone'] ?? "No Phone";
+
+        if (lineItemsResponse.isEmpty) {
+          // Create a default line item if none exist
+          _drawRequests = [
+            DrawRequest(
+              lineItem: 'No Line Items Yet',
+              inspectionPercentage: 0.0,
+              budget: 0.0,
+              draws: {
+                1: null,
+                2: null,
+                3: null,
+                4: null,
+              },
+              drawStatuses: {
+                1: DrawStatus.pending,
+                2: DrawStatus.pending,
+                3: DrawStatus.pending,
+                4: DrawStatus.pending,
+              },
+            ),
+          ];
+        } else {
+          _drawRequests = lineItemsResponse
+              .map<DrawRequest>((item) => DrawRequest(
+                    lineItem: item['category_name'],
+                    inspectionPercentage: item['inspection_percentage'] ?? 0.0,
+                    budget: item['budgeted_amount'].toDouble(),
+                    draws: {
+                      1: item['draw1_amount']?.toDouble(),
+                      2: item['draw2_amount']?.toDouble(),
+                      3: item['draw3_amount']?.toDouble(),
+                      4: null,
+                    },
+                    drawStatuses: {
+                      1: _getDrawStatusFromAmount(item['draw1_amount']),
+                      2: _getDrawStatusFromAmount(item['draw2_amount']),
+                      3: _getDrawStatusFromAmount(item['draw3_amount']),
+                      4: DrawStatus.pending,
+                    },
+                  ))
+              .toList();
+        }
+
+        _isLoading = false;
+      });
+
+      print("Data load completed successfully");
+      print("Company Name: $companyName");
+      print("Number of draw requests: ${_drawRequests.length}");
+    } catch (e) {
+      print('Error loading loan data: $e');
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading loan data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// TODO:
+  /// This is hardcoded.
+  /// Remove it when the time comes.
+  DrawStatus _getDrawStatusFromAmount(double? amount) {
+    if (amount == null || amount == 0) {
+      print("Amount $amount interpreted as PENDING");
+      return DrawStatus.pending;
+    }
+    print("Amount $amount interpreted as APPROVED");
+    return DrawStatus.approved;
+  }
+
   void _initializeControllers() {
     for (var item in _drawRequests) {
       for (int i = 1; i <= numberOfDraws; i++) {
         final key = '${item.lineItem}_$i';
         final amount = item.draws[i];
-        _controllers[key] = TextEditingController(text: amount?.toString() ?? '');
+        _controllers[key] =
+            TextEditingController(text: amount?.toString() ?? '');
       }
     }
   }
@@ -444,6 +586,82 @@ IconData _getCategoryIcon(String category) {
       }
     });
   }
+  /// TODO: 
+  /// Testing to see if we can propagate everything EXCEPT 
+  /// the construction loan line items. 
+
+  /// CLAUDE MADE A CHANGE HERE
+  Future<void> _loadLoanData() async {
+    print("The loan data function was called!");
+    try {
+      setState(() => _isLoading = true);
+
+      // Fetch loan details
+      final loanResponse = await supabase
+          .from('construction_loans')
+          .select()
+          .eq('loan_id', widget.loanId)
+          .single();
+
+      // Fetch contractor details
+      final contractorResponse = await supabase
+          .from('contractors')
+          .select()
+          .eq('contractor_id', loanResponse['contractor_id'])
+          .single();
+
+      // // Fetch line items
+      // final lineItemsResponse = await supabase
+      //     .from('construction_loan_line_items')
+      //     .select()
+      //     .eq('loan_id', widget.loanId);
+
+      setState(() {
+        companyName = contractorResponse['company_name'] ?? "Unknown Company";
+        contractorName =
+            contractorResponse['full_name'] ?? "Unknown Contractor";
+        contractorEmail = contractorResponse['email'] ?? "No Email";
+        contractorPhone = contractorResponse['phone'] ?? "No Phone";
+
+        // _drawRequests = lineItemsResponse
+        //     .map<DrawRequest>((item) => DrawRequest(
+        //           lineItem: item['category_name'],
+        //           inspectionPercentage: item['inspection_percentage'] ?? 0.0,
+        //           budget: item['budgeted_amount'].toDouble(),
+        //           draws: {
+        //             1: item['draw1_amount']?.toDouble(),
+        //             2: item['draw2_amount']?.toDouble(),
+        //             3: item['draw3_amount']?.toDouble(),
+        //             4: null,
+        //           },
+        //           // Keep the original hardcoded status logic
+        //           drawStatuses: {
+        //             1: DrawStatus.approved,
+        //             2: DrawStatus.pending,
+        //             3: DrawStatus.pending,
+        //             4: DrawStatus.pending,
+        //           },
+        //         ))
+        //     .toList();
+
+        _isLoading = false;
+      });
+
+      // Reinitialize controllers with new data
+      _initializeControllers();
+    } catch (e) {
+      print('Error loading loan data: $e');
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading loan data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   void _reviewDraw(int drawNumber, DrawStatus status, String? note) {
     setState(() {
@@ -454,7 +672,7 @@ IconData _getCategoryIcon(String category) {
         timestamp: DateTime.now(),
       );
       _lenderReviews.add(review);
-      
+
       for (var request in _drawRequests) {
         request.drawStatuses[drawNumber] = status;
         request.lenderNote = note;
@@ -479,7 +697,7 @@ IconData _getCategoryIcon(String category) {
       for (var request in _drawRequests) {
         request.draws[numberOfDraws] = null;
         request.drawStatuses[numberOfDraws] = DrawStatus.pending;
-        
+
         final key = '${request.lineItem}_$numberOfDraws';
         _controllers[key] = TextEditingController();
       }
@@ -500,8 +718,8 @@ IconData _getCategoryIcon(String category) {
   double get totalDisbursed {
     double totalDrawn = _drawRequests.fold<double>(
         0.0, (sum, request) => sum + request.totalDrawn);
-    double totalBudget = _drawRequests.fold<double>(
-        0.0, (sum, request) => sum + request.budget);
+    double totalBudget =
+        _drawRequests.fold<double>(0.0, (sum, request) => sum + request.budget);
 
     if (totalBudget == 0) return 0;
     return (totalDrawn / totalBudget) * 100;
@@ -522,11 +740,12 @@ IconData _getCategoryIcon(String category) {
 
   Future<void> _showReviewDialog(int drawNumber, DrawStatus status) async {
     final TextEditingController noteController = TextEditingController();
-    
+
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(status == DrawStatus.approved ? 'Approve Draw' : 'Decline Draw'),
+        title: Text(
+            status == DrawStatus.approved ? 'Approve Draw' : 'Decline Draw'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -551,8 +770,8 @@ IconData _getCategoryIcon(String category) {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: status == DrawStatus.approved ? 
-                Colors.green : Colors.red,
+              backgroundColor:
+                  status == DrawStatus.approved ? Colors.green : Colors.red,
             ),
             child: Text(status == DrawStatus.approved ? 'Approve' : 'Decline'),
           ),
@@ -604,35 +823,42 @@ IconData _getCategoryIcon(String category) {
     setState(() {
       if (direction == 'left' && drawNumber > 1) {
         double? tempAmount = item.draws[drawNumber - 1];
-        DrawStatus tempStatus = item.drawStatuses[drawNumber - 1] ?? DrawStatus.pending;
-        
+        DrawStatus tempStatus =
+            item.drawStatuses[drawNumber - 1] ?? DrawStatus.pending;
+
         item.draws[drawNumber - 1] = item.draws[drawNumber];
-        item.drawStatuses[drawNumber - 1] = item.drawStatuses[drawNumber] ?? DrawStatus.pending;
-        
+        item.drawStatuses[drawNumber - 1] =
+            item.drawStatuses[drawNumber] ?? DrawStatus.pending;
+
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
-        
+
         String currentKey = '${item.lineItem}_$drawNumber';
-        _controllers[currentKey]?.text = item.draws[drawNumber]?.toString() ?? '';
-        
+        _controllers[currentKey]?.text =
+            item.draws[drawNumber]?.toString() ?? '';
+
         String prevKey = '${item.lineItem}_${drawNumber - 1}';
-        _controllers[prevKey]?.text = item.draws[drawNumber - 1]?.toString() ?? '';
-        
+        _controllers[prevKey]?.text =
+            item.draws[drawNumber - 1]?.toString() ?? '';
       } else if (direction == 'right' && drawNumber < numberOfDraws) {
         double? tempAmount = item.draws[drawNumber + 1];
-        DrawStatus tempStatus = item.drawStatuses[drawNumber + 1] ?? DrawStatus.pending;
-        
+        DrawStatus tempStatus =
+            item.drawStatuses[drawNumber + 1] ?? DrawStatus.pending;
+
         item.draws[drawNumber + 1] = item.draws[drawNumber];
-        item.drawStatuses[drawNumber + 1] = item.drawStatuses[drawNumber] ?? DrawStatus.pending;
-        
+        item.drawStatuses[drawNumber + 1] =
+            item.drawStatuses[drawNumber] ?? DrawStatus.pending;
+
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
-        
+
         String currentKey = '${item.lineItem}_$drawNumber';
-        _controllers[currentKey]?.text = item.draws[drawNumber]?.toString() ?? '';
-        
+        _controllers[currentKey]?.text =
+            item.draws[drawNumber]?.toString() ?? '';
+
         String nextKey = '${item.lineItem}_${drawNumber + 1}';
-        _controllers[nextKey]?.text = item.draws[drawNumber + 1]?.toString() ?? '';
+        _controllers[nextKey]?.text =
+            item.draws[drawNumber + 1]?.toString() ?? '';
       }
     });
   }
@@ -668,20 +894,26 @@ IconData _getCategoryIcon(String category) {
               controller: _controllers[key] ?? TextEditingController(),
               textAlign: TextAlign.center,
               enabled: isEditable,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
                 border: InputBorder.none,
                 hintText: '-',
-                prefixText: _controllers[key]?.text.isNotEmpty ?? false ? '\$' : '',
+                prefixText:
+                    _controllers[key]?.text.isNotEmpty ?? false ? '\$' : '',
                 prefixStyle: TextStyle(
-                  color: wouldExceedBudget ? Colors.red : const Color.fromARGB(120, 39, 133, 5),
+                  color: wouldExceedBudget
+                      ? Colors.red
+                      : const Color.fromARGB(120, 39, 133, 5),
                 ),
               ),
               style: TextStyle(
                 fontSize: 14,
-                color: wouldExceedBudget ? Colors.red : const Color.fromARGB(120, 39, 133, 5),
+                color: wouldExceedBudget
+                    ? Colors.red
+                    : const Color.fromARGB(120, 39, 133, 5),
                 fontWeight: FontWeight.w500,
               ),
               onChanged: (value) {
@@ -721,7 +953,8 @@ IconData _getCategoryIcon(String category) {
           Text(
             '\$${item.totalDrawn.toStringAsFixed(2)}',
             style: TextStyle(
-              color: item.totalDrawn > item.budget ? Colors.red : Colors.black87,
+              color:
+                  item.totalDrawn > item.budget ? Colors.red : Colors.black87,
             ),
           ),
           if (item.totalDrawn > item.budget) ...[
@@ -741,18 +974,23 @@ IconData _getCategoryIcon(String category) {
   }
 
   Widget _buildDrawStatusSection(int drawNumber) {
+    // Initialize with default values
     DrawStatus status = DrawStatus.pending;
     String? lenderNote;
     DateTime? reviewedAt;
 
-    if (drawNumber <= numberOfDraws) {
-      status = _drawRequests.first.drawStatuses[drawNumber] ?? DrawStatus.pending;
+    // Only try to access first item if list is not empty
+    if (_drawRequests.isNotEmpty && drawNumber <= numberOfDraws) {
+      status =
+          _drawRequests.first.drawStatuses[drawNumber] ?? DrawStatus.pending;
       lenderNote = _drawRequests.first.lenderNote;
       reviewedAt = _drawRequests.first.reviewedAt;
     }
 
     Color statusColor = _getStatusColor(status);
-    
+
+    // Rest of your existing _buildDrawStatusSection code...
+
     return Stack(
       children: [
         Container(
@@ -768,7 +1006,8 @@ IconData _getCategoryIcon(String category) {
             children: [
               // Status indicator with timestamp
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -795,7 +1034,7 @@ IconData _getCategoryIcon(String category) {
                 ),
               ),
               const SizedBox(height: 8),
-              
+
               // Show different buttons based on user type
               if (widget.isLender && status == DrawStatus.submitted)
                 Row(
@@ -803,23 +1042,27 @@ IconData _getCategoryIcon(String category) {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.check_circle, color: Colors.green),
-                      onPressed: () => _showReviewDialog(drawNumber, DrawStatus.approved),
+                      onPressed: () =>
+                          _showReviewDialog(drawNumber, DrawStatus.approved),
                       tooltip: 'Approve',
                     ),
                     IconButton(
                       icon: const Icon(Icons.cancel, color: Colors.red),
-                      onPressed: () => _showReviewDialog(drawNumber, DrawStatus.declined),
+                      onPressed: () =>
+                          _showReviewDialog(drawNumber, DrawStatus.declined),
                       tooltip: 'Decline',
                     ),
                   ],
                 )
               else if (!widget.isLender)
                 ElevatedButton(
-                  onPressed: status == DrawStatus.pending ? 
-                    () => _submitDraw(drawNumber) : null,
+                  onPressed: status == DrawStatus.pending
+                      ? () => _submitDraw(drawNumber)
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 61, 143, 96),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     minimumSize: const Size(80, 32),
                     disabledBackgroundColor: Colors.grey[400],
                   ),
@@ -832,7 +1075,7 @@ IconData _getCategoryIcon(String category) {
                     ),
                   ),
                 ),
-                
+
               // Show lender note if available
               if (lenderNote != null && lenderNote.isNotEmpty)
                 Padding(
@@ -868,250 +1111,275 @@ IconData _getCategoryIcon(String category) {
       child: Column(
         children: [
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Fixed left column (Line Item + INSP)
-                Container(
-                  width: 280,
-                  child: Column(
-                    children: [
-                      // Header for fixed column
-                      Row(
-                        children: [
-                          Container(
-                            width: 200,
-                            height: 50,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            alignment: Alignment.centerLeft,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                right: BorderSide(color: Colors.grey[200]!),
-                                bottom: BorderSide(color: Colors.grey[200]!),
+            child: SingleChildScrollView(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Fixed left column (Line Item + INSP)
+                  Container(
+                    width: 280,
+                    child: Column(
+                      children: [
+                        // Header for fixed column
+                        Row(
+                          children: [
+                            Container(
+                              width: 200,
+                              height: 50,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              alignment: Alignment.centerLeft,
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  right: BorderSide(color: Colors.grey[200]!),
+                                  bottom: BorderSide(color: Colors.grey[200]!),
+                                ),
+                              ),
+                              child: const Text(
+                                'Line Item',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
-                            child: const Text(
-                              'Line Item',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                            Container(
+                              width: 80,
+                              height: 50,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey[200]!),
+                                ),
+                              ),
+                              child: const Text(
+                                'INSP',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
-                          ),
-                          Container(
-                            width: 80,
-                            height: 50,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Colors.grey[200]!),
-                              ),
+                          ],
+                        ),
+                        // Data rows for fixed column
+                        ...filteredRequests
+                            .map((item) => Row(
+                                  children: [
+                                    Container(
+                                      width: 200,
+                                      height: 50,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16),
+                                      alignment: Alignment.centerLeft,
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          right: BorderSide(
+                                              color: Colors.grey[200]!),
+                                          bottom: BorderSide(
+                                              color: Colors.grey[200]!),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        item.lineItem,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 80,
+                                      height: 50,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                              color: Colors.grey[200]!),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ))
+                            .toList(),
+                        // Spacer for status section
+                        Container(
+                          height: 92,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(color: Colors.grey[200]!),
                             ),
-                            child: const Text(
-                              'INSP',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Data rows for fixed column
-                      ...filteredRequests.map((item) => Row(
-                        children: [
-                          Container(
-                            width: 200,
-                            height: 50,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            alignment: Alignment.centerLeft,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                right: BorderSide(color: Colors.grey[200]!),
-                                bottom: BorderSide(color: Colors.grey[200]!),
-                              ),
-                            ),
-                            child: Text(
-                              item.lineItem,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 80,
-                            height: 50,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Colors.grey[200]!),
-                              ),
-                            ),
-                            child: Text(
-                              '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      )).toList(),
-                      // Spacer for status section
-                      Container(
-                        height: 92,
-                        decoration: BoxDecoration(
-                          border: Border(
-                            top: BorderSide(color: Colors.grey[200]!),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                // Scrollable section
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _horizontalScrollController,
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: (120.0 * numberOfDraws) + 170,
-                      child: Column(
-                        children: [
-                          // Header row for scrollable section
-                          Row(
-                            children: [
-                              ...List.generate(
-                                numberOfDraws,
-                                (index) => Container(
+                  // Scrollable section
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: _horizontalScrollController,
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: (120.0 * numberOfDraws) + 170,
+                        child: Column(
+                          children: [
+                            // Header row for scrollable section
+                            Row(
+                              children: [
+                                ...List.generate(
+                                  numberOfDraws,
+                                  (index) => Container(
+                                    width: 120,
+                                    height: 50,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        left: BorderSide(
+                                            color: Colors.grey[200]!),
+                                        bottom: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Draw ${index + 1}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Add Draw Button
+                                if (!widget.isLender)
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        left: BorderSide(
+                                            color: Colors.grey[200]!),
+                                        bottom: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
+                                    ),
+                                    child: IconButton(
+                                      icon:
+                                          const Icon(Icons.add_circle_outline),
+                                      onPressed: _addNewDraw,
+                                      tooltip: 'Add New Draw',
+                                      color: Color(0xFF6500E9),
+                                    ),
+                                  ),
+                                // Total Drawn header
+                                Container(
                                   width: 120,
                                   height: 50,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     border: Border(
-                                      left: BorderSide(color: Colors.grey[200]!),
-                                      bottom: BorderSide(color: Colors.grey[200]!),
+                                      left:
+                                          BorderSide(color: Colors.grey[200]!),
+                                      bottom:
+                                          BorderSide(color: Colors.grey[200]!),
                                     ),
                                   ),
-                                  child: Text(
-                                    'Draw ${index + 1}',
-                                    style: const TextStyle(
+                                  child: const Text(
+                                    'Total Drawn',
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
                                     ),
                                   ),
                                 ),
-                              ),
-                              // Add Draw Button
-                              if (!widget.isLender)
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      left: BorderSide(color: Colors.grey[200]!),
-                                      bottom: BorderSide(color: Colors.grey[200]!),
+                              ],
+                            ),
+                            // Data rows for scrollable section
+                            ...filteredRequests
+                                .map((item) => Row(
+                                      children: [
+                                        ...List.generate(
+                                          numberOfDraws,
+                                          (drawIndex) => _buildDrawCell(
+                                              item, drawIndex + 1),
+                                        ),
+                                        if (!widget.isLender)
+                                          Container(
+                                            width: 50,
+                                            height: 50,
+                                            decoration: BoxDecoration(
+                                              border: Border(
+                                                left: BorderSide(
+                                                    color: Colors.grey[200]!),
+                                                bottom: BorderSide(
+                                                    color: Colors.grey[200]!),
+                                              ),
+                                            ),
+                                          ),
+                                        _buildTotalDrawnCell(item),
+                                      ],
+                                    ))
+                                .toList(),
+                            // Status section
+                            Row(
+                              children: [
+                                ...List.generate(
+                                  numberOfDraws,
+                                  (index) => _buildDrawStatusSection(index + 1),
+                                ),
+                                if (!widget.isLender)
+                                  Container(
+                                    width: 50,
+                                    height: 92,
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        left: BorderSide(
+                                            color: Colors.grey[200]!),
+                                        top: BorderSide(
+                                            color: Colors.grey[200]!),
+                                      ),
                                     ),
                                   ),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.add_circle_outline),
-                                    onPressed: _addNewDraw,
-                                    tooltip: 'Add New Draw',
-                                    color: Color(0xFF6500E9),
-                                  ),
-                                ),
-                              // Total Drawn header
-                              Container(
-                                width: 120,
-                                height: 50,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    left: BorderSide(color: Colors.grey[200]!),
-                                    bottom: BorderSide(color: Colors.grey[200]!),
-                                  ),
-                                ),
-                                child: const Text(
-                                  'Total Drawn',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          // Data rows for scrollable section
-                          ...filteredRequests.map((item) => Row(
-                            children: [
-                              ...List.generate(
-                                numberOfDraws,
-                                (drawIndex) => _buildDrawCell(item, drawIndex + 1),
-                              ),
-                              if (!widget.isLender)
                                 Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      left: BorderSide(color: Colors.grey[200]!),
-                                      bottom: BorderSide(color: Colors.grey[200]!),
-                                    ),
-                                  ),
-                                ),
-                              _buildTotalDrawnCell(item),
-                            ],
-                          )).toList(),
-                          // Status section
-                          Row(
-                            children: [
-                              ...List.generate(
-                                numberOfDraws,
-                                (index) => _buildDrawStatusSection(index + 1),
-                              ),
-                              if (!widget.isLender)
-                                Container(
-                                  width: 50,
+                                  width: 120,
                                   height: 92,
                                   decoration: BoxDecoration(
                                     border: Border(
-                                      left: BorderSide(color: Colors.grey[200]!),
+                                      left:
+                                          BorderSide(color: Colors.grey[200]!),
                                       top: BorderSide(color: Colors.grey[200]!),
                                     ),
                                   ),
                                 ),
-                              Container(
-                                width: 120,
-                                height: 92,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    left: BorderSide(color: Colors.grey[200]!),
-                                    top: BorderSide(color: Colors.grey[200]!),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
   Widget _buildTopNav() {
     return Container(
       height: 64,
@@ -1165,7 +1433,7 @@ IconData _getCategoryIcon(String category) {
                   onPressed: () => Navigator.pop(context),
                 ),
                 Text(
-                  widget.isLender ? 'Review Draw Request' : 'Draw Request',
+                  "Construction Loan Dashboard",
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tester/loan_dashboard/loan_dashboard_screen.dart';
+import 'package:tester/loan_dashboard/lender_loan_screen.dart';
 import 'package:tester/screens/notifications_screen.dart';
 import 'package:tester/screens/invitation_screen.dart';
 import 'package:tester/screens/projects_screen.dart';
@@ -854,12 +854,12 @@ void _handleRestore(int index) {
                   icon: Icons.grid_view_outlined,
                   isSelected: _selectedNavIndex == 2,
                   onTap: () => setState(() {
-                    _selectedNavIndex = 2;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const ProjectsScreen()),
-                    );
+                    // _selectedNavIndex = 2;
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //       builder: (context) => const ProjectsScreen()),
+                    // ); 
                   }),
                   label: 'Projects',
                 ),
@@ -1330,7 +1330,7 @@ ListView.builder(
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LoanDashboardScreen(
+        builder: (context) => LenderLoanScreen(
           loanId: project.id, // Pass the loan_id to the dashboard
         ),
       ),

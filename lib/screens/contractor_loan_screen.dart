@@ -2,15 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
-<<<<<<< HEAD:lib/screens/draw_request_screen.dart
 import 'package:file_picker/file_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tester/loan_dashboard/loan_dashboard_screen.dart';
 import 'package:uuid/uuid.dart';
-=======
 import 'package:supabase_flutter/supabase_flutter.dart';
->>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
 
 // Add this enum at the top of the file
 enum DrawStatus { pending, submitted, underReview, approved, declined }
@@ -45,7 +41,6 @@ class FileDocument {
 class DrawRequest {
   final String lineItem;
   double inspectionPercentage;
-<<<<<<< HEAD:lib/screens/draw_request_screen.dart
   Map<int, double?> draws;  
   Map<int, DrawStatus> drawStatuses;
   double budget;
@@ -62,26 +57,18 @@ class DrawRequest {
     'Inspection Reports',
     'Other Documents'
   ];
-=======
-  Map<int, double?> draws;
-  Map<int, DrawStatus> drawStatuses; // Changed from String to DrawStatus
-  double budget;
-  String? lenderNote; // New field
-  DateTime? reviewedAt; // New field
->>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
 
   DrawRequest({
     required this.lineItem,
-    required this.inspectionPercentage,
-    Map<int, double?>? draws,
+     required this.inspectionPercentage,
+     Map<int, double?>? draws,
     Map<int, DrawStatus>? drawStatuses,
-    required this.budget,
+     required this.budget,
     this.lenderNote,
     this.reviewedAt,
-<<<<<<< HEAD:lib/screens/draw_request_screen.dart
     List<FileDocument>? documents,
   }) : 
-    draws = draws ?? {1: null, 2: null, 3: null, 4: null},
+     draws = draws ?? {1: null, 2: null, 3: null, 4: null},
     drawStatuses = drawStatuses ?? {
       1: DrawStatus.pending, 
       2: DrawStatus.pending, 
@@ -89,16 +76,6 @@ class DrawRequest {
       4: DrawStatus.pending
     },
     documents = documents ?? [];
-=======
-  })  : draws = draws ?? {1: null, 2: null, 3: null, 4: null},
-        drawStatuses = drawStatuses ??
-            {
-              1: DrawStatus.pending,
-              2: DrawStatus.pending,
-              3: DrawStatus.pending,
-              4: DrawStatus.pending
-            };
->>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
 
   double get totalDrawn {
     return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
@@ -111,6 +88,7 @@ class DrawRequest {
       doc.category == 'Building Permits' && doc.status == FileStatus.verified);
   }
 }
+
 
 class LenderReview {
   final String drawId;
@@ -130,17 +108,11 @@ class LenderReview {
 
 class ContractorLoanScreen extends StatefulWidget {
   final String loanId;
-<<<<<<< HEAD:lib/screens/draw_request_screen.dart
-  final bool isLender;
-  
-  const DrawRequestScreen({
-    super.key, 
-=======
+
   final bool isLender; // Add this parameter
 
   const ContractorLoanScreen({
     super.key,
->>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
     required this.loanId,
     this.isLender = false,
   });
@@ -156,16 +128,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   final Map<String, TextEditingController> _controllers = {};
   Timer? _refreshTimer;
   List<LenderReview> _lenderReviews = [];
-<<<<<<< HEAD:lib/screens/draw_request_screen.dart
+
   late Stream<List<Map<String, dynamic>>> _fileHistoryStream;
   String _selectedCategory = DrawRequest.fileCategories[0];
-  
-  String companyName = "ABC Construction";
-  String contractorName = "John Builder";
-  String contractorEmail = "john@builder.com";
-  String contractorPhone = "(555) 123-4567";
-  
-=======
   bool _isLoading = false;
 
   String companyName = "Loading...";
@@ -175,12 +140,12 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
   final supabase = Supabase.instance.client;
 
->>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
+
   int numberOfDraws = 4;
 
   List<DrawRequest> _drawRequests = [
     DrawRequest(
-<<<<<<< HEAD:lib/screens/draw_request_screen.dart
+
       lineItem: 'Foundation Work',
       inspectionPercentage: 0.3,
       budget: 153000,
@@ -240,9 +205,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     ),
     DrawRequest(
       lineItem: 'HVAC Installation',
-=======
-      lineItem: 'No Line Items Yet',
->>>>>>> 0645b58e8fc680bda6cafb151adccba31f752347:lib/screens/contractor_loan_screen.dart
+
       inspectionPercentage: 0.0,
       budget: 0.0,
       draws: {
@@ -348,7 +311,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                       2: item['draw2_amount']?.toDouble(),
                       3: item['draw3_amount']?.toDouble(),
                       4: null,
-                    },
+                     },
                     drawStatuses: {
                       1: _getDrawStatusFromAmount(item['draw1_amount']),
                       2: _getDrawStatusFromAmount(item['draw2_amount']),
@@ -395,9 +358,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     for (var item in _drawRequests) {
       for (int i = 1; i <= numberOfDraws; i++) {
         final key = '${item.lineItem}_$i';
-        final amount = item.draws[i];
-        _controllers[key] =
-            TextEditingController(text: amount?.toString() ?? '');
+        // final amount = item.draws[i];
+        // _controllers[key] =
+            // TextEditingController(text: amount?.toString() ?? '');
       }
     }
   }
@@ -591,78 +554,6 @@ IconData _getCategoryIcon(String category) {
   /// the construction loan line items. 
 
   /// CLAUDE MADE A CHANGE HERE
-  Future<void> _loadLoanData() async {
-    print("The loan data function was called!");
-    try {
-      setState(() => _isLoading = true);
-
-      // Fetch loan details
-      final loanResponse = await supabase
-          .from('construction_loans')
-          .select()
-          .eq('loan_id', widget.loanId)
-          .single();
-
-      // Fetch contractor details
-      final contractorResponse = await supabase
-          .from('contractors')
-          .select()
-          .eq('contractor_id', loanResponse['contractor_id'])
-          .single();
-
-      // // Fetch line items
-      // final lineItemsResponse = await supabase
-      //     .from('construction_loan_line_items')
-      //     .select()
-      //     .eq('loan_id', widget.loanId);
-
-      setState(() {
-        companyName = contractorResponse['company_name'] ?? "Unknown Company";
-        contractorName =
-            contractorResponse['full_name'] ?? "Unknown Contractor";
-        contractorEmail = contractorResponse['email'] ?? "No Email";
-        contractorPhone = contractorResponse['phone'] ?? "No Phone";
-
-        // _drawRequests = lineItemsResponse
-        //     .map<DrawRequest>((item) => DrawRequest(
-        //           lineItem: item['category_name'],
-        //           inspectionPercentage: item['inspection_percentage'] ?? 0.0,
-        //           budget: item['budgeted_amount'].toDouble(),
-        //           draws: {
-        //             1: item['draw1_amount']?.toDouble(),
-        //             2: item['draw2_amount']?.toDouble(),
-        //             3: item['draw3_amount']?.toDouble(),
-        //             4: null,
-        //           },
-        //           // Keep the original hardcoded status logic
-        //           drawStatuses: {
-        //             1: DrawStatus.approved,
-        //             2: DrawStatus.pending,
-        //             3: DrawStatus.pending,
-        //             4: DrawStatus.pending,
-        //           },
-        //         ))
-        //     .toList();
-
-        _isLoading = false;
-      });
-
-      // Reinitialize controllers with new data
-      _initializeControllers();
-    } catch (e) {
-      print('Error loading loan data: $e');
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading loan data: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   void _reviewDraw(int drawNumber, DrawStatus status, String? note) {
     setState(() {
       final review = LenderReview(
@@ -682,13 +573,13 @@ IconData _getCategoryIcon(String category) {
   }
 
   void _submitDraw(int drawNumber) {
-    setState(() {
-      for (var request in _drawRequests) {
-        if (request.draws[drawNumber] != null) {
-          request.drawStatuses[drawNumber] = DrawStatus.submitted;
-        }
-      }
-    });
+    // setState(() {
+      // for (var request in _drawRequests) {
+        // if (request.draws[drawNumber] != null) {
+          // request.drawStatuses[drawNumber] = DrawStatus.submitted;
+        // }
+      // }
+    // });
   }
 
   void _addNewDraw() {

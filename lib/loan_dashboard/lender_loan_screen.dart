@@ -16,7 +16,13 @@ enum DownloadStatus {
   completed,
   failed
 }
-
+enum DrawStatus {
+  pending,
+  submitted, 
+  underReview,
+  approved,
+  declined
+}
 class DownloadProgress {
   final DownloadStatus status;
   final String message;
@@ -46,26 +52,26 @@ class LoanLineItem {
   String lineItem;
   double inspectionPercentage;
   double? draw1;
-  String draw1Status;
+  DrawStatus draw1Status;
   double? draw2;
-  String draw2Status;
+  DrawStatus draw2Status;
   double? draw3;
-  String draw3Status;
+  DrawStatus draw3Status;
   double? draw4;
-  String draw4Status;
+  DrawStatus draw4Status;
   double budget;
 
   LoanLineItem({
     required this.lineItem,
     required this.inspectionPercentage,
     this.draw1,
-    this.draw1Status = 'pending',
+    this.draw1Status = DrawStatus.pending,
     this.draw2,
-    this.draw2Status = 'pending',
+    this.draw2Status = DrawStatus.pending,
     this.draw3,
-    this.draw3Status = 'pending',
+    this.draw3Status = DrawStatus.pending,
     this.draw4,
-    this.draw4Status = 'pending',
+    this.draw4Status = DrawStatus.pending,
     required this.budget,
   });
 
@@ -150,75 +156,74 @@ List<DocumentRequirement> documentRequirements = [
   // Number of draws to show (can be dynamic)
   int numberOfDraws = 4; // New value
   
-  // Initialize default loan items
   List<LoanLineItem> _loanLineItems = [
-    LoanLineItem(
-      lineItem: 'Default Value: Foundation Work',
-      inspectionPercentage: 0.3,
-      draw1: 0,
-      draw1Status: 'pending',
-      draw2: 25000,
-      draw2Status: 'pending',
-      budget: 153000,
-    ),
-    LoanLineItem(
-      lineItem: 'Default Value: Framing',
-      inspectionPercentage: 0.34,
-      draw1: 0,
-      draw1Status: 'pending',
-      budget: 153000,
-    ),
-    LoanLineItem(
-      lineItem: 'Default Value: Electrical',
-      inspectionPercentage: .55,
-      draw1: 0,
-      draw1Status: 'pending',
-      budget: 111000,
-    ),
-    LoanLineItem(
-      lineItem: 'Default Value: Plumbing',
-      inspectionPercentage: .13,
-      draw1: 0,
-      draw2: 10000,
-      draw1Status: 'pending',
-      draw2Status: 'pending',
-      budget: 153000,
-    ),
-    LoanLineItem(
-      lineItem: 'Default Value: HVAC Installation',
-      inspectionPercentage: 0,
-      draw1: 0,
-      draw1Status: 'pending',
-      budget: 153000,
-    ),
-    LoanLineItem(
-      lineItem: 'Default Value: Roofing',
-      inspectionPercentage: .4,
-      draw1: 0,
-      draw1Status: 'pending',
-      budget: 153000,
-    ),
-    LoanLineItem(
-      lineItem: 'Default Value: Interior Finishing',
-      inspectionPercentage: .45,
-      draw1: 0,
-      draw1Status: 'pending',
-      budget: 153000,
-    ),
-  ];
+  LoanLineItem(
+    lineItem: 'Default Value: Foundation Work',
+    inspectionPercentage: 0.3,
+    draw1: 0,
+    draw1Status: DrawStatus.pending,
+    draw2: 25000,
+    draw2Status: DrawStatus.pending,
+    budget: 153000,
+  ),
+  LoanLineItem(
+    lineItem: 'Default Value: Framing',
+    inspectionPercentage: 0.34,
+    draw1: 0,
+    draw1Status: DrawStatus.pending,
+    budget: 153000,
+  ),
+  LoanLineItem(
+    lineItem: 'Default Value: Electrical',
+    inspectionPercentage: .55,
+    draw1: 0,
+    draw1Status: DrawStatus.pending,  // Changed from string to enum
+    budget: 111000,
+  ),
+  LoanLineItem(
+    lineItem: 'Default Value: Plumbing',
+    inspectionPercentage: .13,
+    draw1: 0,
+    draw2: 10000,
+    draw1Status: DrawStatus.pending,  // Changed from string to enum
+    draw2Status: DrawStatus.pending,  // Changed from string to enum
+    budget: 153000,
+  ),
+  LoanLineItem(
+    lineItem: 'Default Value: HVAC Installation',
+    inspectionPercentage: 0,
+    draw1: 0,
+    draw1Status: DrawStatus.pending,  // Changed from string to enum
+    budget: 153000,
+  ),
+  LoanLineItem(
+    lineItem: 'Default Value: Roofing',
+    inspectionPercentage: .4,
+    draw1: 0,
+    draw1Status: DrawStatus.pending,  // Changed from string to enum
+    budget: 153000,
+  ),
+  LoanLineItem(
+    lineItem: 'Default Value: Interior Finishing',
+    inspectionPercentage: .45,
+    draw1: 0,
+    draw1Status: DrawStatus.pending,  // Changed from string to enum
+    budget: 153000,
+  ),
+];
 
-  Map<int, String> drawStatuses = {};
+  Map<int, DrawStatus> drawStatuses = {};
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedCategory = documentRequirements[0].category;
-    for (int i = 1; i <= numberOfDraws; i++) {
-      drawStatuses[i] = 'pending';
-    }
-    _setContractorDetails();
-    fetchLoanLineItems();
+@override
+void initState() {
+  super.initState();
+  _selectedCategory = documentRequirements[0].category;
+  for (int i = 1; i <= numberOfDraws; i++) {
+    drawStatuses[i] = DrawStatus.pending;  // Changed from 'pending' string
   }
+  _setContractorDetails();
+  fetchLoanLineItems();
+}
 
   List<LoanLineItem> get filteredLineItems {
     if (_searchQuery.isEmpty) return _loanLineItems;
@@ -853,42 +858,53 @@ Future<void> _downloadFile(String fileUrl, String fileName) async {
     );
   }
   // Database methods
-  Future<void> fetchLoanLineItems() async {
-    print("Loan line items were: $_loanLineItems");
-
-    try {
-      final response = await supabase
-          .from('construction_loan_line_items')
-          .select()
-          .eq('loan_id', widget.loanId);
-
-      print("This was the response: $response");
-
-      if (response.isEmpty) {
-        throw Exception(
-            'No line items found for loan ID: ${widget.loanId}.\nUsing default values.');
-      }
-      setState(() {
-        _loanLineItems = response
-            .map(
-              (entity) => LoanLineItem(
-                lineItem: entity['category_name'] ?? "-",
-                inspectionPercentage: entity['inspection_percentage'] ?? 0,
-                draw1: entity['draw1_amount'] ?? 0.0,
-                draw1Status: entity['draw1_status'] ?? 'pending',
-                draw2: entity['draw2_amount'] ?? 0.0,
-                draw2Status: entity['draw2_status'] ?? 'pending',
-                draw3: entity['draw3_amount'] ?? 0.0,
-                draw3Status: entity['draw3_status'] ?? 'pending',
-                budget: entity['budgeted_amount'] ?? 0.0,
-              ),
-            )
-            .toList();
-      });
-    } catch (e) {
-      print('Error fetching line items: $e');
-    }
+  DrawStatus _parseDrawStatus(String? status) {
+  switch (status?.toLowerCase()) {
+    case 'approved':
+      return DrawStatus.approved;
+    case 'declined':
+      return DrawStatus.declined;
+    case 'submitted':
+      return DrawStatus.submitted;
+    case 'under_review':
+      return DrawStatus.underReview;
+    default:
+      return DrawStatus.pending;
   }
+}
+
+Future<void> fetchLoanLineItems() async {
+  try {
+    final response = await supabase
+        .from('construction_loan_line_items')
+        .select()
+        .eq('loan_id', widget.loanId);
+
+    if (response.isEmpty) {
+      throw Exception('No line items found for loan ID: ${widget.loanId}');
+    }
+    
+    setState(() {
+      _loanLineItems = response
+          .map(
+            (entity) => LoanLineItem(
+              lineItem: entity['category_name'] ?? "-",
+              inspectionPercentage: entity['inspection_percentage'] ?? 0,
+              draw1: entity['draw1_amount']?.toDouble(),
+              draw1Status: _parseDrawStatus(entity['draw1_status']),
+              draw2: entity['draw2_amount']?.toDouble(),
+              draw2Status: _parseDrawStatus(entity['draw2_status']),
+              draw3: entity['draw3_amount']?.toDouble(),
+              draw3Status: _parseDrawStatus(entity['draw3_status']),
+              budget: entity['budgeted_amount']?.toDouble() ?? 0.0,
+            ),
+          )
+          .toList();
+    });
+  } catch (e) {
+    print('Error fetching line items: $e');
+  }
+}
   Widget _buildStatusBadge(String status) {
   Color color;
   String displayText;
@@ -1635,21 +1651,21 @@ void _showRequirementsDialog() {
     );
   }
 
-  void _updateDrawStatus(LoanLineItem item, int drawNumber, String status) {
-    setState(() {
-      switch (drawNumber) {
-        case 1:
-          item.draw1Status = status;
-          break;
-        case 2:
-          item.draw2Status = status;
-          break;
-        case 3:
-          item.draw3Status = status;
-          break;
-      }
-    });
-  }
+  void _updateDrawStatus(LoanLineItem item, int drawNumber, DrawStatus status) {
+  setState(() {
+    switch (drawNumber) {
+      case 1:
+        item.draw1Status = status;
+        break;
+      case 2:
+        item.draw2Status = status;
+        break;
+      case 3:
+        item.draw3Status = status;
+        break;
+    }
+  });
+}
 
   void _showDrawEditDialog(LoanLineItem request, int drawNumber) {
     final controller = TextEditingController(
@@ -1834,7 +1850,7 @@ Widget _buildDataTable() {
             ),
             // Fixed right headers
             Container(
-              width: 240, // 120 * 2 for Total Drawn and Budget
+              width: 240,
               child: Row(
                 children: [
                   Container(
@@ -1894,26 +1910,26 @@ Widget _buildDataTable() {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         alignment: Alignment.centerLeft,
                         child: Text(
-  item.lineItem,
-  style: const TextStyle(
-    fontSize: 14,
-    color: Colors.black,
-    fontWeight: FontWeight.w500,
-  ),
-),
+                          item.lineItem,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                       Container(
                         width: 80,
                         height: 50,
                         alignment: Alignment.center,
                         child: Text(
-  '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
-  style: const TextStyle(
-    fontSize: 14,
-    color: Colors.black, // Darker text
-    fontWeight: FontWeight.w500, // Slightly bolder
-  ),
-),
+                          '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ],
                   )).toList(),
@@ -1936,7 +1952,7 @@ Widget _buildDataTable() {
                 // Fixed right columns
                 Column(
                   children: filteredLineItems.map((item) => Container(
-                    width: 240, // 120 * 2 for Total Drawn and Budget
+                    width: 240,
                     child: Row(
                       children: [
                         _buildTotalDrawnCell(item),
@@ -1947,6 +1963,44 @@ Widget _buildDataTable() {
                 ),
               ],
             ),
+          ),
+        ),
+        // Status row (NEW)
+        Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Colors.grey[200]!),
+            ),
+          ),
+          child: Row(
+            children: [
+              // Fixed left spacing
+              Container(width: 280),
+              // Scrollable status section
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _horizontalScrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(
+                      numberOfDraws,
+                      (index) => Container(
+                        width: 120,
+                        height: 92,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            left: BorderSide(color: Colors.grey[200]!),
+                          ),
+                        ),
+                        child: _buildDrawStatusControls(index + 1),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Fixed right spacing
+              Container(width: 240),
+            ],
           ),
         ),
       ],
@@ -2067,7 +2121,7 @@ void _moveDrawAmount(LoanLineItem item, int drawNumber, String direction) {
     if (direction == 'left' && drawNumber > 1) {
       // Move amount left
       double? tempAmount = _getDrawAmount(item, drawNumber - 1);
-      String tempStatus = _getDrawStatus(item, drawNumber - 1);
+      DrawStatus tempStatus = _getDrawStatus(item, drawNumber - 1);
       
       _setDrawAmount(item, drawNumber - 1, _getDrawAmount(item, drawNumber));
       _setDrawStatus(item, drawNumber - 1, _getDrawStatus(item, drawNumber));
@@ -2076,9 +2130,8 @@ void _moveDrawAmount(LoanLineItem item, int drawNumber, String direction) {
       _setDrawStatus(item, drawNumber, tempStatus);
       
     } else if (direction == 'right' && drawNumber < numberOfDraws) {
-      // Move amount right
       double? tempAmount = _getDrawAmount(item, drawNumber + 1);
-      String tempStatus = _getDrawStatus(item, drawNumber + 1);
+      DrawStatus tempStatus = _getDrawStatus(item, drawNumber + 1);
       
       _setDrawAmount(item, drawNumber + 1, _getDrawAmount(item, drawNumber));
       _setDrawStatus(item, drawNumber + 1, _getDrawStatus(item, drawNumber));
@@ -2090,24 +2143,23 @@ void _moveDrawAmount(LoanLineItem item, int drawNumber, String direction) {
 }
 
 // Helper method to get draw status
-String _getDrawStatus(LoanLineItem item, int drawNumber) {
+DrawStatus _getDrawStatus(LoanLineItem item, int drawNumber) {
   switch (drawNumber) {
     case 1:
-      return item.draw1Status ?? 'pending';
+      return item.draw1Status;
     case 2:
-      return item.draw2Status ?? 'pending';
+      return item.draw2Status;
     case 3:
-      return item.draw3Status ?? 'pending';
+      return item.draw3Status;
     case 4:
-      return item.draw4Status ?? 'pending';
-    // Additional cases can be added as needed
+      return item.draw4Status;
     default:
-      return 'pending';
+      return DrawStatus.pending;
   }
 }
 
 // Helper method to set draw status
-void _setDrawStatus(LoanLineItem item, int drawNumber, String status) {
+void _setDrawStatus(LoanLineItem item, int drawNumber, DrawStatus status) {
   switch (drawNumber) {
     case 1:
       item.draw1Status = status;
@@ -2121,10 +2173,10 @@ void _setDrawStatus(LoanLineItem item, int drawNumber, String status) {
     case 4:
       item.draw4Status = status;
       break;
-    // Additional cases can be added as needed
   }
 }
-// Helper method to set draw amount
+
+// Helper method to set draw amount (this stays the same since it handles doubles)
 void _setDrawAmount(LoanLineItem item, int drawNumber, double? amount) {
   switch (drawNumber) {
     case 1:
@@ -2139,7 +2191,6 @@ void _setDrawAmount(LoanLineItem item, int drawNumber, double? amount) {
     case 4:
       item.draw4 = amount;
       break;
-    // Additional cases can be added as needed
   }
 }
 Widget _buildTotalDrawnCell(LoanLineItem item) {
@@ -2198,9 +2249,9 @@ Widget _buildBudgetCell(LoanLineItem item) {
   );
 }
 
+Widget _buildDrawStatusControls(int drawNumber) {
+    final status = drawStatuses[drawNumber] ?? DrawStatus.pending;
 
-  
-  Widget _buildDrawStatusControls(int drawNumber) {
     return Container(
       height: 50,
       child: Row(
@@ -2208,40 +2259,85 @@ Widget _buildBudgetCell(LoanLineItem item) {
         children: [
           IconButton(
             icon: const Icon(Icons.check_circle_outline),
-            iconSize: 16,
+            iconSize: 20,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            color: Colors.green,
-            onPressed: () => _approveVerticalDraw(drawNumber),
+            color: status == DrawStatus.approved ? Colors.green : Colors.grey,
+            onPressed: () {
+              setState(() {
+                drawStatuses[drawNumber] = DrawStatus.approved;
+                for (var item in _loanLineItems) {
+                  _setDrawStatus(item, drawNumber, DrawStatus.approved);
+                }
+              });
+            },
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: _getStatusColor(drawStatuses[drawNumber] ?? 'pending')
-                  .withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              (drawStatuses[drawNumber] ?? 'PENDING').toUpperCase(),
-              style: TextStyle(
-                color: _getStatusColor(drawStatuses[drawNumber] ?? 'pending'),
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                drawStatuses[drawNumber] = DrawStatus.submitted;
+                for (var item in _loanLineItems) {
+                  _setDrawStatus(item, drawNumber, DrawStatus.submitted);
+                }
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getStatusColor(status).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                status.toString().split('.').last.toUpperCase(),
+                style: TextStyle(
+                  color: _getStatusColor(status),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.cancel_outlined),
-            iconSize: 16,
+            iconSize: 20,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            color: Colors.red,
-            onPressed: () => _declineVerticalDraw(drawNumber),
+            color: status == DrawStatus.declined ? Colors.red : Colors.grey,
+            onPressed: () {
+              setState(() {
+                drawStatuses[drawNumber] = DrawStatus.declined;
+                for (var item in _loanLineItems) {
+                  _setDrawStatus(item, drawNumber, DrawStatus.declined);
+                }
+              });
+            },
           ),
         ],
       ),
     );
   }
+// Add submit functionality
+void _submitDraw(int drawNumber) {
+  setState(() {
+    drawStatuses[drawNumber] = DrawStatus.submitted;
+    for (var item in _loanLineItems) {
+      switch (drawNumber) {
+        case 1:
+          if (item.draw1 != null) item.draw1Status = DrawStatus.submitted;
+          break;
+        case 2:
+          if (item.draw2 != null) item.draw2Status = DrawStatus.submitted;
+          break;
+        case 3:
+          if (item.draw3 != null) item.draw3Status = DrawStatus.submitted;
+          break;
+        case 4:
+          if (item.draw4 != null) item.draw4Status = DrawStatus.submitted;
+          break;
+      }
+    }
+  });
+}
   Widget _buildSeparator() {
     return Container(
       width: 2,
@@ -2302,42 +2398,44 @@ Widget _buildBudgetCell(LoanLineItem item) {
   }
 
   void _approveVerticalDraw(int drawNumber) {
-    setState(() {
-      drawStatuses[drawNumber] = 'approved';
-      for (var item in _loanLineItems) {
-        switch (drawNumber) {
-          case 1:
-            if (item.draw1 != null) item.draw1Status = 'approved';
-            break;
-          case 2:
-            if (item.draw2 != null) item.draw2Status = 'approved';
-            break;
-          case 3:
-            if (item.draw3 != null) item.draw3Status = 'approved';
-            break;
-        }
+  setState(() {
+    drawStatuses[drawNumber] = DrawStatus.approved;
+    for (var item in _loanLineItems) {
+      switch (drawNumber) {
+        case 1:
+          if (item.draw1 != null) item.draw1Status = DrawStatus.approved;
+          break;
+        case 2:
+          if (item.draw2 != null) item.draw2Status = DrawStatus.approved;
+          break;
+        case 3:
+          if (item.draw3 != null) item.draw3Status = DrawStatus.approved;
+          break;
       }
-    });
-  }
+    }
+  });
+}
+
+  
 
   void _declineVerticalDraw(int drawNumber) {
-    setState(() {
-      drawStatuses[drawNumber] = 'declined';
-      for (var item in _loanLineItems) {
-        switch (drawNumber) {
-          case 1:
-            if (item.draw1 != null) item.draw1Status = 'declined';
-            break;
-          case 2:
-            if (item.draw2 != null) item.draw2Status = 'declined';
-            break;
-          case 3:
-            if (item.draw3 != null) item.draw3Status = 'declined';
-            break;
-        }
+  setState(() {
+    drawStatuses[drawNumber] = DrawStatus.declined;
+    for (var item in _loanLineItems) {
+      switch (drawNumber) {
+        case 1:
+          if (item.draw1 != null) item.draw1Status = DrawStatus.declined;
+          break;
+        case 2:
+          if (item.draw2 != null) item.draw2Status = DrawStatus.declined;
+          break;
+        case 3:
+          if (item.draw3 != null) item.draw3Status = DrawStatus.declined;
+          break;
       }
-    });
-  }
+    }
+  });
+}
 
   double? _getDrawAmount(LoanLineItem item, int drawNumber) {
   switch (drawNumber) {
@@ -2360,18 +2458,34 @@ Widget _buildBudgetCell(LoanLineItem item) {
     double totalWithoutThisDraw = item.totalDrawn - (amount ?? 0);
     return (totalWithoutThisDraw + amount) > item.budget;
   }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return Colors.green;
-      case 'declined':
-        return Colors.red;
-      case 'pending':
-      default:
-        return Colors.orange;
-    }
+Color _getStatusColor(DrawStatus status) {
+  switch (status) {
+    case DrawStatus.approved:
+      return const Color(0xFF22C55E);
+    case DrawStatus.declined:
+      return const Color(0xFFEF4444);
+    case DrawStatus.submitted:
+      return const Color(0xFF6500E9);
+    case DrawStatus.underReview:
+      return const Color(0xFF6366F1);
+    case DrawStatus.pending:
+      return const Color(0xFFF97316);
   }
+}
+String _getButtonText(DrawStatus status) {
+  switch (status) {
+    case DrawStatus.approved:
+      return 'Approved';
+    case DrawStatus.declined:
+      return 'Declined';
+    case DrawStatus.submitted:
+      return 'Submitted';
+    case DrawStatus.underReview:
+      return 'Under Review';
+    case DrawStatus.pending:
+      return 'Submit';
+  }
+}
 
   @override
   void dispose() {

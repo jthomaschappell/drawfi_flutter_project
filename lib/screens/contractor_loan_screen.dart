@@ -8,7 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 enum DrawStatus { pending, submitted, underReview, approved, declined }
 
 class DrawRequest {
-  final String lineItem;
+  final String lineItemName;
   double inspectionPercentage;
   Map<int, double?> draws;
   Map<int, DrawStatus> drawStatuses; // Changed from String to DrawStatus
@@ -17,7 +17,7 @@ class DrawRequest {
   DateTime? reviewedAt; // New field
 
   DrawRequest({
-    required this.lineItem,
+    required this.lineItemName,
     required this.inspectionPercentage,
     Map<int, double?>? draws,
     Map<int, DrawStatus>? drawStatuses,
@@ -86,7 +86,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
   List<DrawRequest> _drawRequests = [
     DrawRequest(
-      lineItem: 'No Line Items Yet',
+      lineItemName: 'No Line Items Yet',
       inspectionPercentage: 0.0,
       budget: 0.0,
       draws: {
@@ -164,7 +164,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
           // Create a default line item if none exist
           _drawRequests = [
             DrawRequest(
-              lineItem: 'No Line Items Yet',
+              lineItemName: 'No Line Items Yet',
               inspectionPercentage: 0.0,
               budget: 0.0,
               draws: {
@@ -184,7 +184,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         } else {
           _drawRequests = lineItemsResponse
               .map<DrawRequest>((item) => DrawRequest(
-                    lineItem: item['category_name'],
+                    lineItemName: item['category_name'],
                     inspectionPercentage: item['inspection_percentage'] ?? 0.0,
                     budget: item['budgeted_amount'].toDouble(),
                     draws: {
@@ -238,7 +238,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   void _initializeControllers() {
     for (var item in _drawRequests) {
       for (int i = 1; i <= numberOfDraws; i++) {
-        final key = '${item.lineItem}_$i';
+        final key = '${item.lineItemName}_$i';
         final amount = item.draws[i];
         _controllers[key] =
             TextEditingController(text: amount?.toString() ?? '');
@@ -296,7 +296,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         request.draws[numberOfDraws] = null;
         request.drawStatuses[numberOfDraws] = DrawStatus.pending;
 
-        final key = '${request.lineItem}_$numberOfDraws';
+        final key = '${request.lineItemName}_$numberOfDraws';
         _controllers[key] = TextEditingController();
       }
     });
@@ -306,7 +306,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     if (_searchQuery.isEmpty) return _drawRequests;
     return _drawRequests
         .where(
-          (request) => request.lineItem.toLowerCase().contains(
+          (request) => request.lineItemName.toLowerCase().contains(
                 _searchQuery.toLowerCase(),
               ),
         )
@@ -431,11 +431,11 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
 
-        String currentKey = '${item.lineItem}_$drawNumber';
+        String currentKey = '${item.lineItemName}_$drawNumber';
         _controllers[currentKey]?.text =
             item.draws[drawNumber]?.toString() ?? '';
 
-        String prevKey = '${item.lineItem}_${drawNumber - 1}';
+        String prevKey = '${item.lineItemName}_${drawNumber - 1}';
         _controllers[prevKey]?.text =
             item.draws[drawNumber - 1]?.toString() ?? '';
       } else if (direction == 'right' && drawNumber < numberOfDraws) {
@@ -450,11 +450,11 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
 
-        String currentKey = '${item.lineItem}_$drawNumber';
+        String currentKey = '${item.lineItemName}_$drawNumber';
         _controllers[currentKey]?.text =
             item.draws[drawNumber]?.toString() ?? '';
 
-        String nextKey = '${item.lineItem}_${drawNumber + 1}';
+        String nextKey = '${item.lineItemName}_${drawNumber + 1}';
         _controllers[nextKey]?.text =
             item.draws[drawNumber + 1]?.toString() ?? '';
       }
@@ -462,7 +462,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   }
 
   Widget _buildDrawCell(DrawRequest item, int drawNumber) {
-    final String key = '${item.lineItem}_$drawNumber';
+    final String key = '${item.lineItemName}_$drawNumber';
     final bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber);
     final bool isEditable = item.drawStatuses[drawNumber] == DrawStatus.pending;
 
@@ -781,7 +781,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                                         ),
                                       ),
                                       child: Text(
-                                        item.lineItem,
+                                        item.lineItemName,
                                         style: const TextStyle(
                                           fontSize: 14,
                                           color: Colors.black,

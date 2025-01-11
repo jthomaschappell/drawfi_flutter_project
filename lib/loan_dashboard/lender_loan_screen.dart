@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'dart:html' as html;
 import 'package:collection/collection.dart';
+import 'dart:developer' as developer; 
 
 
 enum DownloadStatus {
@@ -662,11 +663,19 @@ Widget _buildFileListItem(Map<String, dynamic> file) {
     ),
   );
 }
-
 Future<void> _downloadFile(String fileUrl, String fileName) async {
   final downloadProgress = ValueNotifier<DownloadProgress?>(null);
   
   try {
+    // 0. Log the full file details for diagnostic purposes
+    developer.log('Download Initiated', 
+      name: 'FileDownload',
+      error: {
+        'fileUrl': fileUrl,
+        'fileName': fileName,
+      }
+    );
+
     // 1. Show initial progress
     downloadProgress.value = DownloadProgress(
       status: DownloadStatus.inProgress,
@@ -674,101 +683,112 @@ Future<void> _downloadFile(String fileUrl, String fileName) async {
       progress: 0
     );
 
-    // 2. Show progress dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => ValueListenableBuilder<DownloadProgress?>(
-        valueListenable: downloadProgress,
-        builder: (context, progress, _) {
-          return AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (progress?.status == DownloadStatus.inProgress) ...[
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(progress?.message ?? 'Downloading...'),
-                ] else if (progress?.status == DownloadStatus.failed) ...[
-                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                  const SizedBox(height: 16),
-                  Text(
-                    progress?.message ?? 'Download failed',
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
-                ] else if (progress?.status == DownloadStatus.completed) ...[
-                  const Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
-                  const SizedBox(height: 16),
-                  const Text('Download completed successfully'),
-                ]
-              ],
-            ),
-            actions: [
-              if (progress?.status != DownloadStatus.inProgress)
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close'),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-
-    // 3. Get file path and update progress
-    final filePath = fileUrl.split('/').last;
-    downloadProgress.value = DownloadProgress(
-      status: DownloadStatus.inProgress,
-      message: 'Downloading $fileName...',
-      progress: 0.2
-    );
-
-    // 4. Download file
-    final response = await supabase.storage
-        .from('project_documents')
-        .download(filePath);
-
-    downloadProgress.value = DownloadProgress(
-      status: DownloadStatus.inProgress,
-      message: 'Processing file...',
-      progress: 0.8
-    );
-
-    // 5. Process and trigger download
-    final blob = html.Blob([response]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement()
-      ..href = url
-      ..style.display = 'none'
-      ..download = fileName;
-    html.document.body!.children.add(anchor);
-    anchor.click();
-    
-    // 6. Cleanup
-    html.document.body!.children.remove(anchor);
-    html.Url.revokeObjectUrl(url);
-
-    // 7. Show success and close
-    downloadProgress.value = DownloadProgress(
-      status: DownloadStatus.completed,
-      message: 'Download completed'
-    );
-    await Future.delayed(const Duration(seconds: 1));
-    if (context.mounted) {
-      Navigator.of(context).pop();
+    // 2. Debug: Parse and log file path
+    // Try different parsing strategies
+    String? extractedPath;
+    try {
+      // Strategy 1: Last part of URL
+      extractedPath = fileUrl.split('/').last;
+      developer.log('Extracted Path (Method 1)', 
+        name: 'FileDownload',
+        error: {'path': extractedPath}
+      );
+    } catch (e) {
+      developer.log('Path extraction failed', 
+        name: 'FileDownload',
+        error: e
+      );
     }
 
+    // Try alternative path extraction if first method fails
+    if (extractedPath == null || extractedPath.isEmpty) {
+      try {
+        // Strategy 2: Use full URL path
+        extractedPath = Uri.parse(fileUrl).path.split('/').last;
+        developer.log('Extracted Path (Method 2)', 
+          name: 'FileDownload',
+          error: {'path': extractedPath}
+        );
+      } catch (e) {
+        developer.log('Alternative path extraction failed', 
+          name: 'FileDownload',
+          error: e
+        );
+      }
+    }
+
+    // 3. Validate extracted path
+    if (extractedPath == null || extractedPath.isEmpty) {
+      throw Exception('Could not extract valid file path');
+    }
+
+    // 4. Download with more specific error handling
+    try {
+      final response = await supabase.storage
+          .from('project_documents')
+          .download(extractedPath);
+
+      // Additional logging
+      developer.log('Download Response', 
+        name: 'FileDownload',
+        error: {
+          'responseLength': response.length,
+        }
+      );
+
+      // Rest of your existing download logic remains the same...
+      final blob = html.Blob([response]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement()
+        ..href = url
+        ..style.display = 'none'
+        ..download = fileName;
+      html.document.body!.children.add(anchor);
+      anchor.click();
+      
+      html.document.body!.children.remove(anchor);
+      html.Url.revokeObjectUrl(url);
+
+      downloadProgress.value = DownloadProgress(
+        status: DownloadStatus.completed,
+        message: 'Download completed'
+      );
+      await Future.delayed(const Duration(seconds: 1));
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+} on StorageException catch (storageError) {
+  developer.log('Detailed Supabase Storage Error', 
+    name: 'FileDownload',
+    error: {
+      'message': storageError.message,
+      'statusCode': storageError.statusCode,
+      'extractedPath': extractedPath,
+      'fullUrl': fileUrl
+    }
+  );
+
+  // Remove the StorageException creation
+  throw Exception('Failed to download: ${storageError.message}');
+}
+
   } catch (e) {
-    print('Error downloading file: $e');
-    
-    // 8. Handle different error types
+    developer.log('Final Catch Block', 
+      name: 'FileDownload',
+      error: {
+        'errorType': e.runtimeType,
+        'errorMessage': e.toString(),
+      }
+    );
+
+    // Existing error handling logic...
     String errorMessage = 'An error occurred while downloading the file.';
-    if (e is StorageException) {
-      switch (e.statusCode) {
-        case 404:
-          errorMessage = 'The file could not be found. It may have been deleted or moved.';
-          break;
+   if (e is StorageException) {
+  switch (e.statusCode) {
+    case 404:
+      errorMessage = 'The file could not be found. It may have been deleted or moved.';
+      break;
         case 403:
           errorMessage = 'You don\'t have permission to download this file.';
           break;
@@ -780,7 +800,6 @@ Future<void> _downloadFile(String fileUrl, String fileName) async {
       }
     }
 
-    // 9. Show error state and snackbar
     downloadProgress.value = DownloadProgress(
       status: DownloadStatus.failed,
       message: errorMessage

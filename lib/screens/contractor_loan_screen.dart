@@ -283,8 +283,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         );
 
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final fileName =
-            '${widget.loanId}/${category}/${timestamp}_${file.name}';
+        final fileName = '${widget.loanId}/$category/${timestamp}_${file.name}';
 
         if (file.bytes != null) {
           // Upload to Supabase storage
@@ -631,14 +630,93 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     });
   }
 
-  void _submitDraw(int drawNumber) {
-    setState(() {
-      for (var lineItem in _contractorScreenLoanLineItems) {
-        if (lineItem.draws[drawNumber] != null) {
-          lineItem.drawStatuses[drawNumber] = "submitted";
-        }
+  Future<void> updateDraws(String newStatus, int drawNumber) async {
+    try {
+      setState(() => _isLoading = true);
+      String capitalizedNewStatus = newStatus[0].toUpperCase();
+      capitalizedNewStatus += newStatus.substring(1);
+      String statusToUpdate = 'draw1_status';
+
+      // Get all line items for this loan
+      final lineItemsResponse = await supabase
+          .from('construction_loan_line_items')
+          .select()
+          .eq('loan_id', widget.loanId);
+
+      switch (drawNumber) {
+        case 1:
+          print("Changing draw1");
+          statusToUpdate = "draw1_status";
+          break;
+        case 2:
+          print("Changing draw2");
+          statusToUpdate = "draw2_status";
+          break;
+        case 3:
+          print("Changing draw3");
+          statusToUpdate = "draw3_status";
+          break;
+        case 4:
+          print("Changing draw4");
+          statusToUpdate = "draw4_status";
+          break;
       }
-    });
+
+      // Update each line item's draw statuses to 'approved'
+      for (var item in lineItemsResponse) {
+        await supabase.from('construction_loan_line_items').update({
+          statusToUpdate: newStatus,
+        }).eq('category_id', item['category_id']);
+      }
+      // Refresh the data on the page
+      await _loadLoanData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Draw made "$capitalizedNewStatus"',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      setState(() {
+        print("Now, after the function, isPending is $isPending");
+        isPending = !isPending;
+      });
+    } catch (e) {
+      print('Error approving draws: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error approving draws: ${e.toString()}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _submitDraw(int drawNumber) {
+    // setState(() {
+    // for (var lineItem in _contractorScreenLoanLineItems) {
+    //   if (lineItem.draws[drawNumber] != null) {
+    //     lineItem.drawStatuses[drawNumber] = "submitted";
+    //   }
+    // }
+    // });
+
+    /// TODO:
+    /// drawNumber --> maps to draw1_status, draw2_status.
+    ///
+    ///
   }
 
   void _addNewDraw() {
@@ -1006,9 +1084,13 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                 )
               else if (!widget.isLender)
                 ElevatedButton(
-                  onPressed: (status == "pending")
-                      ? () => _submitDraw(drawNumber)
-                      : null,
+                  onPressed: () {
+                    if (status == "pending") {
+                      /// TODO:
+                      /// Make this update in the Database.
+                      _submitDraw(drawNumber);
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 61, 143, 96),
                     padding:
@@ -1649,67 +1731,30 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   }
 
   Widget _buildThomasTestButton() {
+    /// DONE:
+    /// This should update draw #1 --
+    /// -- on the screen,
+    /// -- and in the database.
+    ///
+    /// DONE:
+    /// Try changing it to draw #2 and see if it also updates draw #2 --
+    /// -- on the screen,
+    /// -- and in the database.
+    ///
+    /// DONE:
+    /// Take this functionality to the actual button.
+    ///
+    final drawNumber = 2;
     final newStatus = (isPending) ? "pending" : "submitted";
-    String capitalizedNewStatus =
-        newStatus[0].toUpperCase() + newStatus.substring(1);
+    String capitalizedNewStatus = newStatus[0].toUpperCase();
+    capitalizedNewStatus += newStatus.substring(1);
     return ElevatedButton(
       onPressed: () async {
         print("Before the function, isPending was $isPending");
-        try {
-          setState(() => _isLoading = true);
-
-          // Get all line items for this loan
-          final lineItemsResponse = await supabase
-              .from('construction_loan_line_items')
-              .select()
-              .eq('loan_id', widget.loanId);
-
-          // Update each line item's draw statuses to 'approved'
-          for (var item in lineItemsResponse) {
-            await supabase.from('construction_loan_line_items').update({
-              'draw1_status': newStatus,
-              'draw2_status': newStatus,
-              'draw3_status': newStatus,
-              'draw4_status': newStatus,
-            }).eq('category_id', item['category_id']);
-          }
-          // Refresh the data on the page
-          await _loadLoanData();
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'All draws have been made "$capitalizedNewStatus"',
-                ),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-          setState(() {
-            print("Now, after the function, isPending is $isPending");
-            isPending = !isPending;
-          });
-        } catch (e) {
-          print('Error approving draws: $e');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Error approving draws: ${e.toString()}',
-                ),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        } finally {
-          if (mounted) {
-            setState(() => _isLoading = false);
-          }
-        }
+        updateDraws(newStatus, drawNumber);
       },
       child: Text(
-        "Make '$capitalizedNewStatus' All on DB",
+        "Make '$capitalizedNewStatus' Draw #$drawNumber on DB",
       ),
     );
   }

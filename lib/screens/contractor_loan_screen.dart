@@ -7,8 +7,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:tester/screens/contractor_home_screen.dart';
-// Add this enum at the top of the file
 
 enum FileStatus { pending, uploaded, verified, rejected }
 
@@ -126,6 +124,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   String contractorName = "Loading...";
   String contractorEmail = "Loading...";
   String contractorPhone = "Loading...";
+  bool isPending = false;
+
+  /// switches to pending vs submitted.
 
   int numberOfDraws = 4;
   final supabase = Supabase.instance.client;
@@ -448,14 +449,16 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       print(
         "Number of loan line items: ${_contractorScreenLoanLineItems.length}",
       );
-      print(_contractorScreenLoanLineItems); 
+      // print("The line items are: \n$_contractorScreenLoanLineItems");
     } catch (e) {
       print('Error loading loan data: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading loan data: ${e.toString()}'),
+            content: Text(
+              'Error loading loan data: ${e.toString()}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -718,7 +721,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: status == "approved" ? Colors.green : Colors.red,
             ),
-            child: Text(status == "approved" ? 'Approve' : 'Decline'),
+            // child: Text(status == "approved" ? 'Approve' : 'Decline'),
+            child: Text("Way of Kings"),
           ),
         ],
       ),
@@ -727,6 +731,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
   String _getButtonText(String status) {
     switch (status) {
+      /// Some of these cases aren't consistent with the database...
       case "approved":
         return 'Approved';
       case "declined":
@@ -1001,7 +1006,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                 )
               else if (!widget.isLender)
                 ElevatedButton(
-                  onPressed: status == "pending"
+                  onPressed: (status == "pending")
                       ? () => _submitDraw(drawNumber)
                       : null,
                   style: ElevatedButton.styleFrom(
@@ -1018,6 +1023,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                       fontWeight: FontWeight.w500,
                       color: Colors.white,
                     ),
+                    // "Words of Radiance",
                   ),
                 ),
 
@@ -1642,6 +1648,72 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     );
   }
 
+  Widget _buildThomasTestButton() {
+    final newStatus = (isPending) ? "pending" : "submitted";
+    String capitalizedNewStatus =
+        newStatus[0].toUpperCase() + newStatus.substring(1);
+    return ElevatedButton(
+      onPressed: () async {
+        print("Before the function, isPending was $isPending");
+        try {
+          setState(() => _isLoading = true);
+
+          // Get all line items for this loan
+          final lineItemsResponse = await supabase
+              .from('construction_loan_line_items')
+              .select()
+              .eq('loan_id', widget.loanId);
+
+          // Update each line item's draw statuses to 'approved'
+          for (var item in lineItemsResponse) {
+            await supabase.from('construction_loan_line_items').update({
+              'draw1_status': newStatus,
+              'draw2_status': newStatus,
+              'draw3_status': newStatus,
+              'draw4_status': newStatus,
+            }).eq('category_id', item['category_id']);
+          }
+          // Refresh the data on the page
+          await _loadLoanData();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'All draws have been made "$capitalizedNewStatus"',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+          setState(() {
+            print("Now, after the function, isPending is $isPending");
+            isPending = !isPending;
+          });
+        } catch (e) {
+          print('Error approving draws: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Error approving draws: ${e.toString()}',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } finally {
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
+        }
+      },
+      child: Text(
+        "Make '$capitalizedNewStatus' All on DB",
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1674,6 +1746,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                               label: 'Project Completion',
                               color: const Color.fromARGB(255, 51, 7, 163),
                             ),
+
+                            /// Remove this when we are no longer testing.
+                            _buildThomasTestButton(),
                           ],
                         ),
                         const SizedBox(height: 24),

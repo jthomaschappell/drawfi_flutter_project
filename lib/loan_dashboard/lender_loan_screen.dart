@@ -11,7 +11,18 @@ import 'package:collection/collection.dart';
 
 final supabase = Supabase.instance.client;
 
-enum DownloadStatus { inProgress, completed, failed }
+enum DownloadStatus {
+  inProgress,
+  completed,
+  failed
+}
+// enum DrawStatus {
+//   pending,
+//   submitted, 
+//   underReview,
+//   approved,
+//   declined
+// }
 
 class DownloadProgress {
   final DownloadStatus status;
@@ -146,8 +157,6 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
 
   // Number of draws to show (can be dynamic)
   int numberOfDraws = 4; // New value
-
-  // Initialize default loan items
   List<LoanLineItem> _loanLineItems = [
     LoanLineItem(
       lineItemName: 'Default Value: Foundation Work',
@@ -204,18 +213,18 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
     ),
   ];
 
-  Map<int, String> drawStatuses = {};
+  // Map<int, DrawStatus> drawStatuses = {};
 
-  @override
-  void initState() {
-    super.initState();
-    _selectedCategory = documentRequirements[0].category;
-    for (int i = 1; i <= numberOfDraws; i++) {
-      drawStatuses[i] = 'pending';
-    }
-    _setContractorDetails();
-    fetchLoanLineItems();
-  }
+@override
+void initState() {
+  super.initState();
+  _selectedCategory = documentRequirements[0].category;
+  // for (int i = 1; i <= numberOfDraws; i++) {
+  //   drawStatuses[i] = DrawStatus.pending;  // Changed from 'pending' string
+  // }
+  _setContractorDetails();
+  fetchLoanLineItems();
+}
 
   List<LoanLineItem> get filteredLineItems {
     if (_searchQuery.isEmpty) return _loanLineItems;
@@ -869,6 +878,7 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
   }
 
   // Database methods
+<<<<<<< HEAD
   Future<void> fetchLoanLineItems() async {
     print("Loan line items were: $_loanLineItems");
 
@@ -909,6 +919,55 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
     }
   }
 
+=======
+  DrawStatus _parseDrawStatus(String? status) {
+  switch (status?.toLowerCase()) {
+    case 'approved':
+      return DrawStatus.approved;
+    case 'declined':
+      return DrawStatus.declined;
+    case 'submitted':
+      return DrawStatus.submitted;
+    case 'under_review':
+      return DrawStatus.underReview;
+    default:
+      return DrawStatus.pending;
+  }
+}
+
+Future<void> fetchLoanLineItems() async {
+  try {
+    final response = await supabase
+        .from('construction_loan_line_items')
+        .select()
+        .eq('loan_id', widget.loanId);
+
+    if (response.isEmpty) {
+      throw Exception('No line items found for loan ID: ${widget.loanId}');
+    }
+    
+    setState(() {
+      _loanLineItems = response
+          .map(
+            (entity) => LoanLineItem(
+              lineItem: entity['category_name'] ?? "-",
+              inspectionPercentage: entity['inspection_percentage'] ?? 0,
+              draw1: entity['draw1_amount']?.toDouble(),
+              draw1Status: _parseDrawStatus(entity['draw1_status']),
+              draw2: entity['draw2_amount']?.toDouble(),
+              draw2Status: _parseDrawStatus(entity['draw2_status']),
+              draw3: entity['draw3_amount']?.toDouble(),
+              draw3Status: _parseDrawStatus(entity['draw3_status']),
+              budget: entity['budgeted_amount']?.toDouble() ?? 0.0,
+            ),
+          )
+          .toList();
+    });
+  } catch (e) {
+    print('Error fetching line items: $e');
+  }
+}
+>>>>>>> 88ce4570bf3b0294cbd29333bd49d370df624926
   Widget _buildStatusBadge(String status) {
     Color color;
     String displayText;
@@ -1666,21 +1725,21 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
     );
   }
 
-  void _updateDrawStatus(LoanLineItem item, int drawNumber, String status) {
-    setState(() {
-      switch (drawNumber) {
-        case 1:
-          item.draw1Status = status;
-          break;
-        case 2:
-          item.draw2Status = status;
-          break;
-        case 3:
-          item.draw3Status = status;
-          break;
-      }
-    });
-  }
+  void _updateDrawStatus(LoanLineItem item, int drawNumber, DrawStatus status) {
+  setState(() {
+    switch (drawNumber) {
+      case 1:
+        item.draw1Status = status;
+        break;
+      case 2:
+        item.draw2Status = status;
+        break;
+      case 3:
+        item.draw3Status = status;
+        break;
+    }
+  });
+}
 
   void _showDrawEditDialog(LoanLineItem request, int drawNumber) {
     final controller = TextEditingController(
@@ -1886,6 +1945,7 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
                         ),
                       ),
                     ),
+<<<<<<< HEAD
                     Container(
                       width: 120,
                       height: 50,
@@ -1893,6 +1953,108 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
                       decoration: BoxDecoration(
                         border: Border(
                           left: BorderSide(color: Colors.grey[200]!),
+=======
+                  ),
+                ),
+              ),
+            ),
+            // Fixed right headers
+            Container(
+              width: 240,
+              child: Row(
+                children: [
+                  Container(
+                    width: 120,
+                    height: 50,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        left: BorderSide(color: Colors.grey[200]!),
+                      ),
+                    ),
+                    child: const Text(
+                      'Total Drawn',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 120,
+                    height: 50,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        left: BorderSide(color: Colors.grey[200]!),
+                      ),
+                    ),
+                    child: const Text(
+                      'Budget',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        // Table body
+        Expanded(
+          child: SingleChildScrollView(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Fixed left column
+                Column(
+                  children: filteredLineItems.map((item) => Row(
+                    children: [
+                      Container(
+                        width: 200,
+                        height: 50,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          item.lineItem,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 80,
+                        height: 50,
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )).toList(),
+                ),
+                // Scrollable middle section
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _horizontalScrollController,
+                    scrollDirection: Axis.horizontal,
+                    child: Column(
+                      children: filteredLineItems.map((item) => Row(
+                        children: List.generate(
+                          numberOfDraws,
+                          (drawIndex) => _buildDrawCell(item, drawIndex + 1),
+>>>>>>> 88ce4570bf3b0294cbd29333bd49d370df624926
                         ),
                       ),
                       child: const Text(
@@ -1971,6 +2133,7 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
                       ),
                     ),
                   ),
+<<<<<<< HEAD
                   // Fixed right columns
                   Column(
                     children: filteredLineItems
@@ -1987,6 +2150,280 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
                   ),
                 ],
               ),
+=======
+                ),
+                // Fixed right columns
+                Column(
+                  children: filteredLineItems.map((item) => Container(
+                    width: 240,
+                    child: Row(
+                      children: [
+                        _buildTotalDrawnCell(item),
+                        _buildBudgetCell(item),
+                      ],
+                    ),
+                  )).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Status row (NEW)
+        Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Colors.grey[200]!),
+            ),
+          ),
+          child: Row(
+            children: [
+              // Fixed left spacing
+              Container(width: 280),
+              // Scrollable status section
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _horizontalScrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(
+                      numberOfDraws,
+                      (index) => Container(
+                        width: 120,
+                        height: 92,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            left: BorderSide(color: Colors.grey[200]!),
+                          ),
+                        ),
+                        child: _buildDrawStatusControls(index + 1),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Fixed right spacing
+              Container(width: 240),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+Widget _buildFixedRightHeaders() {
+  return Container(
+    decoration: BoxDecoration(
+      border: Border(left: BorderSide(color: Colors.grey[300]!)),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 120,
+          alignment: Alignment.center,
+          child: const Text(
+            'Total Drawn',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        Container(
+          width: 120,
+          alignment: Alignment.center,
+          child: const Text(
+            'Budget',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+  // Update this method in your code
+
+Widget _buildDrawCell(LoanLineItem item, int drawNumber) {
+  double? amount = _getDrawAmount(item, drawNumber);
+  bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber, amount);
+
+  return Container(
+    width: 120,
+    height: 50,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      border: Border(
+        left: BorderSide(color: Colors.grey[200]!),
+      ),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Left arrow button
+        if (drawNumber > 1)
+          IconButton(
+            icon: const Icon(Icons.arrow_back, size: 16),
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(),
+            onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
+          ),
+
+        // Draw amount and warning
+        Expanded(
+          child: GestureDetector(
+            onTap: () => _showDrawEditDialog(item, drawNumber),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  amount != null ? '\$${amount.toStringAsFixed(2)}' : '-',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: wouldExceedBudget ? Colors.red : const Color.fromARGB(120, 39, 133, 5),
+                    decoration: amount != null ? TextDecoration.underline : null,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+                if (wouldExceedBudget) ...[
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: 'This draw would exceed the budget',
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+
+        // Right arrow button
+        if (drawNumber < numberOfDraws)
+          IconButton(
+            icon: const Icon(Icons.arrow_forward, size: 16),
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(),
+            onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
+          ),
+      ],
+    ),
+  );
+}
+
+// Add this method to handle moving draw amounts
+void _moveDrawAmount(LoanLineItem item, int drawNumber, String direction) {
+  setState(() {
+    if (direction == 'left' && drawNumber > 1) {
+      // Move amount left
+      double? tempAmount = _getDrawAmount(item, drawNumber - 1);
+      DrawStatus tempStatus = _getDrawStatus(item, drawNumber - 1);
+      
+      _setDrawAmount(item, drawNumber - 1, _getDrawAmount(item, drawNumber));
+      _setDrawStatus(item, drawNumber - 1, _getDrawStatus(item, drawNumber));
+      
+      _setDrawAmount(item, drawNumber, tempAmount);
+      _setDrawStatus(item, drawNumber, tempStatus);
+      
+    } else if (direction == 'right' && drawNumber < numberOfDraws) {
+      double? tempAmount = _getDrawAmount(item, drawNumber + 1);
+      DrawStatus tempStatus = _getDrawStatus(item, drawNumber + 1);
+      
+      _setDrawAmount(item, drawNumber + 1, _getDrawAmount(item, drawNumber));
+      _setDrawStatus(item, drawNumber + 1, _getDrawStatus(item, drawNumber));
+      
+      _setDrawAmount(item, drawNumber, tempAmount);
+      _setDrawStatus(item, drawNumber, tempStatus);
+    }
+  });
+}
+
+// Helper method to get draw status
+DrawStatus _getDrawStatus(LoanLineItem item, int drawNumber) {
+  switch (drawNumber) {
+    case 1:
+      return item.draw1Status;
+    case 2:
+      return item.draw2Status;
+    case 3:
+      return item.draw3Status;
+    case 4:
+      return item.draw4Status;
+    default:
+      return DrawStatus.pending;
+  }
+}
+
+// Helper method to set draw status
+void _setDrawStatus(LoanLineItem item, int drawNumber, DrawStatus status) {
+  switch (drawNumber) {
+    case 1:
+      item.draw1Status = status;
+      break;
+    case 2:
+      item.draw2Status = status;
+      break;
+    case 3:
+      item.draw3Status = status;
+      break;
+    case 4:
+      item.draw4Status = status;
+      break;
+  }
+}
+
+// Helper method to set draw amount (this stays the same since it handles doubles)
+void _setDrawAmount(LoanLineItem item, int drawNumber, double? amount) {
+  switch (drawNumber) {
+    case 1:
+      item.draw1 = amount;
+      break;
+    case 2:
+      item.draw2 = amount;
+      break;
+    case 3:
+      item.draw3 = amount;
+      break;
+    case 4:
+      item.draw4 = amount;
+      break;
+  }
+}
+Widget _buildTotalDrawnCell(LoanLineItem item) {
+  return Container(
+    width: 120,
+    height: 50,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      border: Border(
+        left: BorderSide(color: Colors.grey[200]!),
+      ),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          '\$${item.totalDrawn.toStringAsFixed(2)}',
+          style: TextStyle(
+            color: item.totalDrawn > item.budget ? Colors.red : Colors.black87,
+          ),
+        ),
+        if (item.totalDrawn > item.budget) ...[
+          const SizedBox(width: 4),
+          Tooltip(
+            message: 'Total drawn amount exceeds budget',
+            child: Icon(
+              Icons.warning_amber_rounded,
+              size: 16,
+              color: Colors.red,
+>>>>>>> 88ce4570bf3b0294cbd29333bd49d370df624926
             ),
           ),
         ],
@@ -2031,6 +2468,7 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
   }
   // Update this method in your code
 
+<<<<<<< HEAD
   Widget _buildDrawCell(LoanLineItem item, int drawNumber) {
     double? amount = _getDrawAmount(item, drawNumber);
     bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber, amount);
@@ -2244,6 +2682,11 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
   }
 
   Widget _buildDrawStatusControls(int drawNumber) {
+=======
+Widget _buildDrawStatusControls(int drawNumber) {
+    final status = drawStatuses[drawNumber] ?? DrawStatus.pending;
+
+>>>>>>> 88ce4570bf3b0294cbd29333bd49d370df624926
     return Container(
       height: 50,
       child: Row(
@@ -2251,41 +2694,89 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.check_circle_outline),
-            iconSize: 16,
+            iconSize: 20,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            color: Colors.green,
-            onPressed: () => _approveVerticalDraw(drawNumber),
+            color: status == DrawStatus.approved ? Colors.green : Colors.grey,
+            onPressed: () {
+              setState(() {
+                drawStatuses[drawNumber] = DrawStatus.approved;
+                for (var item in _loanLineItems) {
+                  _setDrawStatus(item, drawNumber, DrawStatus.approved);
+                }
+              });
+            },
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: _getStatusColor(drawStatuses[drawNumber] ?? 'pending')
-                  .withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              (drawStatuses[drawNumber] ?? 'PENDING').toUpperCase(),
-              style: TextStyle(
-                color: _getStatusColor(drawStatuses[drawNumber] ?? 'pending'),
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                drawStatuses[drawNumber] = DrawStatus.submitted;
+                for (var item in _loanLineItems) {
+                  _setDrawStatus(item, drawNumber, DrawStatus.submitted);
+                }
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getStatusColor(status).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                status.toString().split('.').last.toUpperCase(),
+                style: TextStyle(
+                  color: _getStatusColor(status),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.cancel_outlined),
-            iconSize: 16,
+            iconSize: 20,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-            color: Colors.red,
-            onPressed: () => _declineVerticalDraw(drawNumber),
+            color: status == DrawStatus.declined ? Colors.red : Colors.grey,
+            onPressed: () {
+              setState(() {
+                drawStatuses[drawNumber] = DrawStatus.declined;
+                for (var item in _loanLineItems) {
+                  _setDrawStatus(item, drawNumber, DrawStatus.declined);
+                }
+              });
+            },
           ),
         ],
       ),
     );
   }
+<<<<<<< HEAD
 
+=======
+// Add submit functionality
+void _submitDraw(int drawNumber) {
+  setState(() {
+    drawStatuses[drawNumber] = DrawStatus.submitted;
+    for (var item in _loanLineItems) {
+      switch (drawNumber) {
+        case 1:
+          if (item.draw1 != null) item.draw1Status = DrawStatus.submitted;
+          break;
+        case 2:
+          if (item.draw2 != null) item.draw2Status = DrawStatus.submitted;
+          break;
+        case 3:
+          if (item.draw3 != null) item.draw3Status = DrawStatus.submitted;
+          break;
+        case 4:
+          if (item.draw4 != null) item.draw4Status = DrawStatus.submitted;
+          break;
+      }
+    }
+  });
+}
+>>>>>>> 88ce4570bf3b0294cbd29333bd49d370df624926
   Widget _buildSeparator() {
     return Container(
       width: 2,
@@ -2347,42 +2838,44 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
   }
 
   void _approveVerticalDraw(int drawNumber) {
-    setState(() {
-      drawStatuses[drawNumber] = 'approved';
-      for (var item in _loanLineItems) {
-        switch (drawNumber) {
-          case 1:
-            if (item.draw1 != null) item.draw1Status = 'approved';
-            break;
-          case 2:
-            if (item.draw2 != null) item.draw2Status = 'approved';
-            break;
-          case 3:
-            if (item.draw3 != null) item.draw3Status = 'approved';
-            break;
-        }
+  setState(() {
+    drawStatuses[drawNumber] = DrawStatus.approved;
+    for (var item in _loanLineItems) {
+      switch (drawNumber) {
+        case 1:
+          if (item.draw1 != null) item.draw1Status = DrawStatus.approved;
+          break;
+        case 2:
+          if (item.draw2 != null) item.draw2Status = DrawStatus.approved;
+          break;
+        case 3:
+          if (item.draw3 != null) item.draw3Status = DrawStatus.approved;
+          break;
       }
-    });
-  }
+    }
+  });
+}
+
+  
 
   void _declineVerticalDraw(int drawNumber) {
-    setState(() {
-      drawStatuses[drawNumber] = 'declined';
-      for (var item in _loanLineItems) {
-        switch (drawNumber) {
-          case 1:
-            if (item.draw1 != null) item.draw1Status = 'declined';
-            break;
-          case 2:
-            if (item.draw2 != null) item.draw2Status = 'declined';
-            break;
-          case 3:
-            if (item.draw3 != null) item.draw3Status = 'declined';
-            break;
-        }
+  setState(() {
+    drawStatuses[drawNumber] = DrawStatus.declined;
+    for (var item in _loanLineItems) {
+      switch (drawNumber) {
+        case 1:
+          if (item.draw1 != null) item.draw1Status = DrawStatus.declined;
+          break;
+        case 2:
+          if (item.draw2 != null) item.draw2Status = DrawStatus.declined;
+          break;
+        case 3:
+          if (item.draw3 != null) item.draw3Status = DrawStatus.declined;
+          break;
       }
-    });
-  }
+    }
+  });
+}
 
   double? _getDrawAmount(LoanLineItem item, int drawNumber) {
     switch (drawNumber) {
@@ -2405,18 +2898,34 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
     double totalWithoutThisDraw = item.totalDrawn - (amount ?? 0);
     return (totalWithoutThisDraw + amount) > item.budget;
   }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return Colors.green;
-      case 'declined':
-        return Colors.red;
-      case 'pending':
-      default:
-        return Colors.orange;
-    }
+Color _getStatusColor(DrawStatus status) {
+  switch (status) {
+    case DrawStatus.approved:
+      return const Color(0xFF22C55E);
+    case DrawStatus.declined:
+      return const Color(0xFFEF4444);
+    case DrawStatus.submitted:
+      return const Color(0xFF6500E9);
+    case DrawStatus.underReview:
+      return const Color(0xFF6366F1);
+    case DrawStatus.pending:
+      return const Color(0xFFF97316);
   }
+}
+String _getButtonText(DrawStatus status) {
+  switch (status) {
+    case DrawStatus.approved:
+      return 'Approved';
+    case DrawStatus.declined:
+      return 'Declined';
+    case DrawStatus.submitted:
+      return 'Submitted';
+    case DrawStatus.underReview:
+      return 'Under Review';
+    case DrawStatus.pending:
+      return 'Submit';
+  }
+}
 
   @override
   void dispose() {

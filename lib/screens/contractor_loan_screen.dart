@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+<<<<<<< HEAD
 
 enum DrawStatus {
   pending,
@@ -15,6 +16,8 @@ enum DrawStatus {
   approved,
   declined,
 }
+=======
+>>>>>>> new-branch-1-10
 
 enum FileStatus {
   pending,
@@ -47,8 +50,13 @@ class ContractorScreenLoanLineItem {
   final String categoryId; // Add this
   final String lineItemName;
   double inspectionPercentage;
+<<<<<<< HEAD
   Map<int, double?> draws;
   Map<int, DrawStatus> drawStatuses;
+=======
+  Map<int, double?> draws;  
+  Map<int, String> drawStatuses;
+>>>>>>> new-branch-1-10
   double budget;
   String? lenderNote;
   DateTime? reviewedAt;
@@ -58,12 +66,27 @@ class ContractorScreenLoanLineItem {
     required this.lineItemName,
     required this.inspectionPercentage,
     Map<int, double?>? draws,
+<<<<<<< HEAD
     Map<int, DrawStatus>? drawStatuses,
     required this.budget,
     this.lenderNote,
     this.reviewedAt,
   })  : draws = draws ?? {},
         drawStatuses = drawStatuses ?? {};
+=======
+    Map<int, String>? drawStatuses,
+     required this.budget,
+    this.lenderNote,
+    this.reviewedAt,
+  }) : 
+     draws = draws ?? {1: null, 2: null, 3: null, 4: null},
+    drawStatuses = drawStatuses ?? {
+      1: "pending", 
+      2: "pending", 
+      3: "pending", 
+      4: "pending"
+    };
+>>>>>>> new-branch-1-10
 
   double get totalDrawn {
     return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
@@ -72,7 +95,7 @@ class ContractorScreenLoanLineItem {
 
 class LenderReview {
   final String drawId;
-  final DrawStatus status;
+  final String status;
   final String? note;
   final DateTime timestamp;
   final List<FileDocument>? reviewedDocuments;
@@ -114,6 +137,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   bool _isLoading = false;
   final supabase = Supabase.instance.client;
 
+<<<<<<< HEAD
   /// TODO:
   /// Put the attribute 'documents' here.
   /// Hardcoded.
@@ -127,6 +151,20 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       uploadedAt: DateTime.now(),
     ),
   ];
+=======
+  /// Put the attribute 'documents' here. 
+  /// Hardcoded. 
+       final documents = [
+        FileDocument(
+          id: '1',
+          category: 'W9 Forms',
+          fileName: 'foundation_w9.pdf',
+          fileUrl: 'foundation_w9.pdf',
+          status: FileStatus.verified,
+          uploadedAt: DateTime.now(),
+        ),
+      ];
+>>>>>>> new-branch-1-10
 
   static const List<String> fileCategories = [
     'W9 Forms',
@@ -257,6 +295,46 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     );
   }
 
+<<<<<<< HEAD
+=======
+        // Draw requests table
+        pw.Table.fromTextArray(
+          context: context,
+          headerAlignment: pw.Alignment.centerLeft,
+          cellAlignment: pw.Alignment.centerLeft,
+          headerDecoration: pw.BoxDecoration(
+            color: PdfColors.grey300,
+          ),
+          headerHeight: 25,
+          cellHeight: 40,
+          headerStyle: pw.TextStyle(
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.black,
+          ),
+          cellStyle: const pw.TextStyle(
+            color: PdfColors.black,
+          ),
+          headers: ['Line Item', 'INSP', ...List.generate(numberOfDraws, (i) => 'Draw ${i + 1}'), 'Total Drawn', 'Budget'],
+          data: _contractorScreenLineItems.map((item) => [
+            item.lineItemName,
+            '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+            ...List.generate(numberOfDraws, (i) => 
+              item.draws[i + 1] != null ? '\$${item.draws[i + 1]!.toStringAsFixed(2)}' : '-'
+            ),
+            '\$${item.totalDrawn.toStringAsFixed(2)}',
+            '\$${item.budget.toStringAsFixed(2)}',
+          ]).toList(),
+        ),
+      ],
+    ),
+  );
+  await Printing.sharePdf(
+    bytes: await pdf.save(),
+    filename: '${companyName.replaceAll(' ', '_')}_loan_details.pdf',
+  );
+}
+
+>>>>>>> new-branch-1-10
   List<ContractorScreenLoanLineItem> _contractorScreenLineItems = [
     ContractorScreenLoanLineItem(
       categoryId: '00000000-0000-0000-0000-000000000000',
@@ -270,10 +348,10 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         4: null,
       },
       drawStatuses: {
-        1: DrawStatus.pending,
-        2: DrawStatus.pending,
-        3: DrawStatus.pending,
-        4: DrawStatus.pending,
+        1: "pending",
+        2: "pending",
+        3: "pending",
+        4: "pending",
       },
     ),
   ];
@@ -335,11 +413,56 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         contractorEmail = contractorResponse['email'] ?? "No Email";
         contractorPhone = contractorResponse['phone'] ?? "No Phone";
 
+<<<<<<< HEAD
         _contractorScreenLineItems =
             lineItemsResponse.map<ContractorScreenLoanLineItem>((item) {
           // Convert draws array to map
           Map<int, double?> drawsMap = {};
           Map<int, DrawStatus> statusMap = {};
+=======
+        if (lineItemsResponse.isEmpty) {
+          // Create a default line item if none exist
+          _contractorScreenLineItems = [
+            ContractorScreenLoanLineItem(
+              lineItemName: 'No Line Items Yet',
+              inspectionPercentage: 0.0,
+              budget: 0.0,
+              draws: {
+                1: null,
+                2: null,
+                3: null,
+                4: null,
+              },
+              drawStatuses: {
+                1: "pending",
+                2: "pending",
+                3: "pending",
+                4: "pending",
+              },
+            ),
+          ];
+        } else {
+          _contractorScreenLineItems = lineItemsResponse
+              .map<ContractorScreenLoanLineItem>((item) => ContractorScreenLoanLineItem(
+                    lineItemName: item['category_name'],
+                    inspectionPercentage: item['inspection_percentage'] ?? 0.0,
+                    budget: item['budgeted_amount'].toDouble(),
+                    draws: {
+                      1: item['draw1_amount']?.toDouble(),
+                      2: item['draw2_amount']?.toDouble(),
+                      3: item['draw3_amount']?.toDouble(),
+                      4: null,
+                     },
+                    drawStatuses: {
+                      1: _getDrawStatusFromAmount(item['draw1_amount']),
+                      2: _getDrawStatusFromAmount(item['draw2_amount']),
+                      3: _getDrawStatusFromAmount(item['draw3_amount']),
+                      4: "pending",
+                    },
+                  ))
+              .toList();
+        }
+>>>>>>> new-branch-1-10
 
           for (var draw in (item['construction_loan_draws'] as List)) {
             final drawNumber = draw['draw_number'] as int;
@@ -373,6 +496,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
   }
 
+<<<<<<< HEAD
   DrawStatus _parseDrawStatus(String status) {
     switch (status.toLowerCase()) {
       case 'approved':
@@ -386,6 +510,17 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       default:
         return DrawStatus.pending;
     }
+=======
+  /// This is hardcoded.
+  /// Remove it when the time comes.
+  String _getDrawStatusFromAmount(double? amount) {
+    if (amount == null || amount == 0) {
+      print("Amount $amount interpreted as PENDING");
+      return "pending";
+    }
+    print("Amount $amount interpreted as APPROVED");
+    return "approved";
+>>>>>>> new-branch-1-10
   }
 
   void _initializeControllers() {
@@ -398,6 +533,16 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       }
     }
   }
+<<<<<<< HEAD
+=======
+
+Future<void> _handleFileUpload(List<PlatformFile> files, String category) async {
+  try {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+>>>>>>> new-branch-1-10
 
   Future<void> _handleFileUpload(
       List<PlatformFile> files, String category) async {
@@ -597,8 +742,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       }
     });
   }
-
-  void _reviewDraw(int drawNumber, DrawStatus status, String? note) {
+  void _reviewDraw(int drawNumber, String status, String? note) {
     setState(() {
       final review = LenderReview(
         drawId: 'draw_$drawNumber',
@@ -620,7 +764,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     setState(() {
       for (var lineItem in _contractorScreenLineItems) {
         if (lineItem.draws[drawNumber] != null) {
-          lineItem.drawStatuses[drawNumber] = DrawStatus.submitted;
+          lineItem.drawStatuses[drawNumber] = "submitted";
         }
       }
     });
@@ -631,7 +775,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       numberOfDraws++;
       for (var request in _contractorScreenLineItems) {
         request.draws[numberOfDraws] = null;
-        request.drawStatuses[numberOfDraws] = DrawStatus.pending;
+        request.drawStatuses[numberOfDraws] = "pending";
 
         final key = '${request.lineItemName}_$numberOfDraws';
         _controllers[key] = TextEditingController();
@@ -673,14 +817,14 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     return (weightedSum / totalBudget) * 100;
   }
 
-  Future<void> _showReviewDialog(int drawNumber, DrawStatus status) async {
+  Future<void> _showReviewDialog(int drawNumber, String status) async {
     final TextEditingController noteController = TextEditingController();
 
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-            status == DrawStatus.approved ? 'Approve Draw' : 'Decline Draw'),
+            status == "approved" ? 'Approve Draw' : 'Decline Draw'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -706,42 +850,47 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor:
-                  status == DrawStatus.approved ? Colors.green : Colors.red,
+                  status == "approved" ? Colors.green : Colors.red,
             ),
-            child: Text(status == DrawStatus.approved ? 'Approve' : 'Decline'),
+            child: Text(status == "approved" ? 'Approve' : 'Decline'),
           ),
         ],
       ),
     );
   }
 
-  String _getButtonText(DrawStatus status) {
+  String _getButtonText(String status) {
     switch (status) {
-      case DrawStatus.approved:
+      case "approved":
         return 'Approved';
-      case DrawStatus.declined:
+      case "declined":
         return 'Declined';
-      case DrawStatus.submitted:
+      case "submitted":
         return 'Submitted';
-      case DrawStatus.underReview:
+      case "underReview":
         return 'Under Review';
-      case DrawStatus.pending:
+      case "pending":
       default:
         return 'Submit';
     }
   }
 
-  Color _getStatusColor(DrawStatus status) {
+  /**
+   * git diff HEAD origin/<branch-name>
+
+   */
+
+  Color _getStatusColor(String status) {
     switch (status) {
-      case DrawStatus.approved:
+      case "approved":
         return const Color(0xFF22C55E);
-      case DrawStatus.declined:
+      case "declined":
         return const Color(0xFFEF4444);
-      case DrawStatus.submitted:
+      case "submitted":
         return const Color(0xFF6500E9);
-      case DrawStatus.underReview:
+      case "underReview": // TODO: Are we still using underReview? 
         return const Color(0xFF6366F1);
-      case DrawStatus.pending:
+      case "pending":
       default:
         return const Color(0xFFF97316);
     }
@@ -759,12 +908,12 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     setState(() {
       if (direction == 'left' && drawNumber > 1) {
         double? tempAmount = item.draws[drawNumber - 1];
-        DrawStatus tempStatus =
-            item.drawStatuses[drawNumber - 1] ?? DrawStatus.pending;
+        String tempStatus =
+            item.drawStatuses[drawNumber - 1] ?? "pending";
 
         item.draws[drawNumber - 1] = item.draws[drawNumber];
         item.drawStatuses[drawNumber - 1] =
-            item.drawStatuses[drawNumber] ?? DrawStatus.pending;
+            item.drawStatuses[drawNumber] ?? "pending";
 
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
@@ -778,12 +927,12 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             item.draws[drawNumber - 1]?.toString() ?? '';
       } else if (direction == 'right' && drawNumber < numberOfDraws) {
         double? tempAmount = item.draws[drawNumber + 1];
-        DrawStatus tempStatus =
-            item.drawStatuses[drawNumber + 1] ?? DrawStatus.pending;
+        String tempStatus =
+            item.drawStatuses[drawNumber + 1] ?? "pending";
 
         item.draws[drawNumber + 1] = item.draws[drawNumber];
         item.drawStatuses[drawNumber + 1] =
-            item.drawStatuses[drawNumber] ?? DrawStatus.pending;
+            item.drawStatuses[drawNumber] ?? "pending";
 
         item.draws[drawNumber] = tempAmount;
         item.drawStatuses[drawNumber] = tempStatus;
@@ -802,7 +951,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   Widget _buildDrawCell(ContractorScreenLoanLineItem item, int drawNumber) {
     final String key = '${item.lineItemName}_$drawNumber';
     final bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber);
-    final bool isEditable = item.drawStatuses[drawNumber] == DrawStatus.pending;
+    final bool isEditable = item.drawStatuses[drawNumber] == "pending";
 
     return Container(
       width: 120,
@@ -911,14 +1060,19 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
   Widget _buildDrawStatusSection(int drawNumber) {
     // Initialize with default values
-    DrawStatus status = DrawStatus.pending;
+    String status = "pending";
     String? lenderNote;
     DateTime? reviewedAt;
 
     // Only try to access first item if list is not empty
     if (_contractorScreenLineItems.isNotEmpty && drawNumber <= numberOfDraws) {
+<<<<<<< HEAD
       status = _contractorScreenLineItems.first.drawStatuses[drawNumber] ??
           DrawStatus.pending;
+=======
+      status =
+          _contractorScreenLineItems.first.drawStatuses[drawNumber] ?? "pending";
+>>>>>>> new-branch-1-10
       lenderNote = _contractorScreenLineItems.first.lenderNote;
       reviewedAt = _contractorScreenLineItems.first.reviewedAt;
     }
@@ -958,7 +1112,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    if (reviewedAt != null && status != DrawStatus.pending)
+                    if (reviewedAt != null && status != "pending")
                       Text(
                         DateFormat('MM/dd/yy HH:mm').format(reviewedAt),
                         style: TextStyle(
@@ -972,27 +1126,27 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
               const SizedBox(height: 8),
 
               // Show different buttons based on user type
-              if (widget.isLender && status == DrawStatus.submitted)
+              if (widget.isLender && status == "submitted")
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
                       icon: const Icon(Icons.check_circle, color: Colors.green),
                       onPressed: () =>
-                          _showReviewDialog(drawNumber, DrawStatus.approved),
+                          _showReviewDialog(drawNumber, "approved"),
                       tooltip: 'Approve',
                     ),
                     IconButton(
                       icon: const Icon(Icons.cancel, color: Colors.red),
                       onPressed: () =>
-                          _showReviewDialog(drawNumber, DrawStatus.declined),
+                          _showReviewDialog(drawNumber, "declined"),
                       tooltip: 'Decline',
                     ),
                   ],
                 )
               else if (!widget.isLender)
                 ElevatedButton(
-                  onPressed: status == DrawStatus.pending
+                  onPressed: status == "pending"
                       ? () => _submitDraw(drawNumber)
                       : null,
                   style: ElevatedButton.styleFrom(

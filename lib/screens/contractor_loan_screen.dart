@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:tester/screens/contractor_home_screen.dart';
 // Add this enum at the top of the file
 
 enum FileStatus { pending, uploaded, verified, rejected }
@@ -53,10 +54,30 @@ class ContractorScreenLoanLineItem {
     this.reviewedAt,
   })  : draws = draws ?? {1: null, 2: null, 3: null, 4: null},
         drawStatuses = drawStatuses ??
-            {1: "pending", 2: "pending", 3: "pending", 4: "pending"};
+            {
+              1: "pending",
+              2: "pending",
+              3: "pending",
+              4: "pending",
+            };
 
   double get totalDrawn {
     return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
+  }
+
+  @override
+  String toString() {
+    return '''
+ContractorScreenLoanLineItem:
+  Line Item Name: $lineItemName
+  Inspection Percentage: $inspectionPercentage%
+  Draws: ${draws.entries.map((e) => 'Draw ${e.key}: ${e.value ?? "null"}').join(', ')}
+  Draw Statuses: ${drawStatuses.entries.map((e) => 'Draw ${e.key}: ${e.value}').join(', ')}
+  Budget: \$${budget.toStringAsFixed(2)}
+  Total Drawn: \$${totalDrawn.toStringAsFixed(2)}
+  Lender Note: ${lenderNote ?? "None"}
+  Reviewed At: ${reviewedAt?.toIso8601String() ?? "Not reviewed"}
+    ''';
   }
 }
 
@@ -410,10 +431,10 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                       4: null,
                     },
                     drawStatuses: {
-                      1: _getDrawStatusFromAmount(item['draw1_amount']),
-                      2: _getDrawStatusFromAmount(item['draw2_amount']),
-                      3: _getDrawStatusFromAmount(item['draw3_amount']),
-                      4: "pending",
+                      1: item['draw1_status'] ?? 'pending',
+                      2: item['draw2_status'] ?? 'pending',
+                      3: item['draw3_status'] ?? 'pending',
+                      4: item['draw4_status'] ?? 'pending',
                     },
                   ))
               .toList();
@@ -425,7 +446,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       print("Data load completed successfully");
       print("Company Name: $companyName");
       print(
-          "Number of draw requests: ${_contractorScreenLoanLineItems.length}");
+        "Number of loan line items: ${_contractorScreenLoanLineItems.length}",
+      );
+      print(_contractorScreenLoanLineItems); 
     } catch (e) {
       print('Error loading loan data: $e');
       setState(() => _isLoading = false);
@@ -438,19 +461,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         );
       }
     }
-  }
-
-  /// TODO:
-  /// REMOVE THIS FOR THE LOVE OF ALL THINGS GOOD
-  /// This is hardcoded.
-  /// Remove it when the time comes.
-  String _getDrawStatusFromAmount(double? amount) {
-    if (amount == null || amount == 0) {
-      print("Amount $amount interpreted as PENDING");
-      return "pending";
-    }
-    print("Amount $amount interpreted as APPROVED");
-    return "approved";
   }
 
   void _initializeControllers() {

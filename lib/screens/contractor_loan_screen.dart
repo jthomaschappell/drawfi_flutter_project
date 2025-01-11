@@ -7,7 +7,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-// Add this enum at the top of the file
 
 enum FileStatus {
   pending,
@@ -384,7 +383,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
   }
 
-  /// TODO:
   /// This is hardcoded.
   /// Remove it when the time comes.
   String _getDrawStatusFromAmount(double? amount) {
@@ -725,6 +723,11 @@ IconData _getCategoryIcon(String category) {
         return 'Submit';
     }
   }
+
+  /**
+   * git diff HEAD origin/<branch-name>
+
+   */
 
   Color _getStatusColor(String status) {
     switch (status) {

@@ -54,9 +54,7 @@ DONE: Make the change in the database.
 DONE: Make the change on the lender loan screen. 
 DONE: Make the change on the contractor loan screen. 
 
-TODO: Test the UI on the lender loan screen and fix bugs. 
-TODO: 
-
+DONE: Test the UI on the lender loan screen and fix bugs. 
 
 
 

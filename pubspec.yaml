@@ -48,6 +48,8 @@ dependencies:
   pdf: ^3.10.7
   printing: ^5.11.1
   dio: ^5.7.0
+  rxdart: ^0.28.0
+  # timeago: ^3.7.0
 
 dev_dependencies:
   flutter_test:

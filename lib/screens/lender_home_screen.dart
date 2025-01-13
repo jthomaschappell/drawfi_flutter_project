@@ -843,7 +843,7 @@ void _handleRestore(int index) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const NotificationsScreen()),
+                          builder: (context) => NotificationsScreen()),
                     );
                   },
                   label: 'Notifications',

@@ -11,7 +11,22 @@ class NotificationService {
   Stream<List<ConstructionNotification>> subscribeToUpdates() {
     final loansStream = supabase
       .from('construction_loans')
-      .stream(primaryKey: ['loan_id'])
+      .stream(primaryKey: ['loan_id'], : [
+        PostgresChangeEvent.insert,
+        PostgresChangeEvent.update,
+        PostgresChangeEvent.delete
+      ])
+      /**
+       *       .stream(
+        primaryKey: ['loan_id'],
+        // Specify the events we want to listen to
+        eventTypes: [
+          PostgresChangeEvent.insert,
+          PostgresChangeEvent.update,
+          // PostgresChangeEvent.delete  // Add this if you want delete notifications
+        ]
+      )
+       */
       .map((changes) => _processLoanChanges(changes));
       
     final lineItemsStream = supabase

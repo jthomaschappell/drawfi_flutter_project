@@ -11,13 +11,6 @@ import 'dart:html' as html;
 import 'package:collection/collection.dart';
 import 'dart:developer' as developer;
 
-/// TODO:
-/// Find the right place and copy paste the "add to DB" function there.
-/// The only problem is that the objects are not the same.
-///
-/// Do things like translate the enum here on Flutter code --> string on DB.
-/// 
-
 enum DownloadStatus { inProgress, completed, failed }
 
 enum DrawStatus { pending, submitted, underReview, approved, declined }
@@ -54,15 +47,25 @@ final supabase = Supabase.instance.client;
 
 class LoanLineItem {
   String lineItem;
+
   double inspectionPercentage;
+
   double? draw1;
+
   DrawStatus draw1Status;
+
   double? draw2;
+
   DrawStatus draw2Status;
+
   double? draw3;
+
   DrawStatus draw3Status;
+
   double? draw4;
+
   DrawStatus draw4Status;
+
   double budget;
 
   LoanLineItem({
@@ -2850,16 +2853,12 @@ www.w3.org
     switch (drawNumber) {
       case 1:
         return item.draw1;
-
       case 2:
         return item.draw2;
-
       case 3:
         return item.draw3;
-
       case 4:
         return item.draw4;
-
       // Additional cases can be added as needed
 
       default:

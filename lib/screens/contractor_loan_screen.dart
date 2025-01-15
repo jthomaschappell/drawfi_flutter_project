@@ -1017,8 +1017,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
     Color statusColor = _getStatusColor(status);
 
-    // Rest of your existing _buildDrawStatusSection code...
-
     return Stack(
       children: [
         Container(
@@ -1730,34 +1728,34 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     );
   }
 
-  Widget _buildThomasTestButton() {
-    /// DONE:
-    /// This should update draw #1 --
-    /// -- on the screen,
-    /// -- and in the database.
-    ///
-    /// DONE:
-    /// Try changing it to draw #2 and see if it also updates draw #2 --
-    /// -- on the screen,
-    /// -- and in the database.
-    ///
-    /// DONE:
-    /// Take this functionality to the actual button.
-    ///
-    final drawNumber = 2;
-    final newStatus = (isPending) ? "pending" : "submitted";
-    String capitalizedNewStatus = newStatus[0].toUpperCase();
-    capitalizedNewStatus += newStatus.substring(1);
-    return ElevatedButton(
-      onPressed: () async {
-        print("Before the function, isPending was $isPending");
-        updateDraws(newStatus, drawNumber);
-      },
-      child: Text(
-        "Make '$capitalizedNewStatus' Draw #$drawNumber on DB",
-      ),
-    );
-  }
+  // Widget _buildThomasTestButton() {
+  //   /// DONE:
+  //   /// This should update draw #1 --
+  //   /// -- on the screen,
+  //   /// -- and in the database.
+  //   ///
+  //   /// DONE:
+  //   /// Try changing it to draw #2 and see if it also updates draw #2 --
+  //   /// -- on the screen,
+  //   /// -- and in the database.
+  //   ///
+  //   /// DONE:
+  //   /// Take this functionality to the actual button.
+  //   ///
+  //   final drawNumber = 2;
+  //   final newStatus = (isPending) ? "pending" : "submitted";
+  //   String capitalizedNewStatus = newStatus[0].toUpperCase();
+  //   capitalizedNewStatus += newStatus.substring(1);
+  //   return ElevatedButton(
+  //     onPressed: () async {
+  //       print("Before the function, isPending was $isPending");
+  //       updateDraws(newStatus, drawNumber);
+  //     },
+  //     child: Text(
+  //       "Make '$capitalizedNewStatus' Draw #$drawNumber on DB",
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -1793,7 +1791,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                             ),
 
                             /// Remove this when we are no longer testing.
-                            _buildThomasTestButton(),
+                            // _buildThomasTestButton(),
                           ],
                         ),
                         const SizedBox(height: 24),

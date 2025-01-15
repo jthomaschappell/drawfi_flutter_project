@@ -7,24 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-<<<<<<< HEAD
 
-enum DrawStatus {
-  pending,
-  submitted,
-  underReview,
-  approved,
-  declined,
-}
-=======
->>>>>>> new-branch-1-10
-
-enum FileStatus {
-  pending,
-  uploaded,
-  verified,
-  rejected,
-}
+enum FileStatus { pending, uploaded, verified, rejected }
 
 class FileDocument {
   final String id;
@@ -50,11 +34,10 @@ class ContractorScreenLoanLineItem {
   final String categoryId; // Add this
   final String lineItemName;
   double inspectionPercentage;
-<<<<<<< HEAD
+
+  /// Should this be written out? double draw1, double draw2, etc.?
+  /// Same with drawStatuses?
   Map<int, double?> draws;
-  Map<int, DrawStatus> drawStatuses;
-=======
-  Map<int, double?> draws;  
   Map<int, String> drawStatuses;
 >>>>>>> new-branch-1-10
   double budget;
@@ -75,24 +58,39 @@ class ContractorScreenLoanLineItem {
         drawStatuses = drawStatuses ?? {};
 =======
     Map<int, String>? drawStatuses,
-     required this.budget,
+    required this.budget,
     this.lenderNote,
     this.reviewedAt,
-  }) : 
-     draws = draws ?? {1: null, 2: null, 3: null, 4: null},
-    drawStatuses = drawStatuses ?? {
-      1: "pending", 
-      2: "pending", 
-      3: "pending", 
-      4: "pending"
-    };
->>>>>>> new-branch-1-10
+  })  : draws = draws ?? {1: null, 2: null, 3: null, 4: null},
+        drawStatuses = drawStatuses ??
+            {
+              1: "pending",
+              2: "pending",
+              3: "pending",
+              4: "pending",
+            };
 
   double get totalDrawn {
     return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
   }
+
+  @override
+  String toString() {
+    return '''
+ContractorScreenLoanLineItem:
+  Line Item Name: $lineItemName
+  Inspection Percentage: $inspectionPercentage%
+  Draws: ${draws.entries.map((e) => 'Draw ${e.key}: ${e.value ?? "null"}').join(', ')}
+  Draw Statuses: ${drawStatuses.entries.map((e) => 'Draw ${e.key}: ${e.value}').join(', ')}
+  Budget: \$${budget.toStringAsFixed(2)}
+  Total Drawn: \$${totalDrawn.toStringAsFixed(2)}
+  Lender Note: ${lenderNote ?? "None"}
+  Reviewed At: ${reviewedAt?.toIso8601String() ?? "Not reviewed"}
+    ''';
+  }
 }
 
+/// Is this class ACTUALLY used?
 class LenderReview {
   final String drawId;
   final String status;
@@ -112,7 +110,7 @@ class LenderReview {
 class ContractorLoanScreen extends StatefulWidget {
   final String loanId;
 
-  final bool isLender; // Add this parameter
+  final bool isLender; // Claude added this parameter
 
   const ContractorLoanScreen({
     super.key,
@@ -130,15 +128,20 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   String _searchQuery = '';
   final Map<String, TextEditingController> _controllers = {};
   Timer? _refreshTimer;
-  List<LenderReview> _lenderReviews = [];
-
+  final List<LenderReview> _lenderReviews = [];
   late Stream<List<Map<String, dynamic>>> _fileHistoryStream;
-  // String _selectedCategory = ContractorScreenLoanLineItem.fileCategories[0];
   bool _isLoading = false;
+  String companyName = "Loading...";
+  String contractorName = "Loading...";
+  String contractorEmail = "Loading...";
+  String contractorPhone = "Loading...";
+  bool isPending = false;
+
+  /// switches to pending vs submitted.
+
+  int numberOfDraws = 4;
   final supabase = Supabase.instance.client;
 
-<<<<<<< HEAD
-  /// TODO:
   /// Put the attribute 'documents' here.
   /// Hardcoded.
   final documents = [
@@ -151,20 +154,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       uploadedAt: DateTime.now(),
     ),
   ];
-=======
-  /// Put the attribute 'documents' here. 
-  /// Hardcoded. 
-       final documents = [
-        FileDocument(
-          id: '1',
-          category: 'W9 Forms',
-          fileName: 'foundation_w9.pdf',
-          fileUrl: 'foundation_w9.pdf',
-          status: FileStatus.verified,
-          uploadedAt: DateTime.now(),
-        ),
-      ];
->>>>>>> new-branch-1-10
 
   static const List<String> fileCategories = [
     'W9 Forms',
@@ -183,13 +172,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             doc.category == 'Building Permits' &&
             doc.status == FileStatus.verified);
   }
-
-  String companyName = "Loading...";
-  String contractorName = "Loading...";
-  String contractorEmail = "Loading...";
-  String contractorPhone = "Loading...";
-
-  int numberOfDraws = 4;
 
   Future<void> _downloadAsPdf() async {
     final pdf = pw.Document();
@@ -231,7 +213,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                   pw.Text(
-                    'Total Amount: \$${_contractorScreenLineItems.fold<double>(0.0, (sum, item) => sum + item.totalDrawn).toStringAsFixed(2)}',
+                    'Total Amount: \$${_contractorScreenLoanLineItems.fold<double>(0.0, (sum, item) => sum + item.totalDrawn).toStringAsFixed(2)}',
                   ),
                 ],
               ),
@@ -272,7 +254,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
               'Total Drawn',
               'Budget'
             ],
-            data: _contractorScreenLineItems
+            data: _contractorScreenLoanLineItems
                 .map((item) => [
                       item.lineItemName,
                       '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
@@ -295,47 +277,69 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     );
   }
 
-<<<<<<< HEAD
-=======
-        // Draw requests table
-        pw.Table.fromTextArray(
-          context: context,
-          headerAlignment: pw.Alignment.centerLeft,
-          cellAlignment: pw.Alignment.centerLeft,
-          headerDecoration: pw.BoxDecoration(
-            color: PdfColors.grey300,
-          ),
-          headerHeight: 25,
-          cellHeight: 40,
-          headerStyle: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
-          ),
-          cellStyle: const pw.TextStyle(
-            color: PdfColors.black,
-          ),
-          headers: ['Line Item', 'INSP', ...List.generate(numberOfDraws, (i) => 'Draw ${i + 1}'), 'Total Drawn', 'Budget'],
-          data: _contractorScreenLineItems.map((item) => [
-            item.lineItemName,
-            '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
-            ...List.generate(numberOfDraws, (i) => 
-              item.draws[i + 1] != null ? '\$${item.draws[i + 1]!.toStringAsFixed(2)}' : '-'
-            ),
-            '\$${item.totalDrawn.toStringAsFixed(2)}',
-            '\$${item.budget.toStringAsFixed(2)}',
-          ]).toList(),
-        ),
-      ],
-    ),
-  );
-  await Printing.sharePdf(
-    bytes: await pdf.save(),
-    filename: '${companyName.replaceAll(' ', '_')}_loan_details.pdf',
-  );
-}
+  Future<void> _handleFileUpload(
+      List<PlatformFile> files, String category) async {
+    try {
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('User not authenticated');
+      }
 
->>>>>>> new-branch-1-10
-  List<ContractorScreenLoanLineItem> _contractorScreenLineItems = [
+      for (final file in files) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Uploading ${file.name}...'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = '${widget.loanId}/$category/${timestamp}_${file.name}';
+
+        if (file.bytes != null) {
+          // Upload to Supabase storage
+          await supabase.storage.from('project_documents').uploadBinary(
+                fileName,
+                file.bytes!,
+                fileOptions: FileOptions(
+                  contentType: 'application/octet-stream',
+                ),
+              );
+
+          // Get public URL
+          final fileUrl =
+              supabase.storage.from('project_documents').getPublicUrl(fileName);
+
+          // Insert into database with correct types
+          await supabase.from('project_documents').insert({
+            'loan_id': widget.loanId,
+            'file_url': fileUrl,
+            'file_name': file.name,
+            'file_status': 'active',
+            'file_category': category,
+            'uploaded_by': currentUser.id, // This should be a UUID from auth
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('File uploaded successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error details: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Upload failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  List<ContractorScreenLoanLineItem> _contractorScreenLoanLineItems = [
     ContractorScreenLoanLineItem(
       categoryId: '00000000-0000-0000-0000-000000000000',
       lineItemName: 'No Line Items Yet',
@@ -356,18 +360,10 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     ),
   ];
 
-  void testInitialSetup() {
-    print("\n");
-    print("Testing ContractorLoanScreen setup...");
-    print("Loan ID received: ${widget.loanId}");
-    print("Is Lender view: ${widget.isLender}");
-  }
-
   @override
   void initState() {
     super.initState();
     _initializeControllers();
-    testInitialSetup();
     _loadLoanData();
     if (!widget.isLender) {
       _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
@@ -376,6 +372,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
   }
 
+  /// CLAUDE MADE A CHANGE HERE
   Future<void> _loadLoanData() async {
     try {
       print("Starting data load for loan ID: ${widget.loanId}");
@@ -422,7 +419,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 =======
         if (lineItemsResponse.isEmpty) {
           // Create a default line item if none exist
-          _contractorScreenLineItems = [
+          _contractorScreenLoanLineItems = [
             ContractorScreenLoanLineItem(
               lineItemName: 'No Line Items Yet',
               inspectionPercentage: 0.0,
@@ -442,8 +439,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             ),
           ];
         } else {
-          _contractorScreenLineItems = lineItemsResponse
-              .map<ContractorScreenLoanLineItem>((item) => ContractorScreenLoanLineItem(
+          _contractorScreenLoanLineItems = lineItemsResponse
+              .map<ContractorScreenLoanLineItem>((item) =>
+                  ContractorScreenLoanLineItem(
                     lineItemName: item['category_name'],
                     inspectionPercentage: item['inspection_percentage'] ?? 0.0,
                     budget: item['budgeted_amount'].toDouble(),
@@ -452,12 +450,12 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                       2: item['draw2_amount']?.toDouble(),
                       3: item['draw3_amount']?.toDouble(),
                       4: null,
-                     },
+                    },
                     drawStatuses: {
-                      1: _getDrawStatusFromAmount(item['draw1_amount']),
-                      2: _getDrawStatusFromAmount(item['draw2_amount']),
-                      3: _getDrawStatusFromAmount(item['draw3_amount']),
-                      4: "pending",
+                      1: item['draw1_status'] ?? 'pending',
+                      2: item['draw2_status'] ?? 'pending',
+                      3: item['draw3_status'] ?? 'pending',
+                      4: item['draw4_status'] ?? 'pending',
                     },
                   ))
               .toList();
@@ -482,13 +480,20 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       });
 
       print("Data load completed successfully");
+      print("Company Name: $companyName");
+      print(
+        "Number of loan line items: ${_contractorScreenLoanLineItems.length}",
+      );
+      // print("The line items are: \n$_contractorScreenLoanLineItems");
     } catch (e) {
       print('Error loading loan data: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading loan data: ${e.toString()}'),
+            content: Text(
+              'Error loading loan data: ${e.toString()}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -496,35 +501,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
   }
 
-<<<<<<< HEAD
-  DrawStatus _parseDrawStatus(String status) {
-    switch (status.toLowerCase()) {
-      case 'approved':
-        return DrawStatus.approved;
-      case 'declined':
-        return DrawStatus.declined;
-      case 'submitted':
-        return DrawStatus.submitted;
-      case 'under_review':
-        return DrawStatus.underReview;
-      default:
-        return DrawStatus.pending;
-    }
-=======
-  /// This is hardcoded.
-  /// Remove it when the time comes.
-  String _getDrawStatusFromAmount(double? amount) {
-    if (amount == null || amount == 0) {
-      print("Amount $amount interpreted as PENDING");
-      return "pending";
-    }
-    print("Amount $amount interpreted as APPROVED");
-    return "approved";
->>>>>>> new-branch-1-10
-  }
-
   void _initializeControllers() {
-    for (var item in _contractorScreenLineItems) {
+    for (var item in _contractorScreenLoanLineItems) {
       for (int i = 1; i <= numberOfDraws; i++) {
         final key = '${item.lineItemName}_$i';
         final amount = item.draws[i];
@@ -535,77 +513,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   }
 <<<<<<< HEAD
 =======
-
-Future<void> _handleFileUpload(List<PlatformFile> files, String category) async {
-  try {
-    final currentUser = supabase.auth.currentUser;
-    if (currentUser == null) {
-      throw Exception('User not authenticated');
-    }
->>>>>>> new-branch-1-10
-
-  Future<void> _handleFileUpload(
-      List<PlatformFile> files, String category) async {
-    try {
-      final currentUser = supabase.auth.currentUser;
-      if (currentUser == null) {
-        throw Exception('User not authenticated');
-      }
-
-      for (final file in files) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Uploading ${file.name}...'),
-            duration: const Duration(seconds: 1),
-          ),
-        );
-
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final fileName =
-            '${widget.loanId}/${category}/${timestamp}_${file.name}';
-
-        if (file.bytes != null) {
-          // Upload to Supabase storage
-          await supabase.storage.from('project_documents').uploadBinary(
-                fileName,
-                file.bytes!,
-                fileOptions: FileOptions(
-                  contentType: 'application/octet-stream',
-                ),
-              );
-
-          // Get public URL
-          final fileUrl =
-              supabase.storage.from('project_documents').getPublicUrl(fileName);
-
-          // Insert into database with correct types
-          await supabase.from('project_documents').insert({
-            'loan_id': widget.loanId,
-            'file_url': fileUrl,
-            'file_name': file.name,
-            'file_status': 'active',
-            'file_category': category,
-            'uploaded_by': currentUser.id, // This should be a UUID from auth
-          });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('File uploaded successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print('Error details: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Upload failed: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
 
   Widget _buildFileUploadSection() {
     return Container(
@@ -733,7 +640,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
       for (var review in _lenderReviews) {
-        for (var request in _contractorScreenLineItems) {
+        for (var request in _contractorScreenLoanLineItems) {
           int drawNumber = int.parse(review.drawId.split('_')[1]);
           request.drawStatuses[drawNumber] = review.status;
           request.lenderNote = review.note;
@@ -742,6 +649,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
       }
     });
   }
+
   void _reviewDraw(int drawNumber, String status, String? note) {
     setState(() {
       final review = LenderReview(
@@ -752,7 +660,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
       );
       _lenderReviews.add(review);
 
-      for (var request in _contractorScreenLineItems) {
+      for (var request in _contractorScreenLoanLineItems) {
         request.drawStatuses[drawNumber] = status;
         request.lenderNote = note;
         request.reviewedAt = review.timestamp;
@@ -760,20 +668,99 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
     });
   }
 
-  void _submitDraw(int drawNumber) {
-    setState(() {
-      for (var lineItem in _contractorScreenLineItems) {
-        if (lineItem.draws[drawNumber] != null) {
-          lineItem.drawStatuses[drawNumber] = "submitted";
-        }
+  Future<void> updateDraws(String newStatus, int drawNumber) async {
+    try {
+      setState(() => _isLoading = true);
+      String capitalizedNewStatus = newStatus[0].toUpperCase();
+      capitalizedNewStatus += newStatus.substring(1);
+      String statusToUpdate = 'draw1_status';
+
+      // Get all line items for this loan
+      final lineItemsResponse = await supabase
+          .from('construction_loan_line_items')
+          .select()
+          .eq('loan_id', widget.loanId);
+
+      switch (drawNumber) {
+        case 1:
+          print("Changing draw1");
+          statusToUpdate = "draw1_status";
+          break;
+        case 2:
+          print("Changing draw2");
+          statusToUpdate = "draw2_status";
+          break;
+        case 3:
+          print("Changing draw3");
+          statusToUpdate = "draw3_status";
+          break;
+        case 4:
+          print("Changing draw4");
+          statusToUpdate = "draw4_status";
+          break;
       }
-    });
+
+      // Update each line item's draw statuses to 'approved'
+      for (var item in lineItemsResponse) {
+        await supabase.from('construction_loan_line_items').update({
+          statusToUpdate: newStatus,
+        }).eq('category_id', item['category_id']);
+      }
+      // Refresh the data on the page
+      await _loadLoanData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Draw made "$capitalizedNewStatus"',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      setState(() {
+        print("Now, after the function, isPending is $isPending");
+        isPending = !isPending;
+      });
+    } catch (e) {
+      print('Error approving draws: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error approving draws: ${e.toString()}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _submitDraw(int drawNumber) {
+    // setState(() {
+    // for (var lineItem in _contractorScreenLoanLineItems) {
+    //   if (lineItem.draws[drawNumber] != null) {
+    //     lineItem.drawStatuses[drawNumber] = "submitted";
+    //   }
+    // }
+    // });
+
+    /// TODO:
+    /// drawNumber --> maps to draw1_status, draw2_status.
+    ///
+    ///
   }
 
   void _addNewDraw() {
     setState(() {
       numberOfDraws++;
-      for (var request in _contractorScreenLineItems) {
+      for (var request in _contractorScreenLoanLineItems) {
         request.draws[numberOfDraws] = null;
         request.drawStatuses[numberOfDraws] = "pending";
 
@@ -784,8 +771,8 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
   }
 
   List<ContractorScreenLoanLineItem> get filteredRequests {
-    if (_searchQuery.isEmpty) return _contractorScreenLineItems;
-    return _contractorScreenLineItems
+    if (_searchQuery.isEmpty) return _contractorScreenLoanLineItems;
+    return _contractorScreenLoanLineItems
         .where(
           (request) => request.lineItemName.toLowerCase().contains(
                 _searchQuery.toLowerCase(),
@@ -795,9 +782,9 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
   }
 
   double get totalDisbursed {
-    double totalDrawn = _contractorScreenLineItems.fold<double>(
+    double totalDrawn = _contractorScreenLoanLineItems.fold<double>(
         0.0, (sum, request) => sum + request.totalDrawn);
-    double totalBudget = _contractorScreenLineItems.fold<double>(
+    double totalBudget = _contractorScreenLoanLineItems.fold<double>(
         0.0, (sum, request) => sum + request.budget);
 
     if (totalBudget == 0) return 0;
@@ -808,7 +795,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
     double weightedSum = 0;
     double totalBudget = 0;
 
-    for (var item in _contractorScreenLineItems) {
+    for (var item in _contractorScreenLoanLineItems) {
       weightedSum += (item.inspectionPercentage * item.budget);
       totalBudget += item.budget;
     }
@@ -823,8 +810,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
     return showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-            status == "approved" ? 'Approve Draw' : 'Decline Draw'),
+        title: Text(status == "approved" ? 'Approve Draw' : 'Decline Draw'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -849,10 +835,10 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  status == "approved" ? Colors.green : Colors.red,
+              backgroundColor: status == "approved" ? Colors.green : Colors.red,
             ),
-            child: Text(status == "approved" ? 'Approve' : 'Decline'),
+            // child: Text(status == "approved" ? 'Approve' : 'Decline'),
+            child: Text("Way of Kings"),
           ),
         ],
       ),
@@ -861,6 +847,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
 
   String _getButtonText(String status) {
     switch (status) {
+      /// Some of these cases aren't consistent with the database...
       case "approved":
         return 'Approved';
       case "declined":
@@ -888,7 +875,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
         return const Color(0xFFEF4444);
       case "submitted":
         return const Color(0xFF6500E9);
-      case "underReview": // TODO: Are we still using underReview? 
+      case "underReview": // TODO: Are we still using underReview?
         return const Color(0xFF6366F1);
       case "pending":
       default:
@@ -908,8 +895,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
     setState(() {
       if (direction == 'left' && drawNumber > 1) {
         double? tempAmount = item.draws[drawNumber - 1];
-        String tempStatus =
-            item.drawStatuses[drawNumber - 1] ?? "pending";
+        String tempStatus = item.drawStatuses[drawNumber - 1] ?? "pending";
 
         item.draws[drawNumber - 1] = item.draws[drawNumber];
         item.drawStatuses[drawNumber - 1] =
@@ -927,8 +913,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
             item.draws[drawNumber - 1]?.toString() ?? '';
       } else if (direction == 'right' && drawNumber < numberOfDraws) {
         double? tempAmount = item.draws[drawNumber + 1];
-        String tempStatus =
-            item.drawStatuses[drawNumber + 1] ?? "pending";
+        String tempStatus = item.drawStatuses[drawNumber + 1] ?? "pending";
 
         item.draws[drawNumber + 1] = item.draws[drawNumber];
         item.drawStatuses[drawNumber + 1] =
@@ -1065,21 +1050,15 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
     DateTime? reviewedAt;
 
     // Only try to access first item if list is not empty
-    if (_contractorScreenLineItems.isNotEmpty && drawNumber <= numberOfDraws) {
-<<<<<<< HEAD
-      status = _contractorScreenLineItems.first.drawStatuses[drawNumber] ??
-          DrawStatus.pending;
-=======
-      status =
-          _contractorScreenLineItems.first.drawStatuses[drawNumber] ?? "pending";
->>>>>>> new-branch-1-10
-      lenderNote = _contractorScreenLineItems.first.lenderNote;
-      reviewedAt = _contractorScreenLineItems.first.reviewedAt;
+    if (_contractorScreenLoanLineItems.isNotEmpty &&
+        drawNumber <= numberOfDraws) {
+      status = _contractorScreenLoanLineItems.first.drawStatuses[drawNumber] ??
+          "pending";
+      lenderNote = _contractorScreenLoanLineItems.first.lenderNote;
+      reviewedAt = _contractorScreenLoanLineItems.first.reviewedAt;
     }
 
     Color statusColor = _getStatusColor(status);
-
-    // Rest of your existing _buildDrawStatusSection code...
 
     return Stack(
       children: [
@@ -1146,9 +1125,13 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
                 )
               else if (!widget.isLender)
                 ElevatedButton(
-                  onPressed: status == "pending"
-                      ? () => _submitDraw(drawNumber)
-                      : null,
+                  onPressed: () {
+                    if (status == "pending") {
+                      /// TODO:
+                      /// Make this update in the Database.
+                      _submitDraw(drawNumber);
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 61, 143, 96),
                     padding:
@@ -1163,6 +1146,7 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
                       fontWeight: FontWeight.w500,
                       color: Colors.white,
                     ),
+                    // "Words of Radiance",
                   ),
                 ),
 
@@ -1787,6 +1771,35 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
     );
   }
 
+  // Widget _buildThomasTestButton() {
+  //   /// DONE:
+  //   /// This should update draw #1 --
+  //   /// -- on the screen,
+  //   /// -- and in the database.
+  //   ///
+  //   /// DONE:
+  //   /// Try changing it to draw #2 and see if it also updates draw #2 --
+  //   /// -- on the screen,
+  //   /// -- and in the database.
+  //   ///
+  //   /// DONE:
+  //   /// Take this functionality to the actual button.
+  //   ///
+  //   final drawNumber = 2;
+  //   final newStatus = (isPending) ? "pending" : "submitted";
+  //   String capitalizedNewStatus = newStatus[0].toUpperCase();
+  //   capitalizedNewStatus += newStatus.substring(1);
+  //   return ElevatedButton(
+  //     onPressed: () async {
+  //       print("Before the function, isPending was $isPending");
+  //       updateDraws(newStatus, drawNumber);
+  //     },
+  //     child: Text(
+  //       "Make '$capitalizedNewStatus' Draw #$drawNumber on DB",
+  //     ),
+  //   );
+  // }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1819,6 +1832,9 @@ Future<void> _handleFileUpload(List<PlatformFile> files, String category) async 
                               label: 'Project Completion',
                               color: const Color.fromARGB(255, 51, 7, 163),
                             ),
+
+                            /// Remove this when we are no longer testing.
+                            // _buildThomasTestButton(),
                           ],
                         ),
                         const SizedBox(height: 24),

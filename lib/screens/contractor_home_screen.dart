@@ -53,18 +53,33 @@ class ContractorScreen extends StatefulWidget {
 class _ContractorScreenState extends State<ContractorScreen> {
   final _supabase = Supabase.instance.client;
   bool _isLoading = true;
-  List<Map<String, dynamic>> _loans = [];
+  final TextEditingController searchController = TextEditingController();
+  List<Map<String, dynamic>> _projectCards = [];
+  List<Map<String, dynamic>> filteredProjectCards = [];
+  String searchQuery = '';
 
+// 1. First, update initState to initialize filteredProjectCards
   @override
   void initState() {
     super.initState();
+    filteredProjectCards =
+        List.from(_projectCards); // Initialize with empty list
     _loadLoans();
+  }
+
+  @override
+  void dispose() {
+    // Clean up the controller when the widget is disposed
+    searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLoans() async {
     try {
       final contractorId = widget.userProfile['user_id'];
-      print("The contractor id here in load loans is $contractorId");
+      print(
+        "The contractor id here in load loans is $contractorId",
+      );
       if (contractorId == null) {
         throw Exception('No contractor ID found in user profile');
       }
@@ -75,7 +90,9 @@ class _ContractorScreenState extends State<ContractorScreen> {
           .eq('contractor_id', contractorId);
 
       setState(() {
-        _loans = List<Map<String, dynamic>>.from(response);
+        _projectCards = List<Map<String, dynamic>>.from(response);
+        filteredProjectCards =
+            List.from(_projectCards); // Initialize filtered list
         _isLoading = false;
       });
     } catch (e) {
@@ -101,7 +118,8 @@ class _ContractorScreenState extends State<ContractorScreen> {
         return AlertDialog(
           title: const Text('Delete Project'),
           content: Text(
-              'Are you sure you want to delete ${loan['project_name']}? This action cannot be undone.'),
+            'Are you sure you want to delete ${loan['project_name']}? This action cannot be undone.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -126,14 +144,14 @@ class _ContractorScreenState extends State<ContractorScreen> {
   void _handleDelete(Map<String, dynamic> loan) {
     setState(() {
       // Print debug information
-      print('Before deletion: ${_loans.length} loans');
+      print('Before deletion: ${_projectCards.length} loans');
       print('Trying to delete loan with ID: ${loan['loan_id']}');
 
       // Use loan_id instead of id
-      _loans.removeWhere((item) => item['loan_id'] == loan['loan_id']);
+      _projectCards.removeWhere((item) => item['loan_id'] == loan['loan_id']);
 
       // Print after deletion
-      print('After deletion: ${_loans.length} loans');
+      print('After deletion: ${_projectCards.length} loans');
     });
 
     if (mounted) {
@@ -265,6 +283,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
     );
   }
 
+// 3. Update the ListView in _buildMainContent to use filteredProjectCards
   Widget _buildMainContent() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -287,7 +306,8 @@ class _ContractorScreenState extends State<ContractorScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _loans.isEmpty // Add this check
+                : filteredProjectCards
+                        .isEmpty // Changed from _projectCards to filteredProjectCards
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -300,24 +320,30 @@ class _ContractorScreenState extends State<ContractorScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No projects found',
+                              searchQuery.isEmpty
+                                  ? 'No projects found'
+                                  : 'No matching projects found', // Updated message for search results
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.black.withOpacity(0.4),
                               ),
                             ),
                             const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: _loadLoans,
-                              child: const Text('Refresh'),
-                            ),
+                            if (searchQuery
+                                .isEmpty) // Only show refresh button if not searching
+                              TextButton(
+                                onPressed: _loadLoans,
+                                child: const Text('Refresh'),
+                              ),
                           ],
                         ),
                       )
                     : ListView.builder(
-                        itemCount: _loans.length,
+                        itemCount: filteredProjectCards
+                            .length, // Changed from _projectCards to filteredProjectCards
                         itemBuilder: (context, index) => _buildProjectCard(
-                          _loans[index],
+                          filteredProjectCards[
+                              index], // Changed from _projectCards to filteredProjectCards
                         ),
                       ),
           ),
@@ -347,7 +373,7 @@ class _ContractorScreenState extends State<ContractorScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${_loans.length} Active Projects',
+              '${_projectCards.length} Active Projects',
               style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF6B7280),
@@ -359,40 +385,83 @@ class _ContractorScreenState extends State<ContractorScreen> {
     );
   }
 
+  /// Help us solve this problem.
+  /// TODO:
+  /// The problem is probably here.
+
   Widget _buildSearchBar() {
-    // Search bar remains the same
     return Container(
-      height: 40,
+      height: 36,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey[300]!),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          const Icon(Icons.search, color: Colors.black54, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Search by name, loan & etc',
-                hintStyle: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
-                border: InputBorder.none,
-                fillColor: Colors.white,
-                filled: true,
-              ),
-            ),
+      child: TextField(
+        controller: searchController,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF111827),
+        ),
+        onChanged: (value) {
+          setState(() {
+            searchQuery = value.toLowerCase();
+            // Filter the projects based on search query
+            if (searchQuery.isEmpty) {
+              // If search is empty, show all items
+              filteredProjectCards = List.from(_projectCards);
+            } else {
+              // Filter items based on search query
+              filteredProjectCards = _projectCards.where(
+                (project) {
+                  final projectName =
+                      project['project_name']?.toString().toLowerCase() ?? '';
+                  print('Searching project: $projectName'); // Debug print
+                  return projectName.contains(searchQuery);
+                },
+              ).toList();
+            }
+          });
+        },
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          hintText: 'Search projects...',
+          hintStyle: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[700],
           ),
-        ],
+          prefixIcon: Icon(
+            Icons.search,
+            size: 20,
+            color: Colors.grey[700],
+          ),
+          suffixIcon: searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    setState(() {
+                      searchController.clear();
+                      searchQuery = '';
+                      filteredProjectCards = List.from(_projectCards);
+                    });
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF6500E9)),
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        ),
       ),
     );
   }

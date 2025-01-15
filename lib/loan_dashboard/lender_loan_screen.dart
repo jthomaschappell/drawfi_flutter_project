@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'dart:html' as html;
 import 'package:collection/collection.dart';
+import 'dart:developer' as developer; 
 
 final supabase = Supabase.instance.client;
 
@@ -16,23 +17,25 @@ enum DownloadStatus {
   completed,
   failed
 }
-// enum DrawStatus {
-//   pending,
-//   submitted, 
-//   underReview,
-//   approved,
-//   declined
-// }
+enum DrawStatus {
+  pending,
+  submitted, 
+  underReview,
+  approved,
+  declined
+}
 
 class DownloadProgress {
   final DownloadStatus status;
   final String message;
   final double? progress;
+  final String? error;
 
   DownloadProgress({
     required this.status,
     required this.message,
     this.progress,
+    this.error,
   });
 }
 
@@ -157,6 +160,184 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
 
   // Number of draws to show (can be dynamic)
   int numberOfDraws = 4; // New value
+
+Future<bool> _checkFileExists(String filePath) async {
+  try {
+    developer.log('Starting file check', name: 'Storage', error: {
+      'filePath': filePath
+    });
+
+    // Try to get the file URL to verify existence
+    try {
+      final url = await supabase.storage
+          .from('project_documents')
+          .getPublicUrl(filePath);
+          
+      developer.log('File found with URL', name: 'Storage', error: {
+        'filePath': filePath,
+        'url': url
+      });
+      return true;
+      
+    } catch (e) {
+      developer.log('File access failed, checking buckets', name: 'Storage', error: {
+        'error': e.toString(),
+        'filePath': filePath
+      });
+    }
+
+    // If direct access fails, list the bucket contents
+    final List<FileObject> files = await supabase.storage
+        .from('project_documents')
+        .list();
+
+    developer.log('Found files in bucket', name: 'Storage', error: {
+      'fileCount': files.length
+    });
+
+    // Check if file exists in root or any subfolder
+    for (var file in files) {
+      if (file.name == filePath || filePath.endsWith(file.name)) {
+        developer.log('File found in bucket', name: 'Storage', error: {
+          'filePath': filePath,
+          'location': 'root'
+        });
+        return true;
+      }
+    }
+
+    developer.log('File not found in bucket', name: 'Storage', error: {
+      'filePath': filePath
+    });
+    return false;
+    
+  } catch (e) {
+    developer.log('File check failed', name: 'Storage', error: {
+      'error': e.toString(),
+      'filePath': filePath
+    });
+    return false;
+  }
+}
+
+Future<void> _downloadFile(String fileUrl, String fileName) async {
+  try {
+    // Show download starting message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Starting download: $fileName'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    // Log download initiation
+    developer.log('Download initiated', name: 'FileDownload', error: {
+      'fileUrl': fileUrl,
+      'fileName': fileName
+    });
+
+    // Check if file exists
+    final fileExists = await _checkFileExists(fileName);
+    if (!fileExists) {
+      throw Exception('File not found in storage');
+    }
+
+    // Get signed URL with extended expiry
+    final signedUrl = await supabase.storage
+        .from('project_documents')
+        .createSignedUrl(fileName, 3600); // 1 hour expiry
+
+    developer.log('Signed URL generated', name: 'FileDownload', error: {
+      'signedUrl': signedUrl
+    });
+
+    // Create download link and trigger download
+    final anchor = html.AnchorElement()
+      ..href = signedUrl
+      ..target = '_blank'
+      ..download = fileName;
+      
+    // Programmatically click the link
+    anchor.click();
+
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Successfully started download: $fileName'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+
+    developer.log('Download triggered', name: 'FileDownload', error: {
+      'fileName': fileName
+    });
+
+  } catch (e, stackTrace) {
+    // Log error details
+    developer.log('Download error occurred', name: 'FileDownload', error: {
+      'error': e.toString(),
+      'stackTrace': stackTrace.toString(),
+      'fileName': fileName
+    });
+
+    // Show error message to user
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error downloading file: ${e.toString()}'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'Retry',
+          onPressed: () => _downloadFile(fileUrl, fileName),
+        ),
+      ),
+    );
+  }
+}
+
+// Helper method to handle file opening
+Future<void> _openFile(String fileUrl, String fileName) async {
+  try {
+    developer.log('Opening file initiated', name: 'FileOpen', error: {
+      'fileUrl': fileUrl,
+      'fileName': fileName
+    });
+
+    // Check if file exists
+    final fileExists = await _checkFileExists(fileName);
+    if (!fileExists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('File not found: $fileName'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Get a signed URL for the file
+    final signedUrl = await supabase.storage
+        .from('project_documents')
+        .createSignedUrl(fileName, 3600); // 1 hour expiry
+
+    // Open in new tab
+    html.window.open(signedUrl, '_blank');
+
+  } catch (e) {
+    developer.log('File open error', name: 'FileOpen', error: {
+      'error': e.toString(),
+      'fileName': fileName
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error opening file: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
   List<LoanLineItem> _loanLineItems = [
     LoanLineItem(
       lineItemName: 'Default Value: Foundation Work',
@@ -220,11 +401,47 @@ void initState() {
   super.initState();
   _selectedCategory = documentRequirements[0].category;
   // for (int i = 1; i <= numberOfDraws; i++) {
-  //   drawStatuses[i] = DrawStatus.pending;  // Changed from 'pending' string
+  //   drawStatuses[i] = DrawStatus.pending;
   // }
   _setContractorDetails();
   fetchLoanLineItems();
+  
+  // Add automatic cleanup of orphaned file references
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    cleanupOrphanedFileReferences();
+  });
 }
+
+// Add this method to the class
+Future<void> cleanupOrphanedFileReferences() async {
+  try {
+    final fileRefs = await supabase
+        .from('project_documents')
+        .select('id, file_name, file_url')
+        .eq('loan_id', widget.loanId);
+
+    for (var ref in fileRefs) {
+      final fileExists = await _checkFileExists(ref['file_name']);
+      
+      if (!fileExists) {
+        // Delete orphaned database record
+        await supabase
+            .from('project_documents')
+            .delete()
+            .match({'id': ref['id']});
+            
+        developer.log('Removed orphaned file reference', name: 'Cleanup', error: {
+          'fileName': ref['file_name']
+        });
+      }
+    }
+  } catch (e) {
+    developer.log('Cleanup error', name: 'Cleanup', error: {
+      'error': e.toString()
+    });
+  }
+}
+// Enable verbose storage logging
 
   List<LoanLineItem> get filteredLineItems {
     if (_searchQuery.isEmpty) return _loanLineItems;
@@ -768,6 +985,7 @@ void initState() {
       html.document.body!.children.add(anchor);
       anchor.click();
 
+<<<<<<< HEAD
       // 6. Cleanup
       html.document.body!.children.remove(anchor);
       html.Url.revokeObjectUrl(url);
@@ -823,6 +1041,98 @@ void initState() {
       });
     }
   }
+=======
+  if (difference.inDays == 0) {
+    if (difference.inHours == 0) {
+      return '${difference.inMinutes}m ago';
+    }
+    return '${difference.inHours}h ago';
+  } else if (difference.inDays < 7) {
+    return '${difference.inDays}d ago';
+  } else {
+    return '${date.month}/${date.day}/${date.year}';
+  }
+}
+Widget _buildFileListItem(Map<String, dynamic> file) {
+  final fileName = file['file_name'] as String;
+  final uploadDate = DateTime.parse(file['uploaded_at'] as String);
+  final fileStatus = file['file_status'] as String? ?? 'pending';
+
+  return ListTile(
+    dense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+    title: Text(
+      fileName,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+      overflow: TextOverflow.ellipsis,
+    ),
+    subtitle: Text(
+      'Uploaded ${_formatDate(uploadDate)}',
+      style: TextStyle(
+        fontSize: 11,
+        color: Colors.grey[600],
+      ),
+    ),
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildStatusBadge(fileStatus),
+        IconButton(
+          icon: const Icon(Icons.open_in_new),
+          iconSize: 18,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          color: Colors.grey[600],
+          onPressed: () => _openFile(file['file_url'] as String, fileName),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildStatusBadge(String status) {
+  Color color;
+  String displayText;
+
+  switch (status.toLowerCase()) {
+    case 'approved':
+      color = Colors.green;
+      displayText = 'Approved';
+      break;
+    case 'rejected':
+      color = Colors.red;
+      displayText = 'Rejected';
+      break;
+    case 'pending':
+      color = Colors.orange;
+      displayText = 'Pending';
+      break;
+    default:
+      color = Colors.grey;
+      displayText = status;
+  }
+
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+    margin: const EdgeInsets.only(right: 4),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      displayText,
+      style: TextStyle(
+        color: color,
+        fontSize: 10,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
+}
+>>>>>>> 53cf4c6fe3eca97e7fe71296186f58b1090fbf1d
 
   @override
   Widget build(BuildContext context) {
@@ -934,7 +1244,42 @@ void initState() {
       return DrawStatus.pending;
   }
 }
+Future<void> _downloadMultipleFiles(List<Map<String, dynamic>> files) async {
+  try {
+    // Show batch download starting
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Starting download of ${files.length} files'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
 
+    for (var file in files) {
+      await _downloadFile(
+        file['file_url'] as String,
+        file['file_name'] as String,
+      );
+      // Add small delay between downloads to prevent overwhelming the browser
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+  } catch (e) {
+    developer.log('Batch download error', name: 'FileDownload', error: {
+      'error': e.toString(),
+      'filesCount': files.length
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Error downloading some files'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+}
+
+// Update your _buildFileListItem method to include the download button
 Future<void> fetchLoanLineItems() async {
   try {
     final response = await supabase
@@ -967,6 +1312,7 @@ Future<void> fetchLoanLineItems() async {
     print('Error fetching line items: $e');
   }
 }
+<<<<<<< HEAD
 >>>>>>> 88ce4570bf3b0294cbd29333bd49d370df624926
   Widget _buildStatusBadge(String status) {
     Color color;
@@ -1016,6 +1362,21 @@ Future<void> fetchLoanLineItems() async {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+=======
+  
+Widget _buildSidebar() {
+  return Container(
+    width: 280,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: Colors.grey[300]!),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    // Wrap the Column in a SingleChildScrollView
+    child: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // Change to min
+>>>>>>> 53cf4c6fe3eca97e7fe71296186f58b1090fbf1d
         children: [
           Padding(
             padding: const EdgeInsets.all(20),
@@ -1066,6 +1427,7 @@ Future<void> fetchLoanLineItems() async {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+<<<<<<< HEAD
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
@@ -1087,15 +1449,28 @@ Future<void> fetchLoanLineItems() async {
                     ],
                   ),
                 ),
+=======
+
+>>>>>>> 53cf4c6fe3eca97e7fe71296186f58b1090fbf1d
                 _buildFileList(),
               ],
             ),
           ),
+<<<<<<< HEAD
           const Spacer(),
         ],
       ),
     );
   }
+=======
+          // Remove Spacer widget since we're now using SingleChildScrollView
+        ],
+      ),
+    ),
+  );
+}
+>>>>>>> 53cf4c6fe3eca97e7fe71296186f58b1090fbf1d
+
 
 // Add this method to handle file uploads
   Future<void> _handleFileUpload(
@@ -1109,6 +1484,7 @@ Future<void> fetchLoanLineItems() async {
           ),
         );
 
+<<<<<<< HEAD
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final fileExtension = path.extension(file.name);
         final fileName = '${widget.loanId}/${timestamp}_${file.name}';
@@ -1287,6 +1663,125 @@ Future<void> fetchLoanLineItems() async {
                       style: const TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 14,
+=======
+// Special handling for W9 files
+bool isW9FilePresent(List<Map<String, dynamic>> files) {
+  return files.any((file) => 
+    file['file_category'] == 'W9 Forms' && 
+    file['file_status'] == 'active'
+  );
+}
+Widget _buildW9Warning() {
+  return Container(
+    margin: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.orange[50],
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.orange),
+    ),
+    child: Row(
+      children: [
+        Icon(Icons.warning_amber_rounded, color: Colors.orange[700]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'W9 form required',
+            style: TextStyle(
+              color: Colors.orange[900],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+Widget _buildFileList() {
+  return StreamBuilder<List<Map<String, dynamic>>>(
+    stream: supabase
+        .from('project_documents')
+        .stream(primaryKey: ['id'])
+        .eq('loan_id', widget.loanId)
+        .order('uploaded_at', ascending: false),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      final files = snapshot.data!;
+      final filesByCategory = groupBy(files, (Map<String, dynamic> file) => 
+        file['file_category'] as String
+      );
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.folder_outlined,
+                  size: 20,
+                  color: Colors.grey[800], // Darker icon color
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Project Files',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[900], // Very dark text for header
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // File categories
+          ...filesByCategory.entries.map((entry) {
+            return ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+              leading: SizedBox(
+                width: 20,
+                child: Icon(
+                  _getCategoryIcon(entry.key), 
+                  color: const Color(0xFF6500E9),
+                  size: 18,
+                ),
+              ),
+              title: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      entry.key,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[850], // Darker text for category names
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6500E9).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${entry.value.length}',
+                      style: const TextStyle(
+                        color: Color(0xFF6500E9),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+>>>>>>> 53cf4c6fe3eca97e7fe71296186f58b1090fbf1d
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1361,6 +1856,7 @@ Future<void> fetchLoanLineItems() async {
                       Navigator.pop(context);
                     },
                   ),
+<<<<<<< HEAD
                 )
                 .toList(),
           ),
@@ -1371,6 +1867,59 @@ Future<void> fetchLoanLineItems() async {
             onPressed: () => Navigator.pop(context),
           ),
         ],
+=======
+                ],
+              ),
+              trailing: Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: Colors.grey[700], // Darker chevron
+              ),
+              children: entry.value.map((file) => _buildFileListItem(file)).toList(),
+            );
+          }),
+        ],
+      );
+    },
+  );
+}
+
+void _showRequirementsDialog() {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Document Requirements'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView(
+          shrinkWrap: true,
+          children: documentRequirements.map((req) =>
+            CheckboxListTile(
+              title: Row(
+                children: [
+                  Icon(req.icon, size: 20, color: req.color),
+                  const SizedBox(width: 8),
+                  Text(req.category),
+                ],
+              ),
+              value: req.isRequired,
+              activeColor: const Color(0xFF6500E9),
+              onChanged: (value) {
+                setState(() {
+                  final index = documentRequirements.indexOf(req);
+                  documentRequirements[index] = DocumentRequirement(
+                    category: req.category,
+                    isRequired: value ?? false,
+                    icon: req.icon,
+                    color: req.color,
+                  );
+                });
+                Navigator.pop(context);
+              },
+            ),
+          ).toList(),
+        ),
+>>>>>>> 53cf4c6fe3eca97e7fe71296186f58b1090fbf1d
       ),
     );
   }

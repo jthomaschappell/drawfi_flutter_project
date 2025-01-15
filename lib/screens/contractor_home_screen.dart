@@ -359,43 +359,126 @@ class _ContractorScreenState extends State<ContractorScreen> {
     );
   }
 
+  /// TODO:
+  /// The following is an old (commented out) and a new implementation of _buildSearchBar. The only problem is that 
+  /// the variable names are poorly named. 
+  /// _searchController
+  /// _searchQuery
+  /// _filteredItems
+  /// _contractorScreenLineItems
+  /// have error squiggles under them. 
+  /// Help me refactor this so that it works and replaces the commented code for _buildSearchBar below it. 
   Widget _buildSearchBar() {
-    // Search bar remains the same
     return Container(
-      height: 40,
+      height: 36,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey[300]!),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          const Icon(Icons.search, color: Colors.black54, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Search by name, loan & etc',
-                hintStyle: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
-                border: InputBorder.none,
-                fillColor: Colors.white,
-                filled: true,
-              ),
-            ),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(
+          fontSize: 14,
+          color: Color(0xFF111827),
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value.toLowerCase();
+            // Filter the line items based on search query
+            if (_searchQuery.isEmpty) {
+              // If search is empty, show all items
+              _filteredItems = List.from(_contractorScreenLineItems);
+            } else {
+              // Filter items based on search query
+              _filteredItems = _contractorScreenLineItems
+                  .where(
+                    (item) => item.lineItemName.toLowerCase().contains(
+                          _searchQuery,
+                        ),
+                  )
+                  .toList();
+            }
+          });
+        },
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          hintText: 'Search line items...',
+          hintStyle: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[700],
           ),
-        ],
+          prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey[700]),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    setState(() {
+                      _searchController.clear();
+                      _searchQuery = '';
+                      _filteredItems = List.from(_contractorScreenLineItems);
+                    });
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF6500E9)),
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        ),
       ),
     );
   }
+  /// Old search bar without actual searching functionality .
+  ///
+  ///
+  // Widget _buildSearchBar() {
+  //   // Search bar remains the same
+  //   return Container(
+  //     height: 40,
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(8),
+  //       border: Border.all(color: Colors.grey[300]!),
+  //     ),
+  //     padding: const EdgeInsets.symmetric(horizontal: 12),
+  //     child: Row(
+  //       children: [
+  //         const Icon(Icons.search, color: Colors.black54, size: 20),
+  //         const SizedBox(width: 8),
+  //         Expanded(
+  //           child: TextField(
+  //             style: const TextStyle(
+  //               color: Colors.black,
+  //               fontSize: 14,
+  //               fontWeight: FontWeight.w500,
+  //             ),
+  //             decoration: InputDecoration(
+  //               hintText: 'Search by name, loan & etc',
+  //               hintStyle: TextStyle(
+  //                 color: Colors.grey[600],
+  //                 fontSize: 14,
+  //               ),
+  //               border: InputBorder.none,
+  //               fillColor: Colors.white,
+  //               filled: true,
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   void _testNavigationSetup(Map<String, dynamic> loan) {
     /// DONE:

@@ -8,6 +8,7 @@ import 'package:tester/screens/invitation_screen.dart';
 import 'package:tester/screens/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+
 // Constants
 const String appLogo = '''
 <svg width="1531" height="1531" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -248,18 +249,18 @@ void updateCompletionPercentage(double completionPercentage, dynamic widget) {
   CompletionDataProvider.setCompletion(widget.loanId, completionPercentage);
 }
 
-// 
+//
 // ADD THIS NEW CODE INSTEAD
 // NEW CODE
 class ProjectCard extends StatelessWidget {
   final Project project;
-  final VoidCallback? onTap;  // Make onTap nullable
+  final VoidCallback? onTap; // Make onTap nullable
   final VoidCallback onDelete;
 
   const ProjectCard({
     super.key,
     required this.project,
-    this.onTap,  // Remove required
+    this.onTap, // Remove required
     required this.onDelete,
   });
 
@@ -269,7 +270,8 @@ class ProjectCard extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Delete Project'),
-          content: Text('Are you sure you want to delete ${project.companyName}? This action cannot be undone.'),
+          content: Text(
+              'Are you sure you want to delete ${project.companyName}? This action cannot be undone.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -277,9 +279,9 @@ class ProjectCard extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-    Navigator.of(context).pop();
-    onDelete();  // Changed to not pass project.id
-},
+                Navigator.of(context).pop();
+                onDelete(); // Changed to not pass project.id
+              },
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,
               ),
@@ -290,6 +292,7 @@ class ProjectCard extends StatelessWidget {
       },
     );
   }
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'on track':
@@ -306,8 +309,8 @@ class ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-  onTap: onTap,  // InkWell accepts nullable callback
-  child: Container(
+      onTap: onTap, // InkWell accepts nullable callback
+      child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -465,109 +468,116 @@ class _LenderScreenState extends State<LenderScreen> {
   List<Project> _deletedProjects = []; // New: Track deleted projects
   bool _showingTrash = false; // New: Toggle between active and deleted projects
   Project? _selectedProject;
-   static const String TRASH_KEY = 'deleted_projects';
-   Future<void> _saveTrashState() async {
+  static const String TRASH_KEY = 'deleted_projects';
+  Future<void> _saveTrashState() async {
     final prefs = await SharedPreferences.getInstance();
-    final deletedProjectsJson = _deletedProjects.map((project) => {
-      'id': project.id,
-      'companyInitials': project.companyInitials,
-      'companyName': project.companyName,
-      'location': project.location,
-      'disbursed': project.disbursed,
-      'completed': project.completed,
-      'draws': project.draws,
-      'nextInspectionDate': project.nextInspectionDate?.toIso8601String(),
-      'status': project.status,
-      'lastUpdated': project.lastUpdated.toIso8601String(),
-      'startDate': project.startDate.toIso8601String(),
-    }).toList();
-    
+    final deletedProjectsJson = _deletedProjects
+        .map((project) => {
+              'id': project.id,
+              'companyInitials': project.companyInitials,
+              'companyName': project.companyName,
+              'location': project.location,
+              'disbursed': project.disbursed,
+              'completed': project.completed,
+              'draws': project.draws,
+              'nextInspectionDate':
+                  project.nextInspectionDate?.toIso8601String(),
+              'status': project.status,
+              'lastUpdated': project.lastUpdated.toIso8601String(),
+              'startDate': project.startDate.toIso8601String(),
+            })
+        .toList();
+
     await prefs.setString(TRASH_KEY, jsonEncode(deletedProjectsJson));
   }
+
   void _onSearchChanged() {
-  setState(() {
-    _searchQuery = _searchController.text;
-  });
-  _filterProjects();
-}
+    setState(() {
+      _searchQuery = _searchController.text;
+    });
+    _filterProjects();
+  }
+
   Future<void> _loadTrashState() async {
     final prefs = await SharedPreferences.getInstance();
     final deletedProjectsJson = prefs.getString(TRASH_KEY);
-    
+
     if (deletedProjectsJson != null) {
       final List<dynamic> decodedList = jsonDecode(deletedProjectsJson);
       setState(() {
-        _deletedProjects = decodedList.map((json) => Project(
-          id: json['id'],
-          companyInitials: json['companyInitials'],
-          companyName: json['companyName'],
-          location: json['location'],
-          disbursed: json['disbursed'],
-          completed: json['completed'],
-          draws: json['draws'],
-          nextInspectionDate: json['nextInspectionDate'] != null 
-            ? DateTime.parse(json['nextInspectionDate'])
-            : null,
-          status: json['status'],
-          lastUpdated: DateTime.parse(json['lastUpdated']),
-          startDate: DateTime.parse(json['startDate']),
-          updates: [],
-          documents: [],
-        )).toList();
+        _deletedProjects = decodedList
+            .map((json) => Project(
+                  id: json['id'],
+                  companyInitials: json['companyInitials'],
+                  companyName: json['companyName'],
+                  location: json['location'],
+                  disbursed: json['disbursed'],
+                  completed: json['completed'],
+                  draws: json['draws'],
+                  nextInspectionDate: json['nextInspectionDate'] != null
+                      ? DateTime.parse(json['nextInspectionDate'])
+                      : null,
+                  status: json['status'],
+                  lastUpdated: DateTime.parse(json['lastUpdated']),
+                  startDate: DateTime.parse(json['startDate']),
+                  updates: [],
+                  documents: [],
+                ))
+            .toList();
       });
     }
   }
 
-  
   // Add this method to handle UI-only deletion
-void _handleDelete(int index) {
-  setState(() {
-    final deletedProject = _projects.removeAt(index);
-    _deletedProjects.add(deletedProject);
-  });
-  
-  _saveTrashState(); // Save trash state
-  
-  if (mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Project moved to trash'),
-        backgroundColor: Colors.orange,
-        action: SnackBarAction(
-          label: 'UNDO',
-          textColor: Colors.white,
-          onPressed: () {
-            setState(() {
-              final restoredProject = _deletedProjects.removeLast();
-              _projects.insert(index, restoredProject);
-            });
-            _saveTrashState(); // Save trash state after undo
-            _loadProjects(); // Reload projects from server
-          },
-        ),
-      ),
-    );
-  }
-}
+  void _handleDelete(int index) {
+    setState(() {
+      final deletedProject = _projects.removeAt(index);
+      _deletedProjects.add(deletedProject);
+    });
 
-void _handleRestore(int index) {
-  setState(() {
-    final restoredProject = _deletedProjects.removeAt(index);
-    _projects.add(restoredProject);
-  });
-  
-  _saveTrashState(); // Save trash state
-  _loadProjects(); // Reload projects from server
-  
-  if (mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Project restored'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    _saveTrashState(); // Save trash state
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Project moved to trash'),
+          backgroundColor: Colors.orange,
+          action: SnackBarAction(
+            label: 'UNDO',
+            textColor: Colors.white,
+            onPressed: () {
+              setState(() {
+                final restoredProject = _deletedProjects.removeLast();
+                _projects.insert(index, restoredProject);
+              });
+              _saveTrashState(); // Save trash state after undo
+              _loadProjects(); // Reload projects from server
+            },
+          ),
+        ),
+      );
+    }
   }
-}
+
+  void _handleRestore(int index) {
+    setState(() {
+      final restoredProject = _deletedProjects.removeAt(index);
+      _projects.add(restoredProject);
+    });
+
+    _saveTrashState(); // Save trash state
+    _loadProjects(); // Reload projects from server
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Project restored'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -575,16 +585,15 @@ void _handleRestore(int index) {
     _loadTrashState(); // Add this line here
     _searchController.addListener(_onSearchChanged);
   }
+
   Future<void> _loadProjects() async {
-  try {
-    setState(() => _isLoading = true);
+    try {
+      setState(() => _isLoading = true);
 
-    final lenderId = widget.userProfile['user_id'];
-    print('Loading projects for lender: $lenderId');
+      final lenderId = widget.userProfile['user_id'];
+      print('Loading projects for lender: $lenderId');
 
-    final response = await supabase
-        .from('construction_loans')
-        .select('''
+      final response = await supabase.from('construction_loans').select('''
           loan_id,
           contractor_id,
           project_name,
@@ -593,39 +602,38 @@ void _handleRestore(int index) {
           updated_at,
           location,
           start_date
-        ''')
-        .eq('lender_id', lenderId)
-        .order('updated_at', ascending: false);
+        ''').eq('lender_id', lenderId).order('updated_at', ascending: false);
 
-    print('Response from Supabase: $response');
+      print('Response from Supabase: $response');
 
-    // Convert response to projects and filter out trashed projects
-    final projects = (response as List<dynamic>)
-        .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
-        .where((project) => !_deletedProjects.any((deleted) => deleted.id == project.id))
-        .toList();
+      // Convert response to projects and filter out trashed projects
+      final projects = (response as List<dynamic>)
+          .map((data) => Project.fromSupabase(data as Map<String, dynamic>))
+          .where((project) =>
+              !_deletedProjects.any((deleted) => deleted.id == project.id))
+          .toList();
 
-    setState(() {
-      _projects = projects;
-      _isLoading = false;
-    });
-  } catch (error) {
-    print('Error loading projects: $error');
-    setState(() {
-      _isLoading = false;
-      _projects = [];
-    });
+      setState(() {
+        _projects = projects;
+        _isLoading = false;
+      });
+    } catch (error) {
+      print('Error loading projects: $error');
+      setState(() {
+        _isLoading = false;
+        _projects = [];
+      });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading projects: ${error.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading projects: ${error.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
-}
 
   void _filterProjects() {
     if (_searchQuery.isEmpty && _selectedStatus == 'All') {
@@ -858,7 +866,7 @@ void _handleRestore(int index) {
                     //   context,
                     //   MaterialPageRoute(
                     //       builder: (context) => const ProjectsScreen()),
-                    // ); 
+                    // );
                   }),
                   label: 'Projects',
                 ),
@@ -1007,8 +1015,10 @@ void _handleRestore(int index) {
                                 .white, // Set the container background color to white
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                                color: const Color(
-                                    0xFFE5E7EB)), // Light gray border
+                              color: const Color(
+                                0xFFE5E7EB,
+                              ),
+                            ), // Light gray border
                           ),
                           child: Row(
                             children: [
@@ -1098,200 +1108,237 @@ void _handleRestore(int index) {
                         const SizedBox(height: 32),
 
                         // Projects List Header
-                       // Projects List Header
-Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    // Left side - Title and count
-    Row(
-      children: [
-        Icon(
-          _showingTrash ? Icons.delete_outline : Icons.folder_outlined,
-          color: _showingTrash ? Colors.red[400] : const Color(0xFF111827),
-          size: 24,
-        ),
-        const SizedBox(width: 12),
-        Text(
-          _showingTrash ? 'Trash' : 'Recently Opened',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: _showingTrash ? Colors.red[400] : const Color(0xFF111827),
-          ),
-        ),
-        if (_deletedProjects.isNotEmpty && !_showingTrash) ...[
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.red[100]!),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.delete_outline,
-                  size: 16,
-                  color: Colors.red[400],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${_deletedProjects.length}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red[400],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    ),
-    // Right side - Actions
-    Row(
-      children: [
-        if (_showingTrash && _deletedProjects.isNotEmpty)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red[100]!),
-            ),
-            child: TextButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Row(
-                        children: [
-                          Icon(Icons.warning_amber_rounded, 
-                               color: Colors.red[400], 
-                               size: 24),
-                          const SizedBox(width: 8),
-                          const Text('Empty Trash?'),
-                        ],
-                      ),
-                      content: const Text(
-                        'This action cannot be undone. Are you sure you want to permanently delete all items in trash?'
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _deletedProjects.clear();
-                            });
-                            _saveTrashState();
-                            Navigator.of(context).pop();
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Trash emptied'),
-                                  backgroundColor: Colors.red,
+                        // Projects List Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Left side - Title and count
+                            Row(
+                              children: [
+                                Icon(
+                                  _showingTrash
+                                      ? Icons.delete_outline
+                                      : Icons.folder_outlined,
+                                  color: _showingTrash
+                                      ? Colors.red[400]
+                                      : const Color(0xFF111827),
+                                  size: 24,
                                 ),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[400],
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Empty Trash'),
+                                const SizedBox(width: 12),
+                                Text(
+                                  _showingTrash ? 'Trash' : 'Recently Opened',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    color: _showingTrash
+                                        ? Colors.red[400]
+                                        : const Color(0xFF111827),
+                                  ),
+                                ),
+                                if (_deletedProjects.isNotEmpty &&
+                                    !_showingTrash) ...[
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[50],
+                                      borderRadius: BorderRadius.circular(16),
+                                      border:
+                                          Border.all(color: Colors.red[100]!),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.delete_outline,
+                                          size: 16,
+                                          color: Colors.red[400],
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${_deletedProjects.length}',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.red[400],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            // Right side - Actions
+                            Row(
+                              children: [
+                                if (_showingTrash &&
+                                    _deletedProjects.isNotEmpty)
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[50],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border:
+                                          Border.all(color: Colors.red[100]!),
+                                    ),
+                                    child: TextButton.icon(
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: Row(
+                                                children: [
+                                                  Icon(
+                                                      Icons
+                                                          .warning_amber_rounded,
+                                                      color: Colors.red[400],
+                                                      size: 24),
+                                                  const SizedBox(width: 8),
+                                                  const Text('Empty Trash?'),
+                                                ],
+                                              ),
+                                              content: const Text(
+                                                  'This action cannot be undone. Are you sure you want to permanently delete all items in trash?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.of(context)
+                                                          .pop(),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _deletedProjects.clear();
+                                                    });
+                                                    _saveTrashState();
+                                                    Navigator.of(context).pop();
+                                                    if (mounted) {
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                        const SnackBar(
+                                                          content: Text(
+                                                              'Trash emptied'),
+                                                          backgroundColor:
+                                                              Colors.red,
+                                                        ),
+                                                      );
+                                                    }
+                                                  },
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.red[400],
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                  ),
+                                                  child:
+                                                      const Text('Empty Trash'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 8),
+                                        foregroundColor: Colors.red[400],
+                                      ),
+                                      icon: const Icon(Icons.delete_forever),
+                                      label: const Text('Empty Trash',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w500)),
+                                    ),
+                                  ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: _showingTrash
+                                        ? const Color(0xFF111827)
+                                        : Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(
+                                      _showingTrash
+                                          ? Icons.grid_view
+                                          : Icons.delete_outline,
+                                      color: _showingTrash
+                                          ? Colors.white
+                                          : Colors.grey[700],
+                                    ),
+                                    onPressed: () => setState(
+                                        () => _showingTrash = !_showingTrash),
+                                    tooltip: _showingTrash
+                                        ? 'Show active projects'
+                                        : 'Show trash',
+                                  ),
+                                ),
+                                if (!_showingTrash)
+                                  IconButton(
+                                    icon: const Icon(Icons.refresh),
+                                    onPressed: _loadProjects,
+                                    tooltip: 'Refresh projects',
+                                  ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
-                    );
-                  },
-                );
-              },
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16, 
-                  vertical: 8
-                ),
-                foregroundColor: Colors.red[400],
-              ),
-              icon: const Icon(Icons.delete_forever),
-              label: const Text(
-                'Empty Trash', 
-                style: TextStyle(fontWeight: FontWeight.w500)
-              ),
-            ),
-          ),
-        const SizedBox(width: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: _showingTrash 
-              ? const Color(0xFF111827) 
-              : Colors.grey[100],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: IconButton(
-            icon: Icon(
-              _showingTrash ? Icons.grid_view : Icons.delete_outline,
-              color: _showingTrash ? Colors.white : Colors.grey[700],
-            ),
-            onPressed: () => setState(() => _showingTrash = !_showingTrash),
-            tooltip: _showingTrash ? 'Show active projects' : 'Show trash',
-          ),
-        ),
-        if (!_showingTrash)
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadProjects,
-            tooltip: 'Refresh projects',
-          ),
-      ],
-    ),
-  ],
-),
                         const SizedBox(height: 16),
 
                         // Projects List
-                        if ((_showingTrash && _deletedProjects.isEmpty) || (!_showingTrash && _projects.isEmpty))
-  Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const SizedBox(height: 40),
-        Icon(
-          _showingTrash ? Icons.delete_outline : Icons.folder_open_outlined,
-          size: 48,
-          color: Colors.black.withOpacity(0.2),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          _showingTrash ? 'Trash is empty' : 'No projects found',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black.withOpacity(0.4),
-          ),
-        ),
-      ],
-    ),
-  )
+                        if ((_showingTrash && _deletedProjects.isEmpty) ||
+                            (!_showingTrash && _projects.isEmpty))
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 40),
+                                Icon(
+                                  _showingTrash
+                                      ? Icons.delete_outline
+                                      : Icons.folder_open_outlined,
+                                  size: 48,
+                                  color: Colors.black.withOpacity(0.2),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _showingTrash
+                                      ? 'Trash is empty'
+                                      : 'No projects found',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black.withOpacity(0.4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
                         else
-ListView.builder(
-  shrinkWrap: true,
-  physics: const NeverScrollableScrollPhysics(),
-  itemCount: _showingTrash ? _deletedProjects.length : _projects.length,
-  itemBuilder: (context, index) {
-    final project = _showingTrash ? _deletedProjects[index] : _projects[index];
-    return ProjectCard(
-      project: project,
-      onTap: _showingTrash ? null : () => _goToLoanDashboardScreen(project),
-      onDelete: _showingTrash 
-        ? () => _handleRestore(index)
-        : () => _handleDelete(index),
-    );
-  },
-),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _showingTrash
+                                ? _deletedProjects.length
+                                : _projects.length,
+                            itemBuilder: (context, index) {
+                              final project = _showingTrash
+                                  ? _deletedProjects[index]
+                                  : _projects[index];
+                              return ProjectCard(
+                                project: project,
+                                onTap: _showingTrash
+                                    ? null
+                                    : () => _goToLoanDashboardScreen(project),
+                                onDelete: _showingTrash
+                                    ? () => _handleRestore(index)
+                                    : () => _handleDelete(index),
+                              );
+                            },
+                          ),
                       ],
                     ),
                   ),

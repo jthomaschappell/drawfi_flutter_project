@@ -3,9 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/models/construction_notification.dart';
 import 'package:uuid/uuid.dart';
 
+
 class NotificationService {
   final SupabaseClient supabase;
-
   NotificationService(this.supabase);
 
   Stream<List<ConstructionNotification>> subscribeToUpdates() {

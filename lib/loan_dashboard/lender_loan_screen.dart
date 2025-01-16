@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,17 +8,13 @@ import 'package:collection/collection.dart';
 
 import 'package:path/path.dart' as path;
 
-/// TODO:
-/// See if doing 'flutter pub add collection'
-/// is the right thing.
-
 final supabase = Supabase.instance.client;
 
 /// Do we use this? 1.15.25
 enum DownloadStatus { inProgress, completed, failed }
 
 /// Do we use this? 1.15.25
-enum DrawStatus { pending, submitted, underReview, approved, declined }
+// enum DrawStatus { pending, submitted, underReview, approved, declined }
 
 class DownloadProgress {
   final DownloadStatus status;
@@ -80,10 +78,6 @@ class LoanLineItem {
   double get totalDrawn {
     return (draw1 ?? 0) + (draw2 ?? 0) + (draw3 ?? 0) + (draw4 ?? 0);
   }
-
-  /// TODO:
-  /// Modify those other functions and put them in here.
-  ///
 }
 
 class LenderLoanScreen extends StatefulWidget {
@@ -276,7 +270,6 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
         .toList();
   }
 
-  /// TODO:
   /// Can the below couple of functions be in their own helper
   /// functions dart file, OR do they reference
   /// state variables here in LenderLoanScreen?
@@ -364,7 +357,7 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
 
   Future<void> _shareLoanDashboard() async {}
 
-  Map<int, DrawStatus> drawStatuses = {};
+  Map<int, String> drawStatuses = {};
 
   @override
   void initState() {
@@ -375,7 +368,7 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
     // sets as pending all of the objects in the drawStatuses map.
     // I don't know if we actually use the drawStatus map.
     for (int i = 1; i <= numberOfDraws; i++) {
-      drawStatuses[i] = DrawStatus.pending;
+      drawStatuses[i] = "pending";
     }
 
     _fetchContractorDetails();
@@ -513,10 +506,6 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildDataTable() {
-    return const Placeholder(); 
   }
 
   Widget _buildTopNav() {
@@ -1294,5 +1283,732 @@ www.w3.org
         ),
       ),
     );
+  }
+
+  /// CLAUDE SHOULD TAKE A LOOK AT THE STUFF PAST HERE. 1.15.25.
+
+  Widget _buildDataTable() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          // Header row
+          Row(
+            children: [
+              // Fixed left headers
+              Row(
+                children: [
+                  Container(
+                    width: 200,
+                    height: 50,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    alignment: Alignment.centerLeft,
+                    child: const Text(
+                      'Line Item',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 80,
+                    height: 50,
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'INSP',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Scrollable middle section
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _horizontalScrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(
+                      numberOfDraws,
+                      (index) => Container(
+                        width: 120,
+                        height: 50,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            left: BorderSide(color: Colors.grey[200]!),
+                          ),
+                        ),
+                        child: Text(
+                          'Draw ${index + 1}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Fixed right headers
+              Container(
+                width: 240,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 120,
+                      height: 50,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: Colors.grey[200]!),
+                        ),
+                      ),
+                      child: const Text(
+                        'Total Drawn',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 120,
+                      height: 50,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: Colors.grey[200]!),
+                        ),
+                      ),
+                      child: const Text(
+                        'Budget',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // Table body
+          Expanded(
+            child: SingleChildScrollView(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Fixed left column
+
+                  Column(
+                    children: filteredLineItems
+                        .map((item) => Row(
+                              children: [
+                                Container(
+                                  width: 200,
+                                  height: 50,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    item.lineItem,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  width: 80,
+                                  height: 50,
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ))
+                        .toList(),
+                  ),
+                  // Scrollable middle section
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: _horizontalScrollController,
+                      scrollDirection: Axis.horizontal,
+                      child: Column(
+                        children: filteredLineItems
+                            .map((item) => Row(
+                                  children: List.generate(
+                                    numberOfDraws,
+                                    (drawIndex) =>
+                                        _buildDrawCell(item, drawIndex + 1),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ),
+
+                  // Fixed right columns
+
+                  Column(
+                    children: filteredLineItems
+                        .map((item) => Container(
+                              width: 240,
+                              child: Row(
+                                children: [
+                                  _buildTotalDrawnCell(item),
+                                  _buildBudgetCell(item),
+                                ],
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Status row (NEW)
+
+          Container(
+            decoration: BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.grey[200]!),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Fixed left spacing
+
+                Container(width: 280),
+
+                // Scrollable status section
+
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _horizontalScrollController,
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: List.generate(
+                        numberOfDraws,
+                        (index) => Container(
+                          width: 120,
+                          height: 92,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              left: BorderSide(color: Colors.grey[200]!),
+                            ),
+                          ),
+                          child: _buildDrawStatusControls(index + 1),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Fixed right spacing
+
+                Container(width: 240),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double? _getDrawAmount(LoanLineItem item, int drawNumber) {
+    switch (drawNumber) {
+      case 1:
+        return item.draw1;
+      case 2:
+        return item.draw2;
+      case 3:
+        return item.draw3;
+      case 4:
+        return item.draw4;
+      default:
+        return null;
+    }
+  }
+
+  bool _wouldExceedBudget(LoanLineItem item, int drawNumber, double? amount) {
+    if (amount == null) return false;
+    double totalWithoutThisDraw = item.totalDrawn - (amount ?? 0);
+    return (totalWithoutThisDraw + amount) > item.budget;
+  }
+
+  Widget _buildDrawCell(LoanLineItem item, int drawNumber) {
+    double? amount = _getDrawAmount(item, drawNumber);
+
+    bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber, amount);
+
+    return Container(
+      width: 120,
+      height: 50,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Left arrow button
+
+          if (drawNumber > 1)
+            IconButton(
+              icon: const Icon(Icons.arrow_back, size: 16),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+              onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
+            ),
+
+          // Draw amount and warning
+
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _showDrawEditDialog(item, drawNumber),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    amount != null ? '\$${amount.toStringAsFixed(2)}' : '-',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: wouldExceedBudget
+                          ? Colors.red
+                          : const Color.fromARGB(120, 39, 133, 5),
+                      decoration:
+                          amount != null ? TextDecoration.underline : null,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (wouldExceedBudget) ...[
+                    const SizedBox(width: 4),
+                    Tooltip(
+                      message: 'This draw would exceed the budget',
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        size: 16,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+
+          // Right arrow button
+
+          if (drawNumber < numberOfDraws)
+            IconButton(
+              icon: const Icon(Icons.arrow_forward, size: 16),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+              onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalDrawnCell(LoanLineItem item) {
+    return Container(
+      width: 120,
+      height: 50,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '\$${item.totalDrawn.toStringAsFixed(2)}',
+            style: TextStyle(
+              color:
+                  item.totalDrawn > item.budget ? Colors.red : Colors.black87,
+            ),
+          ),
+          if (item.totalDrawn > item.budget) ...[
+            const SizedBox(width: 4),
+            Tooltip(
+              message: 'Total drawn amount exceeds budget',
+              child: Icon(
+                Icons.warning_amber_rounded,
+                size: 16,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBudgetCell(LoanLineItem item) {
+    return Container(
+      width: 120,
+      height: 50,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      child: Text(
+        '\$${item.budget.toStringAsFixed(2)}',
+        style: const TextStyle(
+          fontSize: 14,
+          color: Colors.black, // Darker text
+          fontWeight: FontWeight.w500, // Slightly bolder
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawStatusControls(int drawNumber) {
+    final status = drawStatuses[drawNumber] ?? "pending";
+
+    return Container(
+      height: 50,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.check_circle_outline),
+            iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            color: status == "approved" ? Colors.green : Colors.grey,
+            onPressed: () async {
+              String newStatus = "approved";
+              setState(
+                () {
+                  drawStatuses[drawNumber] = newStatus;
+
+                  /// sets the entire draw (across line items) to approved.
+                  for (var item in _loanLineItems) {
+                    _setDrawStatus(item, drawNumber, newStatus);
+                  }
+                },
+              );
+              await updateDrawLenderSide(newStatus, drawNumber);
+            },
+          ),
+          GestureDetector(
+            onTap: () async {
+              String newStatus = "submitted";
+
+              setState(
+                () {
+                  drawStatuses[drawNumber] = newStatus;
+
+                  for (var item in _loanLineItems) {
+                    _setDrawStatus(item, drawNumber, newStatus);
+                  }
+                },
+              );
+              await updateDrawLenderSide(newStatus, drawNumber);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: _getStatusColor(status).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                status.toString().split('.').last.toUpperCase(),
+                style: TextStyle(
+                  color: _getStatusColor(status),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.cancel_outlined),
+            iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            color: status == "declined" ? Colors.red : Colors.grey,
+            onPressed: () {
+              setState(() {
+                drawStatuses[drawNumber] = "declined";
+
+                for (var item in _loanLineItems) {
+                  _setDrawStatus(item, drawNumber, "declined");
+                }
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _moveDrawAmount(LoanLineItem item, int drawNumber, String direction) {
+    setState(() {
+      if (direction == 'left' && drawNumber > 1) {
+        // Move amount left
+
+        double? tempAmount = _getDrawAmount(item, drawNumber - 1);
+
+        String tempStatus = _getDrawStatus(item, drawNumber - 1);
+
+        _setDrawAmount(item, drawNumber - 1, _getDrawAmount(item, drawNumber));
+
+        _setDrawStatus(item, drawNumber - 1, _getDrawStatus(item, drawNumber));
+
+        _setDrawAmount(item, drawNumber, tempAmount);
+
+        _setDrawStatus(item, drawNumber, tempStatus);
+      } else if (direction == 'right' && drawNumber < numberOfDraws) {
+        double? tempAmount = _getDrawAmount(item, drawNumber + 1);
+
+        String tempStatus = _getDrawStatus(item, drawNumber + 1);
+
+        _setDrawAmount(item, drawNumber + 1, _getDrawAmount(item, drawNumber));
+
+        _setDrawStatus(item, drawNumber + 1, _getDrawStatus(item, drawNumber));
+
+        _setDrawAmount(item, drawNumber, tempAmount);
+
+        _setDrawStatus(item, drawNumber, tempStatus);
+      }
+    });
+  }
+
+  void _showDrawEditDialog(LoanLineItem request, int drawNumber) {
+    final controller = TextEditingController(
+      text: drawNumber == 1
+          ? request.draw1?.toString()
+          : drawNumber == 2
+              ? request.draw2?.toString()
+              : request.draw3?.toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Draw $drawNumber'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Amount',
+            prefixText: '\$',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(
+              context,
+            ),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final amount = double.tryParse(controller.text);
+
+              /// TODO:
+              /// Implement the 'update corresponding amount in database' functionality
+              print("*WAVES HAND* 'Updated the amount in database");
+
+              setState(() {
+                switch (drawNumber) {
+                  case 1:
+                    request.draw1 = amount;
+                    break;
+                  case 2:
+                    request.draw2 = amount;
+                    break;
+                  case 3:
+                    request.draw3 = amount;
+                    break;
+                }
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to set draw status
+  void _setDrawStatus(LoanLineItem item, int drawNumber, String status) {
+    switch (drawNumber) {
+      case 1:
+        item.draw1Status = status;
+        break;
+      case 2:
+        item.draw2Status = status;
+        break;
+      case 3:
+        item.draw3Status = status;
+        break;
+      case 4:
+        item.draw4Status = status;
+        break;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case "approved":
+        return const Color(0xFF22C55E);
+
+      case "declined":
+        return const Color(0xFFEF4444);
+
+      case "submitted":
+        return const Color(0xFF6500E9);
+
+      case "underReview":
+        return const Color(0xFF6366F1);
+
+      case "pending":
+        return const Color(0xFFF97316);
+
+      default:
+        throw ArgumentError('Invalid draw status: $status');
+    }
+  }
+
+  String _getDrawStatus(LoanLineItem item, int drawNumber) {
+    switch (drawNumber) {
+      case 1:
+        return item.draw1Status;
+
+      case 2:
+        return item.draw2Status;
+
+      case 3:
+        return item.draw3Status;
+
+      case 4:
+        return item.draw4Status;
+
+      default:
+        return "pending";
+    }
+  }
+
+  // Helper method to set draw amount (this stays the same since it handles doubles)
+
+  void _setDrawAmount(LoanLineItem item, int drawNumber, double? amount) {
+    switch (drawNumber) {
+      case 1:
+        item.draw1 = amount;
+        break;
+      case 2:
+        item.draw2 = amount;
+        break;
+      case 3:
+        item.draw3 = amount;
+        break;
+      case 4:
+        item.draw4 = amount;
+        break;
+    }
+  }
+
+  Future<void> updateDrawLenderSide(String newStatus, int drawNumber) async {
+    try {
+      String capitalizedNewStatus = newStatus[0].toUpperCase();
+      capitalizedNewStatus += newStatus.substring(1);
+      String statusToUpdate = 'draw1_status';
+
+      // Get all line items for this loan
+      final lineItemsResponse = await supabase
+          .from('construction_loan_line_items')
+          .select()
+          .eq('loan_id', widget.loanId);
+
+      switch (drawNumber) {
+        case 1:
+          print("Changing draw1");
+          statusToUpdate = "draw1_status";
+          break;
+        case 2:
+          print("Changing draw2");
+          statusToUpdate = "draw2_status";
+          break;
+        case 3:
+          print("Changing draw3");
+          statusToUpdate = "draw3_status";
+          break;
+        case 4:
+          print("Changing draw4");
+          statusToUpdate = "draw4_status";
+          break;
+      }
+
+      // Update each line item's draw statuses to 'approved'
+      for (var item in lineItemsResponse) {
+        await supabase.from('construction_loan_line_items').update({
+          statusToUpdate: newStatus,
+        }).eq('category_id', item['category_id']);
+      }
+      // Refresh the data on the page
+      await fetchLoanLineItems();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Draw made "$capitalizedNewStatus"',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      setState(() {});
+    } catch (e) {
+      print('Error approving draws: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error approving draws: ${e.toString()}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {}
+    }
   }
 }

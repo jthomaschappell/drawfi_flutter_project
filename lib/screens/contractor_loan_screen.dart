@@ -666,7 +666,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     });
   }
 
-  Future<void> updateDraws(String newStatus, int drawNumber) async {
+  Future<void> updateDrawContractorSide(String newStatus, int drawNumber) async {
     try {
       String capitalizedNewStatus = newStatus[0].toUpperCase();
       capitalizedNewStatus += newStatus.substring(1);
@@ -1264,7 +1264,7 @@ Widget _buildDrawStatusSection(int drawNumber) {
               ElevatedButton(
                 onPressed: () {
                   if (status == "pending") {
-                    updateDraws("submitted", drawNumber);  // Changed to use updateDraws instead of _submitDraw
+                    updateDrawContractorSide("submitted", drawNumber);  // Changed to use updateDraws instead of _submitDraw
                   }
                 },
                 style: ElevatedButton.styleFrom(

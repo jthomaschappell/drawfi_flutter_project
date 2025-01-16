@@ -1816,7 +1816,6 @@ www.w3.org
               ? request.draw2?.toString()
               : request.draw3?.toString(),
     );
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1831,32 +1830,80 @@ www.w3.org
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(
-              context,
-            ),
+            onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
               final amount = double.tryParse(controller.text);
 
-              /// TODO:
-              /// Implement the 'update corresponding amount in database' functionality
-              print("*WAVES HAND* 'Updated the amount in database");
-
-              setState(() {
+              /// CHANGE HERE - Add function to update database
+              try {
+                String amountColumn = '';
                 switch (drawNumber) {
                   case 1:
-                    request.draw1 = amount;
+                    amountColumn = 'draw1_amount';
                     break;
                   case 2:
-                    request.draw2 = amount;
+                    amountColumn = 'draw2_amount';
                     break;
                   case 3:
-                    request.draw3 = amount;
+                    amountColumn = 'draw3_amount';
+                    break;
+                  case 4:
+                    amountColumn = 'draw4_amount';
                     break;
                 }
-              });
+
+                // Update database
+                await supabase
+                    .from('construction_loan_line_items')
+                    .update({amountColumn: amount})
+                    .eq('loan_id', widget.loanId)
+                    .eq('category_name', request.lineItem);
+
+                // Update UI state
+                setState(() {
+                  switch (drawNumber) {
+                    case 1:
+                      request.draw1 = amount;
+                      break;
+                    case 2:
+                      request.draw2 = amount;
+                      break;
+                    case 3:
+                      request.draw3 = amount;
+                      break;
+                    case 4:
+                      request.draw4 = amount;
+                      break;
+                  }
+                });
+
+                // Show success message
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Draw amount updated successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                print('Error updating draw amount: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text('Error updating draw amount: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+
+              /// END CHANGE
+
               Navigator.pop(context);
             },
             child: const Text('Save'),

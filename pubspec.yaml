@@ -49,6 +49,9 @@ dependencies:
   printing: ^5.11.1
   dio: ^5.7.0
   rxdart: ^0.28.0
+  collection: ^1.19.0
+  path: ^1.9.0
+  shared_preferences: ^2.3.5
   # timeago: ^3.7.0
 
 dev_dependencies:

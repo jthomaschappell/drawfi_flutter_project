@@ -8,6 +8,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+/// 1.15.25 Not used in the UI right now
+/// ------------ IGNORE THESE FOR NOW 1.15.25 -----------------
 enum FileStatus { pending, uploaded, verified, rejected }
 
 class FileDocument {
@@ -30,66 +32,6 @@ class FileDocument {
   });
 }
 
-class ContractorScreenLoanLineItem {
-  final String categoryId; // Add this
-  final String lineItemName;
-  double inspectionPercentage;
-
-  /// Should this be written out? double draw1, double draw2, etc.?
-  /// Same with drawStatuses?
-  Map<int, double?> draws;
-  Map<int, String> drawStatuses;
->>>>>>> new-branch-1-10
-  double budget;
-  String? lenderNote;
-  DateTime? reviewedAt;
-
-  ContractorScreenLoanLineItem({
-    required this.categoryId, // Add this
-    required this.lineItemName,
-    required this.inspectionPercentage,
-    Map<int, double?>? draws,
-<<<<<<< HEAD
-    Map<int, DrawStatus>? drawStatuses,
-    required this.budget,
-    this.lenderNote,
-    this.reviewedAt,
-  })  : draws = draws ?? {},
-        drawStatuses = drawStatuses ?? {};
-=======
-    Map<int, String>? drawStatuses,
-    required this.budget,
-    this.lenderNote,
-    this.reviewedAt,
-  })  : draws = draws ?? {1: null, 2: null, 3: null, 4: null},
-        drawStatuses = drawStatuses ??
-            {
-              1: "pending",
-              2: "pending",
-              3: "pending",
-              4: "pending",
-            };
-
-  double get totalDrawn {
-    return draws.values.fold<double>(0, (sum, amount) => sum + (amount ?? 0));
-  }
-
-  @override
-  String toString() {
-    return '''
-ContractorScreenLoanLineItem:
-  Line Item Name: $lineItemName
-  Inspection Percentage: $inspectionPercentage%
-  Draws: ${draws.entries.map((e) => 'Draw ${e.key}: ${e.value ?? "null"}').join(', ')}
-  Draw Statuses: ${drawStatuses.entries.map((e) => 'Draw ${e.key}: ${e.value}').join(', ')}
-  Budget: \$${budget.toStringAsFixed(2)}
-  Total Drawn: \$${totalDrawn.toStringAsFixed(2)}
-  Lender Note: ${lenderNote ?? "None"}
-  Reviewed At: ${reviewedAt?.toIso8601String() ?? "Not reviewed"}
-    ''';
-  }
-}
-
 /// Is this class ACTUALLY used?
 class LenderReview {
   final String drawId;
@@ -107,10 +49,68 @@ class LenderReview {
   });
 }
 
+/// ------------ IGNORE THESE FOR NOW 1.15.25 -----------------
+
+class ContractorScreenLoanLineItem {
+  final String categoryId;
+  final String lineItemName;
+  double inspectionPercentage;
+  double draw1Amount;
+  double draw2Amount;
+  double draw3Amount;
+  double draw4Amount;
+  String draw1Status;
+  String draw2Status;
+  String draw3Status;
+  String draw4Status;
+  double budget;
+  String? lenderNote;
+  DateTime? reviewedAt;
+
+  ContractorScreenLoanLineItem({
+    required this.categoryId,
+    required this.lineItemName,
+    required this.inspectionPercentage,
+    required this.budget,
+    this.lenderNote,
+    this.reviewedAt,
+  })  : draw1Amount = 0,
+        draw2Amount = 0,
+        draw3Amount = 0,
+        draw4Amount = 0,
+        draw1Status = "pending",
+        draw2Status = "pending",
+        draw3Status = "pending",
+        draw4Status = "pending";
+
+  double get totalDrawn {
+    return draw1Amount + draw2Amount + draw3Amount + draw4Amount;
+  }
+
+  @override
+  String toString() {
+    return '''ContractorScreenLoanLineItem(
+      categoryId: $categoryId,
+      lineItemName: $lineItemName,
+      inspectionPercentage: $inspectionPercentage,
+      budget: $budget,
+      totalDrawn: $totalDrawn,
+      draws: [
+        Draw 1: $draw1Amount ($draw1Status),
+        Draw 2: $draw2Amount ($draw2Status),
+        Draw 3: $draw3Amount ($draw3Status),
+        Draw 4: $draw4Amount ($draw4Status)
+      ],
+      lenderNote: $lenderNote,
+      reviewedAt: $reviewedAt
+    )''';
+  }
+}
+
 class ContractorLoanScreen extends StatefulWidget {
   final String loanId;
 
-  final bool isLender; // Claude added this parameter
+  final bool isLender; // TODO: Is this necessary.
 
   const ContractorLoanScreen({
     super.key,
@@ -123,14 +123,15 @@ class ContractorLoanScreen extends StatefulWidget {
 }
 
 class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final ScrollController _horizontalScrollController = ScrollController();
+  // Are these values used? 1.15.25.
   String _searchQuery = '';
-  final Map<String, TextEditingController> _controllers = {};
   Timer? _refreshTimer;
   final List<LenderReview> _lenderReviews = [];
-  late Stream<List<Map<String, dynamic>>> _fileHistoryStream;
-  bool _isLoading = false;
+  final ScrollController _horizontalScrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  final Map<String, TextEditingController> _controllers = {};
+
+  /// Default values for the name display on the contractor screen.
   String companyName = "Loading...";
   String contractorName = "Loading...";
   String contractorEmail = "Loading...";
@@ -142,7 +143,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   int numberOfDraws = 4;
   final supabase = Supabase.instance.client;
 
-  /// Put the attribute 'documents' here.
+  // FILE STUFF:
   /// Hardcoded.
   final documents = [
     FileDocument(
@@ -154,7 +155,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       uploadedAt: DateTime.now(),
     ),
   ];
-
   static const List<String> fileCategories = [
     'W9 Forms',
     'Construction Photos',
@@ -164,7 +164,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     'Inspection Reports',
     'Other Documents'
   ];
-
+  
   bool hasRequiredDocuments() {
     return documents.any((doc) =>
             doc.category == 'W9 Forms' && doc.status == FileStatus.verified) &&
@@ -258,11 +258,11 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                 .map((item) => [
                       item.lineItemName,
                       '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
-                      ...List.generate(
-                          numberOfDraws,
-                          (i) => item.draws[i + 1] != null
-                              ? '\$${item.draws[i + 1]!.toStringAsFixed(2)}'
-                              : '-'),
+                      // Replace the old draws map access with individual draw amounts
+                      '\$${item.draw1Amount.toStringAsFixed(2)}',
+                      '\$${item.draw2Amount.toStringAsFixed(2)}',
+                      '\$${item.draw3Amount.toStringAsFixed(2)}',
+                      '\$${item.draw4Amount.toStringAsFixed(2)}',
                       '\$${item.totalDrawn.toStringAsFixed(2)}',
                       '\$${item.budget.toStringAsFixed(2)}',
                     ])
@@ -338,181 +338,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       );
     }
   }
-
-  List<ContractorScreenLoanLineItem> _contractorScreenLoanLineItems = [
-    ContractorScreenLoanLineItem(
-      categoryId: '00000000-0000-0000-0000-000000000000',
-      lineItemName: 'No Line Items Yet',
-      inspectionPercentage: 0.0,
-      budget: 0.0,
-      draws: {
-        1: null,
-        2: null,
-        3: null,
-        4: null,
-      },
-      drawStatuses: {
-        1: "pending",
-        2: "pending",
-        3: "pending",
-        4: "pending",
-      },
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeControllers();
-    _loadLoanData();
-    if (!widget.isLender) {
-      _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-        _checkLenderUpdates();
-      });
-    }
-  }
-
-  /// CLAUDE MADE A CHANGE HERE
-  Future<void> _loadLoanData() async {
-    try {
-      print("Starting data load for loan ID: ${widget.loanId}");
-      setState(() => _isLoading = true);
-
-      // Fetch loan details
-      final loanResponse = await supabase
-          .from('construction_loans')
-          .select()
-          .eq('loan_id', widget.loanId)
-          .single();
-
-      // Fetch contractor details
-      final contractorResponse = await supabase
-          .from('contractors')
-          .select()
-          .eq('contractor_id', loanResponse['contractor_id'])
-          .single();
-
-      // Fetch line items with their associated draws
-      final lineItemsResponse =
-          await supabase.from('construction_loan_line_items').select('''
-          *,
-          construction_loan_draws (
-            draw_number,
-            amount,
-            status
-          )
-        ''').eq('loan_id', widget.loanId);
-
-      setState(() {
-        companyName = contractorResponse['company_name'] ?? "Unknown Company";
-        contractorName =
-            contractorResponse['full_name'] ?? "Unknown Contractor";
-        contractorEmail = contractorResponse['email'] ?? "No Email";
-        contractorPhone = contractorResponse['phone'] ?? "No Phone";
-
-<<<<<<< HEAD
-        _contractorScreenLineItems =
-            lineItemsResponse.map<ContractorScreenLoanLineItem>((item) {
-          // Convert draws array to map
-          Map<int, double?> drawsMap = {};
-          Map<int, DrawStatus> statusMap = {};
-=======
-        if (lineItemsResponse.isEmpty) {
-          // Create a default line item if none exist
-          _contractorScreenLoanLineItems = [
-            ContractorScreenLoanLineItem(
-              lineItemName: 'No Line Items Yet',
-              inspectionPercentage: 0.0,
-              budget: 0.0,
-              draws: {
-                1: null,
-                2: null,
-                3: null,
-                4: null,
-              },
-              drawStatuses: {
-                1: "pending",
-                2: "pending",
-                3: "pending",
-                4: "pending",
-              },
-            ),
-          ];
-        } else {
-          _contractorScreenLoanLineItems = lineItemsResponse
-              .map<ContractorScreenLoanLineItem>((item) =>
-                  ContractorScreenLoanLineItem(
-                    lineItemName: item['category_name'],
-                    inspectionPercentage: item['inspection_percentage'] ?? 0.0,
-                    budget: item['budgeted_amount'].toDouble(),
-                    draws: {
-                      1: item['draw1_amount']?.toDouble(),
-                      2: item['draw2_amount']?.toDouble(),
-                      3: item['draw3_amount']?.toDouble(),
-                      4: null,
-                    },
-                    drawStatuses: {
-                      1: item['draw1_status'] ?? 'pending',
-                      2: item['draw2_status'] ?? 'pending',
-                      3: item['draw3_status'] ?? 'pending',
-                      4: item['draw4_status'] ?? 'pending',
-                    },
-                  ))
-              .toList();
-        }
->>>>>>> new-branch-1-10
-
-          for (var draw in (item['construction_loan_draws'] as List)) {
-            final drawNumber = draw['draw_number'] as int;
-            drawsMap[drawNumber] = draw['amount']?.toDouble();
-            statusMap[drawNumber] = _parseDrawStatus(draw['status']);
-          }
-
-          return ContractorScreenLoanLineItem(
-            categoryId: item['category_id'],
-            lineItemName: item['category_name'],
-            inspectionPercentage: item['inspection_percentage'] ?? 0.0,
-            budget: item['budgeted_amount'].toDouble(),
-            draws: drawsMap,
-            drawStatuses: statusMap,
-          );
-        }).toList();
-      });
-
-      print("Data load completed successfully");
-      print("Company Name: $companyName");
-      print(
-        "Number of loan line items: ${_contractorScreenLoanLineItems.length}",
-      );
-      // print("The line items are: \n$_contractorScreenLoanLineItems");
-    } catch (e) {
-      print('Error loading loan data: $e');
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Error loading loan data: ${e.toString()}',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _initializeControllers() {
-    for (var item in _contractorScreenLoanLineItems) {
-      for (int i = 1; i <= numberOfDraws; i++) {
-        final key = '${item.lineItemName}_$i';
-        final amount = item.draws[i];
-        _controllers[key] =
-            TextEditingController(text: amount?.toString() ?? '');
-      }
-    }
-  }
-<<<<<<< HEAD
-=======
 
   Widget _buildFileUploadSection() {
     return Container(
@@ -616,6 +441,150 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     );
   }
 
+  List<ContractorScreenLoanLineItem> _contractorScreenLoanLineItems = [
+    ContractorScreenLoanLineItem(
+      categoryId: '00000000-0000-0000-0000-000000000000',
+      lineItemName: 'No Line Items Yet',
+      inspectionPercentage: 0.0,
+      budget: 0.0,
+      // default values for draw1 amount, etc.
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeControllers();
+    _loadLoanData();
+    // I don't think this actually does anything -- Thomas -- 1.15.25.
+    if (!widget.isLender) {
+      _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+        _checkLenderUpdates();
+      });
+    }
+  }
+
+  Future<void> _loadLoanData() async {
+    try {
+      print("Starting data load for loan ID: ${widget.loanId}");
+      // Fetch loan details
+      final loanResponse = await supabase
+          .from('construction_loans')
+          .select()
+          .eq('loan_id', widget.loanId)
+          .single();
+
+      // Fetch contractor details
+      final contractorResponse = await supabase
+          .from('contractors')
+          .select()
+          .eq('contractor_id', loanResponse['contractor_id'])
+          .single();
+
+      // Fetch line items with their associated draws
+      final lineItemsResponse =
+          await supabase.from('construction_loan_line_items').select('''
+        *,
+        construction_loan_draws (
+          draw_number,
+          amount,
+          status
+        )
+      ''').eq('loan_id', widget.loanId);
+
+      setState(() {
+        companyName = contractorResponse['company_name'] ?? "Unknown Company";
+        contractorName =
+            contractorResponse['full_name'] ?? "Unknown Contractor";
+        contractorEmail = contractorResponse['email'] ?? "No Email";
+        contractorPhone = contractorResponse['phone'] ?? "No Phone";
+
+        if (lineItemsResponse.isEmpty) {
+          // Create a default line item if none exist
+          _contractorScreenLoanLineItems = [
+            ContractorScreenLoanLineItem(
+              categoryId: '00000000-0000-0000-0000-000000000000',
+              lineItemName: 'No Line Items Yet',
+              inspectionPercentage: 0.0,
+              budget: 0.0,
+            ),
+          ];
+        } else {
+          _contractorScreenLoanLineItems =
+              lineItemsResponse.map<ContractorScreenLoanLineItem>((item) {
+            // Process the draws for this line item
+            final draws = item['construction_loan_draws'] as List;
+
+            // Create the line item with default values
+            var lineItem = ContractorScreenLoanLineItem(
+              categoryId:
+                  item['category_id'] ?? '00000000-0000-0000-0000-000000000000',
+              lineItemName: item['category_name'] ?? 'Unnamed Item',
+              inspectionPercentage:
+                  item['inspection_percentage']?.toDouble() ?? 0.0,
+              budget: item['budgeted_amount']?.toDouble() ?? 0.0,
+            );
+
+            // Update draw amounts and statuses based on the draws data
+            for (var draw in draws) {
+              switch (draw['draw_number'] as int) {
+                case 1:
+                  lineItem.draw1Amount = draw['amount']?.toDouble() ?? 0.0;
+                  lineItem.draw1Status = draw['status'] ?? 'pending';
+                  break;
+                case 2:
+                  lineItem.draw2Amount = draw['amount']?.toDouble() ?? 0.0;
+                  lineItem.draw2Status = draw['status'] ?? 'pending';
+                  break;
+                case 3:
+                  lineItem.draw3Amount = draw['amount']?.toDouble() ?? 0.0;
+                  lineItem.draw3Status = draw['status'] ?? 'pending';
+                  break;
+                case 4:
+                  lineItem.draw4Amount = draw['amount']?.toDouble() ?? 0.0;
+                  lineItem.draw4Status = draw['status'] ?? 'pending';
+                  break;
+              }
+            }
+
+            return lineItem;
+          }).toList();
+        }
+      });
+
+      print("Data load completed successfully");
+      print("Company Name: $companyName");
+      print(
+          "Number of loan line items: ${_contractorScreenLoanLineItems.length}");
+    } catch (e) {
+      print('Error loading loan data: $e');
+      // setState(() => _isLoading = false);  // Uncomment if _isLoading is defined
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading loan data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+// Handles the controllers.
+  void _initializeControllers() {
+    for (var item in _contractorScreenLoanLineItems) {
+      // Create controllers for each draw amount field
+      _controllers['${item.lineItemName}_1'] =
+          TextEditingController(text: item.draw1Amount.toString());
+      _controllers['${item.lineItemName}_2'] =
+          TextEditingController(text: item.draw2Amount.toString());
+      _controllers['${item.lineItemName}_3'] =
+          TextEditingController(text: item.draw3Amount.toString());
+      _controllers['${item.lineItemName}_4'] =
+          TextEditingController(text: item.draw4Amount.toString());
+    }
+  }
+
   IconData _getCategoryIcon(String category) {
     switch (category) {
       case 'W9 Forms':
@@ -635,14 +604,28 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
   }
 
+  /// CLAUDE MADE A CHANGE HERE
   Future<void> _checkLenderUpdates() async {
-    // Simulate API call to check for updates
     await Future.delayed(const Duration(seconds: 1));
     setState(() {
       for (var review in _lenderReviews) {
         for (var request in _contractorScreenLoanLineItems) {
           int drawNumber = int.parse(review.drawId.split('_')[1]);
-          request.drawStatuses[drawNumber] = review.status;
+          // Update individual draw statuses instead of using map
+          switch (drawNumber) {
+            case 1:
+              request.draw1Status = review.status;
+              break;
+            case 2:
+              request.draw2Status = review.status;
+              break;
+            case 3:
+              request.draw3Status = review.status;
+              break;
+            case 4:
+              request.draw4Status = review.status;
+              break;
+          }
           request.lenderNote = review.note;
           request.reviewedAt = review.timestamp;
         }
@@ -650,6 +633,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     });
   }
 
+  /// CLAUDE MADE A CHANGE HERE
   void _reviewDraw(int drawNumber, String status, String? note) {
     setState(() {
       final review = LenderReview(
@@ -661,7 +645,21 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
       _lenderReviews.add(review);
 
       for (var request in _contractorScreenLoanLineItems) {
-        request.drawStatuses[drawNumber] = status;
+        // Update individual draw status instead of using map
+        switch (drawNumber) {
+          case 1:
+            request.draw1Status = status;
+            break;
+          case 2:
+            request.draw2Status = status;
+            break;
+          case 3:
+            request.draw3Status = status;
+            break;
+          case 4:
+            request.draw4Status = status;
+            break;
+        }
         request.lenderNote = note;
         request.reviewedAt = review.timestamp;
       }
@@ -670,7 +668,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
   Future<void> updateDraws(String newStatus, int drawNumber) async {
     try {
-      setState(() => _isLoading = true);
       String capitalizedNewStatus = newStatus[0].toUpperCase();
       capitalizedNewStatus += newStatus.substring(1);
       String statusToUpdate = 'draw1_status';
@@ -736,11 +733,12 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) {}
     }
   }
+
+  /// TODO:
+  /// Does this button ever get called, or was it replaced by another implementation?
 
   void _submitDraw(int drawNumber) {
     // setState(() {
@@ -758,19 +756,24 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   }
 
   void _addNewDraw() {
-    setState(() {
-      numberOfDraws++;
-      for (var request in _contractorScreenLoanLineItems) {
-        request.draws[numberOfDraws] = null;
-        request.drawStatuses[numberOfDraws] = "pending";
+    // Remove this method or modify based on requirements since we now have fixed draws
+    // Cannot dynamically add new draws with the current structure
+    print(
+        "Warning: Adding new draws is not supported in the current implementation");
 
-        final key = '${request.lineItemName}_$numberOfDraws';
-        _controllers[key] = TextEditingController();
-      }
-    });
+    // setState(() {
+    //   numberOfDraws++;
+    //   for (var request in _contractorScreenLoanLineItems) {
+    //     request.draws[numberOfDraws] = null;
+    //     request.drawStatuses[numberOfDraws] = "pending";
+
+    //     final key = '${request.lineItemName}_$numberOfDraws';
+    //     _controllers[key] = TextEditingController();
+    //   }
+    // });
   }
 
-  List<ContractorScreenLoanLineItem> get filteredRequests {
+  List<ContractorScreenLoanLineItem> get filteredLineItems {
     if (_searchQuery.isEmpty) return _contractorScreenLoanLineItems;
     return _contractorScreenLoanLineItems
         .where(
@@ -862,12 +865,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
   }
 
-  /**
-   * git diff HEAD origin/<branch-name>
-
-   */
-
   Color _getStatusColor(String status) {
+    // This method is fine as is - no changes needed
     switch (status) {
       case "approved":
         return const Color(0xFF22C55E);
@@ -875,7 +874,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         return const Color(0xFFEF4444);
       case "submitted":
         return const Color(0xFF6500E9);
-      case "underReview": // TODO: Are we still using underReview?
+      case "underReview":
         return const Color(0xFF6366F1);
       case "pending":
       default:
@@ -883,65 +882,160 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
   }
 
-  bool _wouldExceedBudget(ContractorScreenLoanLineItem item, int drawNumber) {
-    final amount = item.draws[drawNumber];
-    if (amount == null) return false;
-    double totalWithoutThisDraw = item.totalDrawn - amount;
-    return (totalWithoutThisDraw + amount) > item.budget;
+  /// This sees if the line item totalDrawn exceeds the budget for that item.
+  bool _lineItemExceedsBudget(ContractorScreenLoanLineItem item) {
+    return (item.totalDrawn) > item.budget;
   }
 
+  /// 1.15.25 Does this even do anything?
+  /// CLAUDE MADE A CHANGE HERE
   void _moveDrawAmount(
       ContractorScreenLoanLineItem item, int drawNumber, String direction) {
     setState(() {
       if (direction == 'left' && drawNumber > 1) {
-        double? tempAmount = item.draws[drawNumber - 1];
-        String tempStatus = item.drawStatuses[drawNumber - 1] ?? "pending";
+        // Moving left
+        double tempAmount;
+        String tempStatus;
 
-        item.draws[drawNumber - 1] = item.draws[drawNumber];
-        item.drawStatuses[drawNumber - 1] =
-            item.drawStatuses[drawNumber] ?? "pending";
+        switch (drawNumber) {
+          case 2:
+            tempAmount = item.draw1Amount;
+            tempStatus = item.draw1Status;
+            item.draw1Amount = item.draw2Amount;
+            item.draw1Status = item.draw2Status;
+            item.draw2Amount = tempAmount;
+            item.draw2Status = tempStatus;
 
-        item.draws[drawNumber] = tempAmount;
-        item.drawStatuses[drawNumber] = tempStatus;
+            // Update controllers
+            _controllers['${item.lineItemName}_1']?.text =
+                item.draw1Amount.toString();
+            _controllers['${item.lineItemName}_2']?.text =
+                item.draw2Amount.toString();
+            break;
 
-        String currentKey = '${item.lineItemName}_$drawNumber';
-        _controllers[currentKey]?.text =
-            item.draws[drawNumber]?.toString() ?? '';
+          case 3:
+            tempAmount = item.draw2Amount;
+            tempStatus = item.draw2Status;
+            item.draw2Amount = item.draw3Amount;
+            item.draw2Status = item.draw3Status;
+            item.draw3Amount = tempAmount;
+            item.draw3Status = tempStatus;
 
-        String prevKey = '${item.lineItemName}_${drawNumber - 1}';
-        _controllers[prevKey]?.text =
-            item.draws[drawNumber - 1]?.toString() ?? '';
+            _controllers['${item.lineItemName}_2']?.text =
+                item.draw2Amount.toString();
+            _controllers['${item.lineItemName}_3']?.text =
+                item.draw3Amount.toString();
+            break;
+
+          case 4:
+            tempAmount = item.draw3Amount;
+            tempStatus = item.draw3Status;
+            item.draw3Amount = item.draw4Amount;
+            item.draw3Status = item.draw4Status;
+            item.draw4Amount = tempAmount;
+            item.draw4Status = tempStatus;
+
+            _controllers['${item.lineItemName}_3']?.text =
+                item.draw3Amount.toString();
+            _controllers['${item.lineItemName}_4']?.text =
+                item.draw4Amount.toString();
+            break;
+        }
       } else if (direction == 'right' && drawNumber < numberOfDraws) {
-        double? tempAmount = item.draws[drawNumber + 1];
-        String tempStatus = item.drawStatuses[drawNumber + 1] ?? "pending";
+        // Moving right
+        double tempAmount;
+        String tempStatus;
 
-        item.draws[drawNumber + 1] = item.draws[drawNumber];
-        item.drawStatuses[drawNumber + 1] =
-            item.drawStatuses[drawNumber] ?? "pending";
+        switch (drawNumber) {
+          case 1:
+            tempAmount = item.draw2Amount;
+            tempStatus = item.draw2Status;
+            item.draw2Amount = item.draw1Amount;
+            item.draw2Status = item.draw1Status;
+            item.draw1Amount = tempAmount;
+            item.draw1Status = tempStatus;
 
-        item.draws[drawNumber] = tempAmount;
-        item.drawStatuses[drawNumber] = tempStatus;
+            _controllers['${item.lineItemName}_1']?.text =
+                item.draw1Amount.toString();
+            _controllers['${item.lineItemName}_2']?.text =
+                item.draw2Amount.toString();
+            break;
 
-        String currentKey = '${item.lineItemName}_$drawNumber';
-        _controllers[currentKey]?.text =
-            item.draws[drawNumber]?.toString() ?? '';
+          case 2:
+            tempAmount = item.draw3Amount;
+            tempStatus = item.draw3Status;
+            item.draw3Amount = item.draw2Amount;
+            item.draw3Status = item.draw2Status;
+            item.draw2Amount = tempAmount;
+            item.draw2Status = tempStatus;
 
-        String nextKey = '${item.lineItemName}_${drawNumber + 1}';
-        _controllers[nextKey]?.text =
-            item.draws[drawNumber + 1]?.toString() ?? '';
+            _controllers['${item.lineItemName}_2']?.text =
+                item.draw2Amount.toString();
+            _controllers['${item.lineItemName}_3']?.text =
+                item.draw3Amount.toString();
+            break;
+
+          case 3:
+            tempAmount = item.draw4Amount;
+            tempStatus = item.draw4Status;
+            item.draw4Amount = item.draw3Amount;
+            item.draw4Status = item.draw3Status;
+            item.draw3Amount = tempAmount;
+            item.draw3Status = tempStatus;
+
+            _controllers['${item.lineItemName}_3']?.text =
+                item.draw3Amount.toString();
+            _controllers['${item.lineItemName}_4']?.text =
+                item.draw4Amount.toString();
+            break;
+        }
       }
     });
   }
 
+  /// Builds a cell widget for a specific draw in the loan line item table
+  /// Each cell represents a draw amount that can be edited if its status is 'pending'
   Widget _buildDrawCell(ContractorScreenLoanLineItem item, int drawNumber) {
+    // Create a unique key for this cell's text controller using line item name and draw number
     final String key = '${item.lineItemName}_$drawNumber';
-    final bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber);
-    final bool isEditable = item.drawStatuses[drawNumber] == "pending";
+    // Check if this draw amount would exceed the budget
+    final bool wouldExceedBudget = _lineItemExceedsBudget(item);
 
+    // Get the status and amount for this specific draw number
+    String status;
+    /// TODO: 
+    /// Is this supposed to show the amount on the UI. 
+    double amount;
+    switch (drawNumber) {
+      case 1:
+        status = item.draw1Status;
+        amount = item.draw1Amount;
+        break;
+      case 2:
+        status = item.draw2Status;
+        amount = item.draw2Amount;
+        break;
+      case 3:
+        status = item.draw3Status;
+        amount = item.draw3Amount;
+        break;
+      case 4:
+        status = item.draw4Status;
+        amount = item.draw4Amount;
+        break;
+      default:
+        status = "pending";
+        amount = 0;
+    }
+    // Cell is only editable if the draw status is 'pending'
+    final bool isEditable = status == "pending";
+
+    // Main container for the draw cell
     return Container(
       width: 120,
       height: 50,
       alignment: Alignment.center,
+      // Add borders and background color
       decoration: BoxDecoration(
         border: Border(
           left: BorderSide(color: Colors.grey[200]!),
@@ -949,21 +1043,30 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         ),
         color: Colors.white,
       ),
+      // Row contains: optional left arrow, text field, optional right arrow
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Show left arrow button only if:
+          // 1. This isn't the first draw
+          // 2. The draw is still editable (pending)
           if (drawNumber > 1 && isEditable)
             IconButton(
               icon: const Icon(Icons.arrow_back, size: 16),
               padding: const EdgeInsets.all(4),
               constraints: const BoxConstraints(),
+              // Move this draw amount to the previous draw slot
               onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
             ),
+          // Text field for entering/displaying the draw amount
           Expanded(
             child: TextField(
+              // Use existing controller or create new one
               controller: _controllers[key] ?? TextEditingController(),
               textAlign: TextAlign.center,
+              // Only allow editing if status is pending
               enabled: isEditable,
+              // Only allow numerical input with decimals
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
@@ -971,14 +1074,17 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                 fillColor: Colors.white,
                 border: InputBorder.none,
                 hintText: '-',
+                // Show dollar sign prefix only if there's a value
                 prefixText:
                     _controllers[key]?.text.isNotEmpty ?? false ? '\$' : '',
+                // Color the prefix based on whether amount exceeds budget
                 prefixStyle: TextStyle(
                   color: wouldExceedBudget
                       ? Colors.red
                       : const Color.fromARGB(120, 39, 133, 5),
                 ),
               ),
+              // Style the input text based on whether amount exceeds budget
               style: TextStyle(
                 fontSize: 14,
                 color: wouldExceedBudget
@@ -986,19 +1092,40 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                     : const Color.fromARGB(120, 39, 133, 5),
                 fontWeight: FontWeight.w500,
               ),
+              // When the value changes, update the corresponding draw amount
               onChanged: (value) {
-                final newAmount = value.isEmpty ? null : double.tryParse(value);
+                // Convert empty string to 0.0, or parse the number (default to 0.0 if parse fails)
+                final newAmount =
+                    value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
                 setState(() {
-                  item.draws[drawNumber] = newAmount;
+                  // Update the specific draw amount based on draw number
+                  switch (drawNumber) {
+                    case 1:
+                      item.draw1Amount = newAmount;
+                      break;
+                    case 2:
+                      item.draw2Amount = newAmount;
+                      break;
+                    case 3:
+                      item.draw3Amount = newAmount;
+                      break;
+                    case 4:
+                      item.draw4Amount = newAmount;
+                      break;
+                  }
                 });
               },
             ),
           ),
+          // Show right arrow button only if:
+          // 1. This isn't the last draw
+          // 2. The draw is still editable (pending)
           if (drawNumber < numberOfDraws && isEditable)
             IconButton(
               icon: const Icon(Icons.arrow_forward, size: 16),
               padding: const EdgeInsets.all(4),
               constraints: const BoxConstraints(),
+              // Move this draw amount to the next draw slot
               onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
             ),
         ],
@@ -1043,138 +1170,144 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     );
   }
 
-  Widget _buildDrawStatusSection(int drawNumber) {
-    // Initialize with default values
-    String status = "pending";
-    String? lenderNote;
-    DateTime? reviewedAt;
+/// CLAUDE MADE A CHANGE HERE
+Widget _buildDrawStatusSection(int drawNumber) {
+  // Initialize with default values
+  String status = "pending";
+  String? lenderNote;
+  DateTime? reviewedAt;
 
-    // Only try to access first item if list is not empty
-    if (_contractorScreenLoanLineItems.isNotEmpty &&
-        drawNumber <= numberOfDraws) {
-      status = _contractorScreenLoanLineItems.first.drawStatuses[drawNumber] ??
-          "pending";
-      lenderNote = _contractorScreenLoanLineItems.first.lenderNote;
-      reviewedAt = _contractorScreenLoanLineItems.first.reviewedAt;
+  // Only try to access first item if list is not empty
+  if (_contractorScreenLoanLineItems.isNotEmpty && drawNumber <= numberOfDraws) {
+    // Get status based on draw number
+    switch (drawNumber) {
+      case 1:
+        status = _contractorScreenLoanLineItems.first.draw1Status;
+        break;
+      case 2:
+        status = _contractorScreenLoanLineItems.first.draw2Status;
+        break;
+      case 3:
+        status = _contractorScreenLoanLineItems.first.draw3Status;
+        break;
+      case 4:
+        status = _contractorScreenLoanLineItems.first.draw4Status;
+        break;
     }
+    lenderNote = _contractorScreenLoanLineItems.first.lenderNote;
+    reviewedAt = _contractorScreenLoanLineItems.first.reviewedAt;
+  }
 
-    Color statusColor = _getStatusColor(status);
+  Color statusColor = _getStatusColor(status);
 
-    return Stack(
-      children: [
-        Container(
-          width: 120,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: Colors.grey[200]!),
-              top: BorderSide(color: Colors.grey[200]!),
-            ),
+  return Stack(
+    children: [
+      Container(
+        width: 120,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: Colors.grey[200]!),
+            top: BorderSide(color: Colors.grey[200]!),
           ),
-          child: Column(
-            children: [
-              // Status indicator with timestamp
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      status.toString().split('.').last.toUpperCase(),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    if (reviewedAt != null && status != "pending")
-                      Text(
-                        DateFormat('MM/dd/yy HH:mm').format(reviewedAt),
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 10,
-                        ),
-                      ),
-                  ],
-                ),
+        ),
+        child: Column(
+          children: [
+            // Status indicator with timestamp
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 8),
-
-              // Show different buttons based on user type
-              if (widget.isLender && status == "submitted")
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.check_circle, color: Colors.green),
-                      onPressed: () =>
-                          _showReviewDialog(drawNumber, "approved"),
-                      tooltip: 'Approve',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.cancel, color: Colors.red),
-                      onPressed: () =>
-                          _showReviewDialog(drawNumber, "declined"),
-                      tooltip: 'Decline',
-                    ),
-                  ],
-                )
-              else if (!widget.isLender)
-                ElevatedButton(
-                  onPressed: () {
-                    if (status == "pending") {
-                      /// TODO:
-                      /// Make this update in the Database.
-                      _submitDraw(drawNumber);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 61, 143, 96),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: const Size(80, 32),
-                    disabledBackgroundColor: Colors.grey[400],
-                  ),
-                  child: Text(
-                    _getButtonText(status),
-                    style: const TextStyle(
+              child: Column(
+                children: [
+                  Text(
+                    status.toString().split('.').last.toUpperCase(),
+                    style: TextStyle(
+                      color: statusColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white,
                     ),
-                    // "Words of Radiance",
                   ),
-                ),
+                  if (reviewedAt != null && status != "pending")
+                    Text(
+                      DateFormat('MM/dd/yy HH:mm').format(reviewedAt),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 10,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
 
-              // Show lender note if available
-              if (lenderNote != null && lenderNote.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Tooltip(
-                    message: lenderNote,
-                    child: const Icon(Icons.comment, size: 16),
+            // Show different buttons based on user type
+            if (widget.isLender && status == "submitted")
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.check_circle, color: Colors.green),
+                    onPressed: () => _showReviewDialog(drawNumber, "approved"),
+                    tooltip: 'Approve',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.red),
+                    onPressed: () => _showReviewDialog(drawNumber, "declined"),
+                    tooltip: 'Decline',
+                  ),
+                ],
+              )
+            else if (!widget.isLender)
+              ElevatedButton(
+                onPressed: () {
+                  if (status == "pending") {
+                    updateDraws("submitted", drawNumber);  // Changed to use updateDraws instead of _submitDraw
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 61, 143, 96),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: const Size(80, 32),
+                  disabledBackgroundColor: Colors.grey[400],
+                ),
+                child: Text(
+                  _getButtonText(status),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
                   ),
                 ),
-            ],
-          ),
+              ),
+
+            // Show lender note if available
+            if (lenderNote != null && lenderNote.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Tooltip(
+                  message: lenderNote,
+                  child: const Icon(Icons.comment, size: 16),
+                ),
+              ),
+          ],
         ),
-        // Status banner
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 3,
-            color: statusColor,
-          ),
+      ),
+      // Status banner
+      Positioned(
+        bottom: 0,
+        left: 0,
+        right: 0,
+        child: Container(
+          height: 3,
+          color: statusColor,
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   Widget _buildDataTable() {
     return Container(
@@ -1239,7 +1372,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                           ],
                         ),
                         // Data rows for fixed column
-                        ...filteredRequests
+                        ...filteredLineItems
                             .map((item) => Row(
                                   children: [
                                     Container(
@@ -1382,7 +1515,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                               ],
                             ),
                             // Data rows for scrollable section
-                            ...filteredRequests
+                            ...filteredLineItems
                                 .map((item) => Row(
                                       children: [
                                         ...List.generate(

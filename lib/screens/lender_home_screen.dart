@@ -6,8 +6,8 @@ import 'package:tester/loan_dashboard/lender_loan_screen.dart';
 import 'package:tester/screens/notifications_screen.dart';
 import 'package:tester/screens/invitation_screen.dart';
 import 'package:tester/screens/settings_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Constants
 const String appLogo = '''

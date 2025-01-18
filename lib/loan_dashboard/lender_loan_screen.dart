@@ -1,24 +1,20 @@
 import 'dart:convert';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:pdf/pdf.dart';
-import 'package:collection/collection.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:printing/printing.dart';
+import 'package:collection/collection.dart';
 
 import 'package:path/path.dart' as path;
-import 'package:pdf/widgets.dart' as pw;
 
 final supabase = Supabase.instance.client;
 
 /// Do we use this? 1.15.25
-enum DownloadStatus {
-  inProgress,
-  completed,
-  failed,
-}
+enum DownloadStatus { inProgress, completed, failed }
+
+/// Do we use this? 1.15.25
+// enum DrawStatus { pending, submitted, underReview, approved, declined }
 
 class DownloadProgress {
   final DownloadStatus status;
@@ -37,8 +33,11 @@ class DownloadProgress {
 
 class DocumentRequirement {
   final String category;
+
   final bool isRequired;
+
   final IconData icon;
+
   final Color color;
 
   DocumentRequirement({
@@ -356,111 +355,7 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
 
   Future<void> cleanupOrphanedFileReferences() async {}
 
-  Future<void> _shareLoanDashboard() async {
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.MultiPage(
-        build: (context) => [
-          pw.Header(
-            level: 0,
-            child: pw.Text(
-              '$companyName - Construction Loan Details',
-              style: pw.TextStyle(
-                fontSize: 24,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-          ),
-          pw.SizedBox(height: 20),
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text('Contractor: $contractorName'),
-              pw.Text('Phone: $contractorPhone'),
-              pw.Text('Email: $contractorEmail'),
-            ],
-          ),
-          pw.SizedBox(height: 20),
-          pw.Row(
-            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-            children: [
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'Amount Disbursed: ${totalDisbursed.toStringAsFixed(1)}%',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  ),
-                  pw.Text(
-                    'Total Amount: \$${_loanLineItems.fold<double>(0.0, (sum, item) => sum + item.totalDrawn).toStringAsFixed(2)}',
-                  ),
-                ],
-              ),
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'Project Completion: ${projectCompletion.toStringAsFixed(1)}%',
-                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          pw.SizedBox(height: 20),
-          pw.Table.fromTextArray(
-            context: context,
-            headerAlignment: pw.Alignment.centerLeft,
-            cellAlignment: pw.Alignment.centerLeft,
-            headerDecoration: pw.BoxDecoration(
-              color: PdfColors.grey300,
-            ),
-            headerHeight: 25,
-            cellHeight: 40,
-            headerStyle: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.black,
-            ),
-            cellStyle: const pw.TextStyle(
-              color: PdfColors.black,
-            ),
-            headers: [
-              'Line Item',
-              'INSP',
-              'Draw 1',
-              'Draw 2',
-              'Draw 3',
-              'Total Drawn',
-              'Budget'
-            ],
-            data: _loanLineItems
-                .map((item) => [
-                      item.lineItem,
-                      '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
-                      item.draw1 != null
-                          ? '\$${item.draw1!.toStringAsFixed(2)}'
-                          : '-',
-                      item.draw2 != null
-                          ? '\$${item.draw2!.toStringAsFixed(2)}'
-                          : '-',
-                      item.draw3 != null
-                          ? '\$${item.draw3!.toStringAsFixed(2)}'
-                          : '-',
-                      '\$${item.totalDrawn.toStringAsFixed(2)}',
-                      '\$${item.budget.toStringAsFixed(2)}',
-                    ])
-                .toList(),
-          ),
-        ],
-      ),
-    );
-
-    await Printing.sharePdf(
-      bytes: await pdf.save(),
-      filename: '${companyName.replaceAll(' ', '_')}_loan_details.pdf',
-    );
-  }
+  Future<void> _shareLoanDashboard() async {}
 
   Map<int, String> drawStatuses = {};
 

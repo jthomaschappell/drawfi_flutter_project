@@ -1,6 +1,6 @@
 {
-    "name": "tester",
-    "short_name": "tester",
+    "name": "drawfi_io_1_16",
+    "short_name": "drawfi_io_1_16",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -2,14 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:tester/screens/path_to_auth_screen/auth_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
+  // print("Hello world 1");
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
-  final supabaseUrl = dotenv.env['SUPABASE_URL'];
-  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
-  // print("This is the supabase url: $supabaseUrl");
-  // print("This is the supabase anon key: $supabaseAnonKey");
+  // print("Hello world 2");
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+);
+  // await dotenv.load();
+  // final supabaseUrl = dotenv.env['SUPABASE_URL'];
+  // final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+final supabaseUrl = "https://spndakpqcijkgdcicafp.supabase.co";
+
+final supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwbmRha3BxY2lqa2dkY2ljYWZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA1ODI1NzEsImV4cCI6MjA0NjE1ODU3MX0.1xdfqEE64YgUbGMWWJue2iCvlRhgvzHwii8sNxNB2_o";
 
   // Check if any required environment variables are null
   if (supabaseUrl == null || supabaseAnonKey == null) {

@@ -1,48 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 
-class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+class AuditLogScreen extends StatefulWidget {
+  const AuditLogScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  State<AuditLogScreen> createState() => _AuditLogScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _AuditLogScreenState extends State<AuditLogScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  
   final _future = Supabase.instance.client
       .from('audit_log')
       .select()
       .order('changed_at', ascending: false)
       .limit(10);
 
-  Widget _getActionIndicator(String action) {
-    Color color;
-    switch (action.toUpperCase()) {
-      case 'INSERT':
-        color = Colors.green;
-        break;
-      case 'UPDATE':
-        color = Colors.blue;
-        break;
-      case 'DELETE':
-        color = Colors.red;
-        break;
-      default:
-        color = Colors.grey;
-    }
-    return Container(
-      width: 4,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(2),
-      ),
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
     );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _animationController.forward();
   }
 
-  String _formatDateTime(DateTime? dateTime) {
-    if (dateTime == null) return 'Unknown time';
-    return DateFormat('MMM d, y h:mm a').format(dateTime.toLocal());
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  Color _getNotificationColor(String action) {
+    switch (action.toUpperCase()) {
+      case 'INSERT':
+        return const Color(0xFF34D399);
+      case 'UPDATE':
+        return const Color(0xFF6500E9);
+      case 'DELETE':
+        return const Color(0xFFFBBF24);
+      default:
+        return const Color(0xFF6B7280);
+    }
+  }
+
+  IconData _getNotificationIcon(String action) {
+    switch (action.toUpperCase()) {
+      case 'INSERT':
+        return CupertinoIcons.plus_circle_fill;
+      case 'UPDATE':
+        return CupertinoIcons.pencil_circle_fill;
+      case 'DELETE':
+        return CupertinoIcons.trash_circle_fill;
+      default:
+        return CupertinoIcons.circle_fill;
+    }
   }
 
   String _formatTableName(String tableName) {
@@ -52,55 +73,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .join(' ');
   }
 
-  Widget _buildChanges(Map<String, dynamic>? oldData, Map<String, dynamic>? newData) {
-    if (oldData == null || newData == null) return const SizedBox.shrink();
-    
-    List<Widget> changes = [];
-    
-    for (var key in oldData.keys) {
-      if (newData.containsKey(key) && oldData[key] != newData[key]) {
-        changes.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 120,
-                  child: Text(
-                    key,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    '${oldData[key]} → ${newData[key]}',
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
+  String _formatDateTime(DateTime? dateTime) {
+    if (dateTime == null) return 'Unknown time';
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return DateFormat('MMM d, y').format(dateTime);
     }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: changes,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
-        title: const Text('Recent Activity'),
-        backgroundColor: Colors.white,
-        elevation: 1,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(CupertinoIcons.back),
+          color: const Color(0xFF6500E9),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Recent Activity',
+          style: TextStyle(
+            color: Color(0xFF1F2937),
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: FutureBuilder(
         future: _future,
@@ -119,95 +130,180 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           final logs = snapshot.data as List;
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: logs.length,
-            itemBuilder: (context, index) {
-              final log = logs[index];
-              final DateTime? changedAt = DateTime.tryParse(log['changed_at'] ?? '');
-              final oldData = log['old_data'] as Map<String, dynamic>?;
-              final newData = log['new_data'] as Map<String, dynamic>?;
+          return logs.isEmpty
+              ? Center(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          CupertinoIcons.clock,
+                          size: 48,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No recent activity',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    CupertinoSliverRefreshControl(
+                      onRefresh: () async {
+                        // Implement refresh logic
+                        await Future.delayed(const Duration(seconds: 1));
+                        setState(() {});
+                      },
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final log = logs[index];
+                            final DateTime? changedAt = DateTime.tryParse(log['changed_at'] ?? '');
+                            final oldData = log['old_data'] as Map<String, dynamic>?;
+                            final newData = log['new_data'] as Map<String, dynamic>?;
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                elevation: 1,
-                child: Row(
-                  children: [
-                    _getActionIndicator(log['action']),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  log['action'].toUpperCase(),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    letterSpacing: 0.5,
+                            return FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: Offset(0, index * 0.1),
+                                  end: Offset.zero,
+                                ).animate(
+                                  CurvedAnimation(
+                                    parent: _animationController,
+                                    curve: Curves.easeOut,
                                   ),
                                 ),
-                                Text(
-                                  _formatDateTime(changedAt),
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 12,
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: _getNotificationColor(
+                                              log['action'],
+                                            ).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            _getNotificationIcon(log['action']),
+                                            color: _getNotificationColor(log['action']),
+                                            size: 20,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    _formatTableName(log['table_name']),
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Color(0xFF1F2937),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    _formatDateTime(changedAt),
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Action: ${log['action']}',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                              if (log['changed_by'] != null) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Modified by: ${log['changed_by']}',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                              ],
+                                              if (log['action'].toUpperCase() == 'UPDATE' && 
+                                                  (oldData?.isNotEmpty ?? false)) ...[
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'Changes:',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.grey[600],
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                ...oldData!.entries
+                                                    .where((e) => newData?[e.key] != e.value)
+                                                    .map((e) => Padding(
+                                                          padding: const EdgeInsets.only(top: 4),
+                                                          child: Text(
+                                                            '${e.key}: ${e.value} → ${newData?[e.key]}',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              color: Colors.grey[600],
+                                                            ),
+                                                          ),
+                                                        )),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _formatTableName(log['table_name']),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'ID: ${log['record_id']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            if (log['changed_by'] != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                'Modified by: ${log['changed_by']}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                            if (log['action'].toUpperCase() == 'UPDATE' && 
-                                (oldData?.isNotEmpty ?? false)) ...[
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Changes:',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              _buildChanges(oldData, newData),
-                            ],
-                          ],
+                            );
+                          },
+                          childCount: logs.length,
                         ),
                       ),
                     ),
                   ],
-                ),
-              );
-            },
-          );
+                );
         },
       ),
     );

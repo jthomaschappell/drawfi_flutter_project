@@ -1361,10 +1361,6 @@ class _InvitationScreenState extends State<InvitationScreen> {
       ),
       body: Column(
         children: [
-          ElevatedButton(
-            onPressed: testMultipleLineItems,
-            child: Text('Test Multiple Insert'),
-          ),
           _buildStepIndicator(),
           Expanded(
             child: SingleChildScrollView(

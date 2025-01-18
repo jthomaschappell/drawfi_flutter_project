@@ -3,14 +3,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 
-class AuditLogScreen extends StatefulWidget {
-  const AuditLogScreen({super.key});
+class NotificationScreen extends StatefulWidget {
+  const NotificationScreen({super.key});
 
   @override
-  State<AuditLogScreen> createState() => _AuditLogScreenState();
+  State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _AuditLogScreenState extends State<AuditLogScreen>
+class _NotificationScreenState extends State<NotificationScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;

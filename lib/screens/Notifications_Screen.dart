@@ -1,158 +1,166 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tester/models/construction_notification.dart';
-import 'package:tester/services/notification_service.dart';
+import 'package:intl/intl.dart';
 
-class NotificationsScreen extends StatelessWidget {
-  final NotificationService _notificationService;
+class NotificationsScreen extends StatefulWidget {
+  const NotificationsScreen({super.key});
 
-  NotificationsScreen({super.key})
-      : _notificationService = NotificationService(Supabase.instance.client);
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  final _future = Supabase.instance.client
+      .from('audit_log')
+      .select()
+      .order('changed_at', ascending: false)
+      .limit(10);
+
+  Color _getActionColor(String action) {
+    switch (action.toUpperCase()) {
+      case 'INSERT':
+        return Colors.green.shade100;
+      case 'UPDATE':
+        return Colors.blue.shade100;
+      case 'DELETE':
+        return Colors.red.shade100;
+      default:
+        return Colors.grey.shade100;
+    }
+  }
+
+  String _formatDateTime(DateTime? dateTime) {
+    if (dateTime == null) return 'Unknown time';
+    return DateFormat('MMM d, y h:mm a').format(dateTime.toLocal());
+  }
+
+  String _formatTableName(String tableName) {
+    return tableName
+        .split('_')
+        .map((word) => word[0].toUpperCase() + word.substring(1))
+        .join(' ');
+  }
+
+  Widget _buildDiffText(Map<String, dynamic>? oldData, Map<String, dynamic>? newData) {
+    if (oldData == null || newData == null) return const SizedBox.shrink();
+    
+    List<Widget> changes = [];
+    
+    // Compare fields that exist in both old and new data
+    for (var key in oldData.keys) {
+      if (newData.containsKey(key) && oldData[key] != newData[key]) {
+        changes.add(
+          Text(
+            '$key: ${oldData[key]} → ${newData[key]}',
+            style: const TextStyle(fontSize: 12),
+          ),
+        );
+      }
+    }
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: changes,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
-            color: Color(0xFF111827),
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Color(
-              0xFF111827,
-            ),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: const Text('Recent Activity'),
       ),
-      body: StreamBuilder<List<ConstructionNotification>>(
-        stream: _notificationService.subscribeToUpdates(),
-        builder: (context, snapshot) {
+      body: FutureBuilder(
+        future: _future,
+        builder: (context, AsyncSnapshot snapshot) {
           if (snapshot.hasError) {
             return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(
-                  color: Color(0xFF111827),
-                  fontSize: 14,
-                ),
-              ),
+              child: Text('Error: ${snapshot.error}'),
             );
           }
 
           if (!snapshot.hasData) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF4F46E5),
-              ),
+              child: CircularProgressIndicator(),
             );
           }
 
-          final notifications = snapshot.data!;
-
-          if (notifications.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.notifications_none_outlined,
-                    size: 48,
-                    color: Colors.black.withOpacity(0.2),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No notifications yet',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black.withOpacity(0.4),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
+          final logs = snapshot.data as List;
 
           return ListView.builder(
-            itemCount: notifications.length,
+            padding: const EdgeInsets.all(16),
+            itemCount: logs.length,
             itemBuilder: (context, index) {
-              final notification = notifications[index];
-              return NotificationTile(notification: notification);
+              final log = logs[index];
+              final DateTime? changedAt = DateTime.tryParse(log['changed_at'] ?? '');
+              final oldData = log['old_data'] as Map<String, dynamic>?;
+              final newData = log['new_data'] as Map<String, dynamic>?;
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Container(
+                  color: _getActionColor(log['action']),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              log['action'].toUpperCase(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              _formatDateTime(changedAt),
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _formatTableName(log['table_name']),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Record ID: ${log['record_id']}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        if (log['changed_by'] != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Changed by: ${log['changed_by']}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        if (log['action'].toUpperCase() == 'UPDATE') ...[
+                          const Divider(),
+                          const Text(
+                            'Changes:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildDiffText(oldData, newData),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
             },
           );
-        },
-      ),
-    );
-  }
-}
-
-class NotificationTile extends StatelessWidget {
-  final ConstructionNotification notification;
-
-  const NotificationTile({
-    super.key,
-    required this.notification,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE5E7EB)),
-        ),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF4F46E5).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            notification.type == 'loan'
-                ? Icons.account_balance
-                : Icons.list_alt,
-            color: const Color(0xFF4F46E5),
-            size: 20,
-          ),
-        ),
-        title: Text(
-          notification.message,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF111827),
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            "${notification.timestamp}",
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF6B7280),
-            ),
-          ),
-        ),
-        trailing: const Icon(
-          Icons.chevron_right,
-          size: 20,
-          color: Color(0xFF6B7280),
-        ),
-        onTap: () {
-          print("The tile was tapped");
         },
       ),
     );

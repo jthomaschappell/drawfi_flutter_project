@@ -16,17 +16,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       .order('changed_at', ascending: false)
       .limit(10);
 
-  Color _getActionColor(String action) {
+  Widget _getActionIndicator(String action) {
+    Color color;
     switch (action.toUpperCase()) {
       case 'INSERT':
-        return Colors.green.shade100;
+        color = Colors.green;
+        break;
       case 'UPDATE':
-        return Colors.blue.shade100;
+        color = Colors.blue;
+        break;
       case 'DELETE':
-        return Colors.red.shade100;
+        color = Colors.red;
+        break;
       default:
-        return Colors.grey.shade100;
+        color = Colors.grey;
     }
+    return Container(
+      width: 4,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(2),
+      ),
+    );
   }
 
   String _formatDateTime(DateTime? dateTime) {
@@ -41,18 +52,37 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .join(' ');
   }
 
-  Widget _buildDiffText(Map<String, dynamic>? oldData, Map<String, dynamic>? newData) {
+  Widget _buildChanges(Map<String, dynamic>? oldData, Map<String, dynamic>? newData) {
     if (oldData == null || newData == null) return const SizedBox.shrink();
     
     List<Widget> changes = [];
     
-    // Compare fields that exist in both old and new data
     for (var key in oldData.keys) {
       if (newData.containsKey(key) && oldData[key] != newData[key]) {
         changes.add(
-          Text(
-            '$key: ${oldData[key]} → ${newData[key]}',
-            style: const TextStyle(fontSize: 12),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 120,
+                  child: Text(
+                    key,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    '${oldData[key]} → ${newData[key]}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }
@@ -69,6 +99,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Recent Activity'),
+        backgroundColor: Colors.white,
+        elevation: 1,
       ),
       body: FutureBuilder(
         future: _future,
@@ -98,65 +130,80 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 16),
-                child: Container(
-                  color: _getActionColor(log['action']),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                elevation: 1,
+                child: Row(
+                  children: [
+                    _getActionIndicator(log['action']),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  log['action'].toUpperCase(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                Text(
+                                  _formatDateTime(changedAt),
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
                             Text(
-                              log['action'].toUpperCase(),
+                              _formatTableName(log['table_name']),
                               style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            Text(
-                              _formatDateTime(changedAt),
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
                                 fontSize: 14,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'ID: ${log['record_id']}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            if (log['changed_by'] != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Modified by: ${log['changed_by']}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                            if (log['action'].toUpperCase() == 'UPDATE' && 
+                                (oldData?.isNotEmpty ?? false)) ...[
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Changes:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildChanges(oldData, newData),
+                            ],
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _formatTableName(log['table_name']),
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Record ID: ${log['record_id']}',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        if (log['changed_by'] != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            'Changed by: ${log['changed_by']}',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        if (log['action'].toUpperCase() == 'UPDATE') ...[
-                          const Divider(),
-                          const Text(
-                            'Changes:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          _buildDiffText(oldData, newData),
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               );
             },

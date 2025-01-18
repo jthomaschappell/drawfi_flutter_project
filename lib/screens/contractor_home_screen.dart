@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:tester/screens/gc_settings_screen.dart';
 import 'package:tester/screens/contractor_loan_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:tester/screens/notification_screen.dart';
 
 // ProjectDetailsScreen definition remains the same
 class ProjectDetailsScreen extends StatelessWidget {
@@ -247,7 +248,14 @@ class _ContractorScreenState extends State<ContractorScreen> {
           ),
           const SizedBox(height: 32),
           _buildNavItem(Icons.home_outlined, true),
-          _buildNavItem(Icons.notifications_outlined, false),
+          _buildNavItem(Icons.notifications_outlined, false, onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NotificationScreen(),
+              ),
+            );
+          }),
           _buildNavItem(Icons.grid_view_outlined, false),
           _buildNavItem(Icons.settings_outlined, false,
               onTap: () => _navigateToSettings(context)),

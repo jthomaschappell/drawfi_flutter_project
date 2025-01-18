@@ -313,20 +313,20 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Widget _buildAuthToggle() {
     return Center(
-      child: TextButton(
-        onPressed: isLoading
-            ? null
-            : () => setState(() => isSignUpPage = !isSignUpPage),
-        child: Text(
-          isSignUpPage
-              ? 'Already have an account? Sign In'
-              : 'Don\'t have an account? Sign Up',
-          style: TextStyle(
-            color: Colors.grey[800],
-            fontSize: 14,
-          ),
-        ),
-      ),
+      // child: TextButton(
+      //   onPressed: isLoading
+      //       ? null
+      //       : () => setState(() => isSignUpPage = !isSignUpPage),
+      //   child: Text(
+      //     isSignUpPage
+      //         ? 'Already have an account? Sign In'
+      //         : 'Don\'t have an account? Sign Up',
+      //     style: TextStyle(
+      //       color: Colors.grey[800],
+      //       fontSize: 14,
+      //     ),
+      //   ),
+      // ),
     );
   }
 

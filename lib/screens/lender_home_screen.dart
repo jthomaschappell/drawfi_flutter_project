@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tester/loan_dashboard/lender_loan_screen.dart';
-import 'package:tester/screens/notifications_screen.dart';
+import 'package:tester/screens/notification_screen.dart';
 import 'package:tester/screens/invitation_screen.dart';
 import 'package:tester/screens/settings_screen.dart';
 import 'dart:convert';
@@ -851,7 +851,9 @@ class _LenderScreenState extends State<LenderScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => NotificationsScreen()),
+                        // builder: (context) => NotificationScreen()),
+                        builder: (context) => NotificationScreen(),
+                      ),
                     );
                   },
                   label: 'Notifications',

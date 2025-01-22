@@ -1361,10 +1361,6 @@ Widget _buildStepIndicator() {
       ),
       body: Column(
         children: [
-          ElevatedButton(
-            onPressed: testMultipleLineItems,
-            child: Text('Test Multiple Insert'),
-          ),
           _buildStepIndicator(),
           Expanded(
             child: SingleChildScrollView(

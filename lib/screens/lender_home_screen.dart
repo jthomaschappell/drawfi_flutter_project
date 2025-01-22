@@ -591,7 +591,7 @@ class _LenderScreenState extends State<LenderScreen> {
       setState(() => _isLoading = true);
 
       final lenderId = widget.userProfile['user_id'];
-      print('Loading projects for lender: $lenderId');
+      // print('Loading projects for lender: $lenderId');
 
       final response = await supabase.from('construction_loans').select('''
           loan_id,
@@ -604,7 +604,7 @@ class _LenderScreenState extends State<LenderScreen> {
           start_date
         ''').eq('lender_id', lenderId).order('updated_at', ascending: false);
 
-      print('Response from Supabase: $response');
+      // print('Response from Supabase: $response');
 
       // Convert response to projects and filter out trashed projects
       final projects = (response as List<dynamic>)

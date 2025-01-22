@@ -240,6 +240,31 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
   /// -- HELPER FUNCTIONS ----
   ///
   ///
+  // Add this near the top of the class
+  String normalizeStatus(String? status) {
+    if (status == null) return 'pending';
+
+    // Convert status to lowercase and remove any extra whitespace
+    status = status.toLowerCase().trim();
+
+    print('🔄 Normalizing status: $status'); // Debug log
+
+    // Map any variations to consistent values
+    switch (status) {
+      case 'approved':
+      case 'approve':
+        return 'approved';
+      case 'declined':
+      case 'decline':
+        return 'declined';
+      case 'submitted':
+      case 'submit':
+        return 'submitted';
+      case 'pending':
+      default:
+        return 'pending';
+    }
+  }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
@@ -470,6 +495,13 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
   void initState() {
     super.initState();
 
+    // Test status normalization
+    print('Test normalizeStatus:');
+    print('null -> ${normalizeStatus(null)}');
+    print('APPROVED -> ${normalizeStatus('APPROVED')}');
+    print('Submitted -> ${normalizeStatus('Submitted')}');
+    print('pending -> ${normalizeStatus('pending')}');
+
     _selectedCategory = documentRequirements[0].category;
 
     // sets as pending all of the objects in the drawStatuses map.
@@ -526,6 +558,7 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
 
   Future<void> fetchLoanLineItems() async {
     try {
+      print('⏳ Fetching line items for loan ID: ${widget.loanId}');
       final response = await supabase
           .from('construction_loan_line_items')
           .select()
@@ -535,27 +568,52 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
         throw Exception('No line items found for loan ID: ${widget.loanId}');
       }
 
-      setState(
-        () {
-          _loanLineItems = response
-              .map(
-                (entity) => LoanLineItem(
-                  lineItem: entity['category_name'] ?? "-",
-                  inspectionPercentage: entity['inspection_percentage'] ?? 0,
-                  draw1: entity['draw1_amount']?.toDouble(),
-                  draw2: entity['draw2_amount']?.toDouble(),
-                  draw3: entity['draw3_amount']?.toDouble(),
-                  draw1Status: (entity['draw1_status']).toString(),
-                  draw2Status: (entity['draw2_status']).toString(),
-                  draw3Status: entity['draw3_status'].toString(),
-                  budget: entity['budgeted_amount']?.toDouble() ?? 0.0,
-                ),
-              )
-              .toList();
-        },
-      );
+      setState(() {
+        _loanLineItems = response.map((entity) {
+          final lineItem = LoanLineItem(
+            lineItem: entity['category_name'] ?? "-",
+            inspectionPercentage: entity['inspection_percentage'] ?? 0,
+            draw1: entity['draw1_amount']?.toDouble(),
+            draw2: entity['draw2_amount']?.toDouble(),
+            draw3: entity['draw3_amount']?.toDouble(),
+            draw4: entity['draw4_amount']?.toDouble(),
+            draw1Status: normalizeStatus(entity['draw1_status']),
+            draw2Status: normalizeStatus(entity['draw2_status']),
+            draw3Status: normalizeStatus(entity['draw3_status']),
+            draw4Status: normalizeStatus(entity['draw4_status']),
+            budget: entity['budgeted_amount']?.toDouble() ?? 0.0,
+          );
+
+          print('''
+        📝 Processed line item:
+        Category: ${lineItem.lineItem}
+        Draw1 Status: ${lineItem.draw1Status}
+        Draw2 Status: ${lineItem.draw2Status}
+        Draw3 Status: ${lineItem.draw3Status}
+        Draw4 Status: ${lineItem.draw4Status}
+        ''');
+
+          return lineItem;
+        }).toList();
+
+        // Update global draw statuses based on first line item
+        if (_loanLineItems.isNotEmpty) {
+          drawStatuses[1] = _loanLineItems[0].draw1Status;
+          drawStatuses[2] = _loanLineItems[0].draw2Status;
+          drawStatuses[3] = _loanLineItems[0].draw3Status;
+          drawStatuses[4] = _loanLineItems[0].draw4Status;
+
+          print('''
+        🌍 Updated global draw statuses:
+        Draw 1: ${drawStatuses[1]}
+        Draw 2: ${drawStatuses[2]}
+        Draw 3: ${drawStatuses[3]}
+        Draw 4: ${drawStatuses[4]}
+        ''');
+        }
+      });
     } catch (e) {
-      print('Error fetching line items: $e');
+      print('❌ Error fetching line items: $e');
     }
   }
 
@@ -1445,37 +1503,40 @@ www.w3.org
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: List.generate(
-  numberOfDraws,
-  (index) => Container(
-    width: 120,
-    height: 50,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: _getDrawColumnBackgroundColor(drawStatuses[index + 1] ?? 'pending'),
-      border: Border(
-        left: BorderSide(color: Colors.grey[200]!),
-      ),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          'Draw ${index + 1}',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(width: 4),
-        if (drawStatuses[index + 1] == 'approved')
-          const Icon(Icons.check_circle, size: 16, color: Color(0xFF22C55E))
-        else if (drawStatuses[index + 1] == 'declined')
-          const Icon(Icons.cancel, size: 16, color: Color(0xFFEF4444)),
-      ],
-    ),
-  ),
-),
+                      numberOfDraws,
+                      (index) => Container(
+                        width: 120,
+                        height: 50,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: _getDrawColumnBackgroundColor(
+                              drawStatuses[index + 1] ?? 'pending'),
+                          border: Border(
+                            left: BorderSide(color: Colors.grey[200]!),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Draw ${index + 1}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            if (drawStatuses[index + 1] == 'approved')
+                              const Icon(Icons.check_circle,
+                                  size: 16, color: Color(0xFF22C55E))
+                            else if (drawStatuses[index + 1] == 'declined')
+                              const Icon(Icons.cancel,
+                                  size: 16, color: Color(0xFFEF4444)),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -1624,7 +1685,6 @@ www.w3.org
                 Container(width: 280),
 
                 // Scrollable status section
-
                 Expanded(
                   child: SingleChildScrollView(
                     controller: _horizontalScrollController,
@@ -1646,10 +1706,10 @@ www.w3.org
                     ),
                   ),
                 ),
-
                 // Fixed right spacing
-
-                Container(width: 240),
+                Container(
+                  width: 240,
+                ),
               ],
             ),
           ),
@@ -1678,89 +1738,92 @@ www.w3.org
     double totalWithoutThisDraw = item.totalDrawn - (amount ?? 0);
     return (totalWithoutThisDraw + amount) > item.budget;
   }
-Widget _buildDrawCell(LoanLineItem item, int drawNumber) {
-  double? amount = _getDrawAmount(item, drawNumber);
-  bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber, amount);
-  String status = _getDrawStatus(item, drawNumber);
 
-  return Container(
-    width: 120,
-    height: 50,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: _getDrawColumnBackgroundColor(status),
-      border: Border(
-        left: BorderSide(color: Colors.grey[200]!),
+  Widget _buildDrawCell(LoanLineItem item, int drawNumber) {
+    double? amount = _getDrawAmount(item, drawNumber);
+    bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber, amount);
+    String status = _getDrawStatus(item, drawNumber);
+
+    return Container(
+      width: 120,
+      height: 50,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _getDrawColumnBackgroundColor(status),
+        border: Border(
+          left: BorderSide(color: Colors.grey[200]!),
+        ),
       ),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (drawNumber > 1)
-          IconButton(
-            icon: const Icon(Icons.arrow_back, size: 16),
-            padding: const EdgeInsets.all(4),
-            constraints: const BoxConstraints(),
-            onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
-          ),
-          
-        Expanded(
-          child: GestureDetector(
-            onTap: () => _showDrawEditDialog(item, drawNumber),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  amount != null ? '\$${amount.toStringAsFixed(2)}' : '-',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: status == 'approved' 
-                        ? const Color(0xFF22C55E)
-                        : status == 'declined'
-                            ? const Color(0xFFEF4444)
-                            : wouldExceedBudget
-                                ? Colors.red
-                                : const Color.fromARGB(120, 39, 133, 5),
-                    decoration: amount != null ? TextDecoration.underline : null,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (wouldExceedBudget) ...[
-                  const SizedBox(width: 4),
-                  Tooltip(
-                    message: 'This draw would exceed the budget',
-                    child: Icon(
-                      Icons.warning_amber_rounded,
-                      size: 16,
-                      color: Colors.red,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (drawNumber > 1)
+            IconButton(
+              icon: const Icon(Icons.arrow_back, size: 16),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+              onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
+            ),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _showDrawEditDialog(item, drawNumber),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    amount != null ? '\$${amount.toStringAsFixed(2)}' : '-',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: status == 'approved'
+                          ? const Color(0xFF22C55E)
+                          : status == 'declined'
+                              ? const Color(0xFFEF4444)
+                              : wouldExceedBudget
+                                  ? Colors.red
+                                  : const Color.fromARGB(120, 39, 133, 5),
+                      decoration:
+                          amount != null ? TextDecoration.underline : null,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  if (wouldExceedBudget) ...[
+                    const SizedBox(width: 4),
+                    Tooltip(
+                      message: 'This draw would exceed the budget',
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        size: 16,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-        ),
-        if (drawNumber < numberOfDraws)
-          IconButton(
-            icon: const Icon(Icons.arrow_forward, size: 16),
-            padding: const EdgeInsets.all(4),
-            constraints: const BoxConstraints(),
-            onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
-          ),
-      ],
-    ),
-  );
-}
-Color _getDrawColumnBackgroundColor(String status) {
-  switch (status.toLowerCase()) {
-    case 'approved':
-      return const Color(0xFF22C55E).withOpacity(0.05);
-    case 'declined':
-      return const Color(0xFFEF4444).withOpacity(0.05);
-    default:
-      return Colors.transparent;
+          if (drawNumber < numberOfDraws)
+            IconButton(
+              icon: const Icon(Icons.arrow_forward, size: 16),
+              padding: const EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+              onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
+            ),
+        ],
+      ),
+    );
   }
-}
+
+  Color _getDrawColumnBackgroundColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return const Color(0xFF22C55E).withOpacity(0.05);
+      case 'declined':
+        return const Color(0xFFEF4444).withOpacity(0.05);
+      default:
+        return Colors.transparent;
+    }
+  }
+
   Widget _buildTotalDrawnCell(LoanLineItem item) {
     return Container(
       width: 120,
@@ -1827,13 +1890,16 @@ Color _getDrawColumnBackgroundColor(String status) {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           IconButton(
-            icon: const Icon(Icons.check_circle_outline),
+            icon: const Icon(
+              Icons.check_circle_outline,
+            ),
             iconSize: 20,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             color: status == "approved" ? Colors.green : Colors.grey,
             onPressed: () async {
               String newStatus = "approved";
+              // print("The new status is $newStatus");
               setState(
                 () {
                   drawStatuses[drawNumber] = newStatus;
@@ -1844,6 +1910,8 @@ Color _getDrawColumnBackgroundColor(String status) {
                   }
                 },
               );
+
+              /// update the draw on the database.
               await updateDrawLenderSide(newStatus, drawNumber);
             },
           ),
@@ -2115,6 +2183,7 @@ Color _getDrawColumnBackgroundColor(String status) {
   }
 
   Future<void> updateDrawLenderSide(String newStatus, int drawNumber) async {
+    print("The update draw lender side was called!");
     try {
       String capitalizedNewStatus = newStatus[0].toUpperCase();
       capitalizedNewStatus += newStatus.substring(1);

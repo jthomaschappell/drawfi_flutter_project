@@ -1445,26 +1445,37 @@ www.w3.org
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: List.generate(
-                      numberOfDraws,
-                      (index) => Container(
-                        width: 120,
-                        height: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border(
-                            left: BorderSide(color: Colors.grey[200]!),
-                          ),
-                        ),
-                        child: Text(
-                          'Draw ${index + 1}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ),
+  numberOfDraws,
+  (index) => Container(
+    width: 120,
+    height: 50,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: _getDrawColumnBackgroundColor(drawStatuses[index + 1] ?? 'pending'),
+      border: Border(
+        left: BorderSide(color: Colors.grey[200]!),
+      ),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Draw ${index + 1}',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(width: 4),
+        if (drawStatuses[index + 1] == 'approved')
+          const Icon(Icons.check_circle, size: 16, color: Color(0xFF22C55E))
+        else if (drawStatuses[index + 1] == 'declined')
+          const Icon(Icons.cancel, size: 16, color: Color(0xFFEF4444)),
+      ],
+    ),
+  ),
+),
                   ),
                 ),
               ),
@@ -1667,84 +1678,89 @@ www.w3.org
     double totalWithoutThisDraw = item.totalDrawn - (amount ?? 0);
     return (totalWithoutThisDraw + amount) > item.budget;
   }
+Widget _buildDrawCell(LoanLineItem item, int drawNumber) {
+  double? amount = _getDrawAmount(item, drawNumber);
+  bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber, amount);
+  String status = _getDrawStatus(item, drawNumber);
 
-  Widget _buildDrawCell(LoanLineItem item, int drawNumber) {
-    double? amount = _getDrawAmount(item, drawNumber);
-
-    bool wouldExceedBudget = _wouldExceedBudget(item, drawNumber, amount);
-
-    return Container(
-      width: 120,
-      height: 50,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: Colors.grey[200]!),
-        ),
+  return Container(
+    width: 120,
+    height: 50,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: _getDrawColumnBackgroundColor(status),
+      border: Border(
+        left: BorderSide(color: Colors.grey[200]!),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Left arrow button
-
-          if (drawNumber > 1)
-            IconButton(
-              icon: const Icon(Icons.arrow_back, size: 16),
-              padding: const EdgeInsets.all(4),
-              constraints: const BoxConstraints(),
-              onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
-            ),
-
-          // Draw amount and warning
-
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _showDrawEditDialog(item, drawNumber),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    amount != null ? '\$${amount.toStringAsFixed(2)}' : '-',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: wouldExceedBudget
-                          ? Colors.red
-                          : const Color.fromARGB(120, 39, 133, 5),
-                      decoration:
-                          amount != null ? TextDecoration.underline : null,
-                      fontWeight: FontWeight.w500,
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (drawNumber > 1)
+          IconButton(
+            icon: const Icon(Icons.arrow_back, size: 16),
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(),
+            onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
+          ),
+          
+        Expanded(
+          child: GestureDetector(
+            onTap: () => _showDrawEditDialog(item, drawNumber),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  amount != null ? '\$${amount.toStringAsFixed(2)}' : '-',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: status == 'approved' 
+                        ? const Color(0xFF22C55E)
+                        : status == 'declined'
+                            ? const Color(0xFFEF4444)
+                            : wouldExceedBudget
+                                ? Colors.red
+                                : const Color.fromARGB(120, 39, 133, 5),
+                    decoration: amount != null ? TextDecoration.underline : null,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (wouldExceedBudget) ...[
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message: 'This draw would exceed the budget',
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: Colors.red,
                     ),
                   ),
-                  if (wouldExceedBudget) ...[
-                    const SizedBox(width: 4),
-                    Tooltip(
-                      message: 'This draw would exceed the budget',
-                      child: Icon(
-                        Icons.warning_amber_rounded,
-                        size: 16,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
           ),
-
-          // Right arrow button
-
-          if (drawNumber < numberOfDraws)
-            IconButton(
-              icon: const Icon(Icons.arrow_forward, size: 16),
-              padding: const EdgeInsets.all(4),
-              constraints: const BoxConstraints(),
-              onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
-            ),
-        ],
-      ),
-    );
+        ),
+        if (drawNumber < numberOfDraws)
+          IconButton(
+            icon: const Icon(Icons.arrow_forward, size: 16),
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(),
+            onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
+          ),
+      ],
+    ),
+  );
+}
+Color _getDrawColumnBackgroundColor(String status) {
+  switch (status.toLowerCase()) {
+    case 'approved':
+      return const Color(0xFF22C55E).withOpacity(0.05);
+    case 'declined':
+      return const Color(0xFFEF4444).withOpacity(0.05);
+    default:
+      return Colors.transparent;
   }
-
+}
   Widget _buildTotalDrawnCell(LoanLineItem item) {
     return Container(
       width: 120,

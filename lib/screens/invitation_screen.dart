@@ -466,9 +466,9 @@ class _InvitationScreenState extends State<InvitationScreen> {
     }
   }
 
-  Widget _buildStepIndicator() {
+Widget _buildStepIndicator() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 25), // Changed to 16
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [

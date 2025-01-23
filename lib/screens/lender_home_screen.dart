@@ -595,7 +595,7 @@ class _LenderScreenState extends State<LenderScreen> {
       setState(() => _isLoading = true);
 
       final lenderId = widget.userProfile['user_id'];
-      print('Loading projects for lender: $lenderId');
+      // print('Loading projects for lender: $lenderId');
 
       final response = await supabase.from('construction_loans').select('''
   loan_id,
@@ -610,6 +610,7 @@ class _LenderScreenState extends State<LenderScreen> {
 ''')
   .eq('lender_id', lenderId).order('updated_at', ascending: false);
 
+
       print('Response from Supabase: $response');
       print('RECEIVED DATA:');
 for (var data in response) {
@@ -619,7 +620,6 @@ for (var data in response) {
   print('Draw Count: ${data['draw_count']}');
   print('------------------------');
 }
-
       // Convert response to projects and filter out trashed projects
       final projects = (response as List<dynamic>)
           .map((data) => Project.fromSupabase(data as Map<String, dynamic>))

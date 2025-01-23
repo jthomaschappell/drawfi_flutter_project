@@ -148,6 +148,11 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   int numberOfDraws = 4;
   final supabase = Supabase.instance.client;
 
+  String draw1StatusUI = "pending";
+  String draw2StatusUI = "pending";
+  String draw3StatusUI = "pending";
+  String draw4StatusUI = "pending";
+
   // FILE STUFF:
   /// Hardcoded.
   final documents = [
@@ -505,6 +510,12 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         contractorPhone = contractorResponse['phone'] ?? "No Phone";
 
         if (lineItemsResponse.isEmpty) {
+          // Reset status
+          draw1StatusUI = "pending";
+          draw2StatusUI = "pending";
+          draw3StatusUI = "pending";
+          draw4StatusUI = "pending";
+
           // Create a default line item if none exist
           _contractorScreenLoanLineItems = [
             ContractorScreenLoanLineItem(
@@ -518,11 +529,6 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
           /// I don't think this code is doing anything. 1.22.25.
           _contractorScreenLoanLineItems =
               lineItemsResponse.map<ContractorScreenLoanLineItem>((item) {
-            // Process the draws for this line item
-            final draws = item['construction_loan_draws'] as List;
-            // print("This is the draws object: $draws");
-            /// This is null by the way. I don't know if we want that. 
-
             // Create the line item with default values
             var lineItem = ContractorScreenLoanLineItem(
               categoryId:
@@ -533,30 +539,21 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
               budget: item['budgeted_amount']?.toDouble() ?? 0.0,
             );
 
-            // Update draw amounts and statuses based on the draws data
-            for (var draw in draws) {
-              switch (draw['draw_number'] as int) {
-                case 1:
-                  lineItem.draw1Amount = draw['amount']?.toDouble() ?? 0.0;
-                  lineItem.draw1Status = draw['status'] ?? 'pending';
-                  break;
-                case 2:
-                  lineItem.draw2Amount = draw['amount']?.toDouble() ?? 0.0;
-                  lineItem.draw2Status = draw['status'] ?? 'pending';
-                  break;
-                case 3:
-                  lineItem.draw3Amount = draw['amount']?.toDouble() ?? 0.0;
-                  lineItem.draw3Status = draw['status'] ?? 'pending';
-                  break;
-                case 4:
-                  lineItem.draw4Amount = draw['amount']?.toDouble() ?? 0.0;
-                  lineItem.draw4Status = draw['status'] ?? 'pending';
-                  break;
-              }
-            }
+            // Get status directly from database
+            lineItem.draw1Status = item['draw1_status'] ?? 'pending';
+            lineItem.draw2Status = item['draw2_status'] ?? 'pending';
+            lineItem.draw3Status = item['draw3_status'] ?? 'pending';
+            lineItem.draw4Status = item['draw4_status'] ?? 'pending';
 
             return lineItem;
           }).toList();
+
+          /// CLAUDE CHANGE HERE
+          // Set UI status from first line item after creation
+          draw1StatusUI = _contractorScreenLoanLineItems.first.draw1Status;
+          draw2StatusUI = _contractorScreenLoanLineItems.first.draw2Status;
+          draw3StatusUI = _contractorScreenLoanLineItems.first.draw3Status;
+          draw4StatusUI = _contractorScreenLoanLineItems.first.draw4Status;
         }
       });
 
@@ -691,17 +688,21 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         case 1:
           print("Changing draw1");
           statusToUpdate = "draw1_status";
+          draw1StatusUI = newStatus;
           break;
         case 2:
           print("Changing draw2");
+          draw2StatusUI = newStatus;
           statusToUpdate = "draw2_status";
           break;
         case 3:
           print("Changing draw3");
+          draw3StatusUI = newStatus;
           statusToUpdate = "draw3_status";
           break;
         case 4:
           print("Changing draw4");
+          draw4StatusUI = newStatus;
           statusToUpdate = "draw4_status";
           break;
       }
@@ -712,8 +713,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
           statusToUpdate: newStatus,
         }).eq('category_id', item['category_id']);
       }
+
       // Refresh the data on the page
-      await fetchLoanData();
+      // await fetchLoanData();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -858,6 +860,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   }
 
   String _getButtonText(String status) {
+    print("The get button text was called!");
     switch (status) {
       /// Some of these cases aren't consistent with the database...
       case "approved":
@@ -1183,28 +1186,51 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   /// CLAUDE MADE A CHANGE HERE
   Widget _buildDrawStatusSection(int drawNumber) {
     // Initialize with default values
-    String status = "pending";
+    print("We are doing the build draw status section!");
+    String status;
+    switch (drawNumber) {
+      case 1:
+        status = draw1StatusUI;
+        print("Draw 1 status was chosen");
+        break;
+      case 2:
+        status = draw2StatusUI;
+        print("Draw 2 status was chosen");
+        break;
+      case 3:
+        status = draw3StatusUI;
+        print("Draw 3 status was chosen");
+        break;
+      case 4:
+        status = draw4StatusUI;
+        print("Draw 4 status was chosen");
+        break;
+      default:
+        status = "pending";
+    }
+    print("The state value status is $status!");
+
     String? lenderNote;
     DateTime? reviewedAt;
 
     // Only try to access first item if list is not empty
     if (_contractorScreenLoanLineItems.isNotEmpty &&
         drawNumber <= numberOfDraws) {
-      // Get status based on draw number
-      switch (drawNumber) {
-        case 1:
-          status = _contractorScreenLoanLineItems.first.draw1Status;
-          break;
-        case 2:
-          status = _contractorScreenLoanLineItems.first.draw2Status;
-          break;
-        case 3:
-          status = _contractorScreenLoanLineItems.first.draw3Status;
-          break;
-        case 4:
-          status = _contractorScreenLoanLineItems.first.draw4Status;
-          break;
-      }
+      // // Get status based on draw number
+      // switch (drawNumber) {
+      //   case 1:
+      //     status = _contractorScreenLoanLineItems.first.draw1Status;
+      //     break;
+      //   case 2:
+      //     status = _contractorScreenLoanLineItems.first.draw2Status;
+      //     break;
+      //   case 3:
+      //     status = _contractorScreenLoanLineItems.first.draw3Status;
+      //     break;
+      //   case 4:
+      //     status = _contractorScreenLoanLineItems.first.draw4Status;
+      //     break;
+      // }
       lenderNote = _contractorScreenLoanLineItems.first.lenderNote;
       reviewedAt = _contractorScreenLoanLineItems.first.reviewedAt;
     }
@@ -1256,8 +1282,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
               const SizedBox(height: 8),
 
               // Show different buttons based on user type
-              /// TODO: 
-              /// What if I take out the lender functionality. 
+              /// TODO:
+              /// What if I take out the lender functionality.
               if (widget.isLender && status == "submitted")
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1279,14 +1305,29 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
               else if (!widget.isLender)
                 ElevatedButton(
                   onPressed: () {
-                    /// TODO: 
-                    /// See if the submit does in fact work as planned. 
                     print("The Submit button was pressed!");
-                    if (status == "pending") {
-                      updateDrawContractorSide(
-                        "submitted",
-                        drawNumber,
-                      ); // Changed to use updateDraws instead of _submitDraw
+                    updateDrawContractorSide(
+                      "submitted",
+                      drawNumber,
+                    );
+
+                    /// TODO:
+                    /// See if this changes what the button text pulls.
+                    switch (drawNumber) {
+                      case 1:
+                        draw1StatusUI = "submitted";
+                        break;
+                      case 2:
+                        draw2StatusUI = "submitted";
+                        break;
+                      case 3:
+                        draw3StatusUI = "submitted";
+                        break;
+                      case 4:
+                        draw4StatusUI = "submitted";
+                        break;
+                      default:
+                        status = "pending";
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -1298,6 +1339,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
                   ),
                   child: Text(
                     _getButtonText(status),
+                    // "Status: $status",
+                    // "Your mom!",
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,

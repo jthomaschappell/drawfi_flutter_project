@@ -49,6 +49,8 @@ class Project {
   final DateTime startDate;
   final List<ProjectUpdate> updates;
   final List<ProjectDocument> documents;
+  final double disbursedPercentage;
+  final double completionPercentage;
 
   Project({
     required this.id,
@@ -64,6 +66,8 @@ class Project {
     required this.startDate,
     required this.updates,
     required this.documents,
+    required this.disbursedPercentage,
+    required this.completionPercentage,
   });
 
   // yo thomas
@@ -71,32 +75,27 @@ class Project {
   // In the Project.fromSupabase method, replace the current completion calculation with:
 
   factory Project.fromSupabase(Map<String, dynamic> data) {
-    // Get total budget
-    final totalBudget = (data['total_amount'] is int)
-        ? (data['total_amount'] as int).toDouble()
-        : data['total_amount']?.toDouble() ?? 0.0;
-
-    // Calculate completion based on the completed inspection percentages
-    double completionPercentage = 0.0;
-    if (data['inspections'] != null) {
-      // Sum up (INSP × Budget) for each line item
-      double weightedSum = 0.0;
-      double totalBudgetSum = 0.0;
-
-      // Iterate through inspection items
-      for (var item in data['inspections']) {
-        double inspectionPercentage = item['inspection_percentage'] ?? 0.0;
-        double itemBudget = item['budget'] ?? 0.0;
-
-        weightedSum += (inspectionPercentage * itemBudget);
-        totalBudgetSum += itemBudget;
-      }
-
-      // Calculate final weighted percentage
-      if (totalBudgetSum > 0) {
-        completionPercentage = (weightedSum / totalBudgetSum);
+    // Calculate disbursed percentage
+    double totalDrawn = 0;
+    double totalBudget = 0;
+    if (data['line_items'] != null) {
+      for (var item in data['line_items']) {
+        totalDrawn += (item['draw1_amount'] ?? 0) + 
+                     (item['draw2_amount'] ?? 0) + 
+                     (item['draw3_amount'] ?? 0);
+        totalBudget += item['budgeted_amount'] ?? 0;
       }
     }
+
+    // Calculate completion percentage
+    double weightedSum = 0;
+    if (data['line_items'] != null) {
+      for (var item in data['line_items']) {
+        weightedSum += (item['inspection_percentage'] ?? 0) * 
+                      (item['budgeted_amount'] ?? 0);
+      }
+    }
+
 
     // TODO:
     // Test this function that Claude gave us.
@@ -117,6 +116,8 @@ class Project {
       startDate: DateTime.now(),
       updates: [],
       documents: [],
+      disbursedPercentage: totalBudget > 0 ? (totalDrawn / totalBudget) * 100 : 0,
+      completionPercentage: totalBudget > 0 ? (weightedSum / totalBudget) * 100 : 0,
     );
   }
 
@@ -368,18 +369,17 @@ class ProjectCard extends StatelessWidget {
                 ),
               ),
 
-              // Metrics
-              _buildMetric(
-                  'Disbursed', '${project.disbursed.toStringAsFixed(0)}%'),
-              _buildMetric(
-                  'Completed', '${project.completed.toStringAsFixed(0)}%'),
-              _buildMetric('Draws', project.draws.toString()),
-              _buildMetric(
-                  'Next Inspection',
-                  project.nextInspectionDate != null
-                      ? DateFormat('MMM d').format(project.nextInspectionDate!)
-                      : 'N/A'),
-
+             // Metrics
+_buildMetric(
+    'Disbursed', '${project.disbursedPercentage.toStringAsFixed(0)}%'),
+_buildMetric(
+    'Completed', '${project.completionPercentage.toStringAsFixed(0)}%'),
+_buildMetric('Draws', project.draws.toString()),
+_buildMetric(
+    'Next Inspection',
+    project.nextInspectionDate != null
+        ? DateFormat('MMM d').format(project.nextInspectionDate!)
+        : 'N/A'),
               // Status Badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -485,8 +485,10 @@ class _LenderScreenState extends State<LenderScreen> {
               'status': project.status,
               'lastUpdated': project.lastUpdated.toIso8601String(),
               'startDate': project.startDate.toIso8601String(),
-            })
-        .toList();
+            'disbursedPercentage': project.disbursedPercentage,
+          'completionPercentage': project.completionPercentage,
+        })
+    .toList();
 
     await prefs.setString(TRASH_KEY, jsonEncode(deletedProjectsJson));
   }
@@ -522,8 +524,10 @@ class _LenderScreenState extends State<LenderScreen> {
                   startDate: DateTime.parse(json['startDate']),
                   updates: [],
                   documents: [],
-                ))
-            .toList();
+                disbursedPercentage: json['disbursed'] ?? 0.0,
+          completionPercentage: json['completed'] ?? 0.0,
+        ))
+    .toList();
       });
     }
   }
@@ -594,17 +598,27 @@ class _LenderScreenState extends State<LenderScreen> {
       print('Loading projects for lender: $lenderId');
 
       final response = await supabase.from('construction_loans').select('''
-          loan_id,
-          contractor_id,
-          project_name,
-          total_amount,
-          draw_count,
-          updated_at,
-          location,
-          start_date
-        ''').eq('lender_id', lenderId).order('updated_at', ascending: false);
+  loan_id,
+  contractor_id,
+  project_name,
+  total_amount,
+  draw_count,
+  updated_at,
+  location,
+  start_date,
+  line_items:construction_loan_line_items(*)
+''')
+  .eq('lender_id', lenderId).order('updated_at', ascending: false);
 
       print('Response from Supabase: $response');
+      print('RECEIVED DATA:');
+for (var data in response) {
+  print('Project: ${data['project_name']}');
+  print('Total Amount: ${data['total_amount']}');
+  print('Disbursed Amount: ${data['disbursed_amount']}');
+  print('Draw Count: ${data['draw_count']}');
+  print('------------------------');
+}
 
       // Convert response to projects and filter out trashed projects
       final projects = (response as List<dynamic>)

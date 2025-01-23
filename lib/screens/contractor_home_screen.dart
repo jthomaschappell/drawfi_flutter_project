@@ -478,11 +478,11 @@ class _ContractorScreenState extends State<ContractorScreen> {
     /// DONE:
     /// Run the app
     /// See if it comes up with a whole bunch of these.
-    print("");
-    print("Testing navigation setup...");
-    print("Loan ID being passed: ${loan['loan_id']}");
-    print("Full loan object: $loan");
-    print("");
+    // print("");
+    // print("Testing navigation setup...");
+    // print("Loan ID being passed: ${loan['loan_id']}");
+    // print("Full loan object: $loan");
+    // print("");
   }
 
   Widget _buildProjectCard(Map<String, dynamic> loan) {

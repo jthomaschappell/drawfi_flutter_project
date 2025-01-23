@@ -10,7 +10,12 @@ import 'package:printing/printing.dart';
 
 /// 1.15.25 Not used in the UI right now
 /// ------------ IGNORE THESE FOR NOW 1.15.25 -----------------
-enum FileStatus { pending, uploaded, verified, rejected }
+enum FileStatus {
+  pending,
+  uploaded,
+  verified,
+  rejected,
+}
 
 class FileDocument {
   final String id;
@@ -164,7 +169,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     'Inspection Reports',
     'Other Documents'
   ];
-  
+
   bool hasRequiredDocuments() {
     return documents.any((doc) =>
             doc.category == 'W9 Forms' && doc.status == FileStatus.verified) &&
@@ -455,7 +460,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   void initState() {
     super.initState();
     _initializeControllers();
-    _loadLoanData();
+    fetchLoanData();
     // I don't think this actually does anything -- Thomas -- 1.15.25.
     if (!widget.isLender) {
       _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
@@ -464,7 +469,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     }
   }
 
-  Future<void> _loadLoanData() async {
+  Future<void> fetchLoanData() async {
     try {
       print("Starting data load for loan ID: ${widget.loanId}");
       // Fetch loan details
@@ -510,10 +515,13 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             ),
           ];
         } else {
+          /// I don't think this code is doing anything. 1.22.25.
           _contractorScreenLoanLineItems =
               lineItemsResponse.map<ContractorScreenLoanLineItem>((item) {
             // Process the draws for this line item
             final draws = item['construction_loan_draws'] as List;
+            // print("This is the draws object: $draws");
+            /// This is null by the way. I don't know if we want that. 
 
             // Create the line item with default values
             var lineItem = ContractorScreenLoanLineItem(
@@ -666,7 +674,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     });
   }
 
-  Future<void> updateDrawContractorSide(String newStatus, int drawNumber) async {
+  Future<void> updateDrawContractorSide(
+      String newStatus, int drawNumber) async {
     try {
       String capitalizedNewStatus = newStatus[0].toUpperCase();
       capitalizedNewStatus += newStatus.substring(1);
@@ -704,7 +713,7 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         }).eq('category_id', item['category_id']);
       }
       // Refresh the data on the page
-      await _loadLoanData();
+      await fetchLoanData();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1003,8 +1012,9 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
     // Get the status and amount for this specific draw number
     String status;
-    /// TODO: 
-    /// Is this supposed to show the amount on the UI. 
+
+    /// TODO:
+    /// Is this supposed to show the amount on the UI.
     double amount;
     switch (drawNumber) {
       case 1:
@@ -1170,144 +1180,157 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
     );
   }
 
-/// CLAUDE MADE A CHANGE HERE
-Widget _buildDrawStatusSection(int drawNumber) {
-  // Initialize with default values
-  String status = "pending";
-  String? lenderNote;
-  DateTime? reviewedAt;
+  /// CLAUDE MADE A CHANGE HERE
+  Widget _buildDrawStatusSection(int drawNumber) {
+    // Initialize with default values
+    String status = "pending";
+    String? lenderNote;
+    DateTime? reviewedAt;
 
-  // Only try to access first item if list is not empty
-  if (_contractorScreenLoanLineItems.isNotEmpty && drawNumber <= numberOfDraws) {
-    // Get status based on draw number
-    switch (drawNumber) {
-      case 1:
-        status = _contractorScreenLoanLineItems.first.draw1Status;
-        break;
-      case 2:
-        status = _contractorScreenLoanLineItems.first.draw2Status;
-        break;
-      case 3:
-        status = _contractorScreenLoanLineItems.first.draw3Status;
-        break;
-      case 4:
-        status = _contractorScreenLoanLineItems.first.draw4Status;
-        break;
+    // Only try to access first item if list is not empty
+    if (_contractorScreenLoanLineItems.isNotEmpty &&
+        drawNumber <= numberOfDraws) {
+      // Get status based on draw number
+      switch (drawNumber) {
+        case 1:
+          status = _contractorScreenLoanLineItems.first.draw1Status;
+          break;
+        case 2:
+          status = _contractorScreenLoanLineItems.first.draw2Status;
+          break;
+        case 3:
+          status = _contractorScreenLoanLineItems.first.draw3Status;
+          break;
+        case 4:
+          status = _contractorScreenLoanLineItems.first.draw4Status;
+          break;
+      }
+      lenderNote = _contractorScreenLoanLineItems.first.lenderNote;
+      reviewedAt = _contractorScreenLoanLineItems.first.reviewedAt;
     }
-    lenderNote = _contractorScreenLoanLineItems.first.lenderNote;
-    reviewedAt = _contractorScreenLoanLineItems.first.reviewedAt;
-  }
 
-  Color statusColor = _getStatusColor(status);
+    Color statusColor = _getStatusColor(status);
 
-  return Stack(
-    children: [
-      Container(
-        width: 120,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(color: Colors.grey[200]!),
-            top: BorderSide(color: Colors.grey[200]!),
+    return Stack(
+      children: [
+        Container(
+          width: 120,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(color: Colors.grey[200]!),
+              top: BorderSide(color: Colors.grey[200]!),
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            // Status indicator with timestamp
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    status.toString().split('.').last.toUpperCase(),
-                    style: TextStyle(
-                      color: statusColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (reviewedAt != null && status != "pending")
+          child: Column(
+            children: [
+              // Status indicator with timestamp
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
                     Text(
-                      DateFormat('MM/dd/yy HH:mm').format(reviewedAt),
+                      status.toString().split('.').last.toUpperCase(),
                       style: TextStyle(
                         color: statusColor,
-                        fontSize: 10,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                ],
+                    if (reviewedAt != null && status != "pending")
+                      Text(
+                        DateFormat('MM/dd/yy HH:mm').format(reviewedAt),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-            // Show different buttons based on user type
-            if (widget.isLender && status == "submitted")
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.check_circle, color: Colors.green),
-                    onPressed: () => _showReviewDialog(drawNumber, "approved"),
-                    tooltip: 'Approve',
+              // Show different buttons based on user type
+              /// TODO: 
+              /// What if I take out the lender functionality. 
+              if (widget.isLender && status == "submitted")
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                      onPressed: () =>
+                          _showReviewDialog(drawNumber, "approved"),
+                      tooltip: 'Approve',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.cancel, color: Colors.red),
+                      onPressed: () =>
+                          _showReviewDialog(drawNumber, "declined"),
+                      tooltip: 'Decline',
+                    ),
+                  ],
+                )
+              else if (!widget.isLender)
+                ElevatedButton(
+                  onPressed: () {
+                    /// TODO: 
+                    /// See if the submit does in fact work as planned. 
+                    print("The Submit button was pressed!");
+                    if (status == "pending") {
+                      updateDrawContractorSide(
+                        "submitted",
+                        drawNumber,
+                      ); // Changed to use updateDraws instead of _submitDraw
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 61, 143, 96),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    minimumSize: const Size(80, 32),
+                    disabledBackgroundColor: Colors.grey[400],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.cancel, color: Colors.red),
-                    onPressed: () => _showReviewDialog(drawNumber, "declined"),
-                    tooltip: 'Decline',
+                  child: Text(
+                    _getButtonText(status),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
                   ),
-                ],
-              )
-            else if (!widget.isLender)
-              ElevatedButton(
-                onPressed: () {
-                  if (status == "pending") {
-                    updateDrawContractorSide("submitted", drawNumber);  // Changed to use updateDraws instead of _submitDraw
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 61, 143, 96),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  minimumSize: const Size(80, 32),
-                  disabledBackgroundColor: Colors.grey[400],
                 ),
-                child: Text(
-                  _getButtonText(status),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
 
-            // Show lender note if available
-            if (lenderNote != null && lenderNote.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Tooltip(
-                  message: lenderNote,
-                  child: const Icon(Icons.comment, size: 16),
+              // Show lender note if available
+              if (lenderNote != null && lenderNote.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Tooltip(
+                    message: lenderNote,
+                    child: const Icon(Icons.comment, size: 16),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
-      ),
-      // Status banner
-      Positioned(
-        bottom: 0,
-        left: 0,
-        right: 0,
-        child: Container(
-          height: 3,
-          color: statusColor,
+        // Status banner
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 3,
+            color: statusColor,
+          ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   Widget _buildDataTable() {
     return Container(

@@ -184,15 +184,50 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
   }
   Future<void> _saveDrawAmount(ContractorScreenLoanLineItem item, int drawNumber, double amount) async {
   try {
+    print('Saving amount $amount for draw $drawNumber on line item ${item.categoryId}');
+    
+    // First update line items table
+    String amountColumn = 'draw${drawNumber}_amount';
     await supabase
       .from('construction_loan_line_items')
       .update({
-        'draw${drawNumber}_amount': amount,
+        amountColumn: amount,
       })
+      .eq('category_id', item.categoryId);
+
+    print('Updated line items table');
+    
+    // Then update draws table
+    final existingDraw = await supabase
+      .from('construction_loan_draws')
+      .select()
       .eq('category_id', item.categoryId)
-      .eq('loan_id', widget.loanId);
-      
+      .eq('draw_number', drawNumber)
+      .maybeSingle();
+
+    if (existingDraw != null) {
+      await supabase
+        .from('construction_loan_draws')
+        .update({
+          'amount': amount,
+          'status': 'pending'
+        })
+        .eq('draw_id', existingDraw['draw_id']);
+        print('Updated existing draw');
+    } else {
+      await supabase
+        .from('construction_loan_draws')
+        .insert({
+          'loan_id': widget.loanId,
+          'category_id': item.categoryId,
+          'draw_number': drawNumber,
+          'amount': amount,
+          'status': 'pending'
+        });
+        print('Inserted new draw');
+    }
   } catch (e) {
+    print('Error saving draw amount: $e');
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -201,10 +236,8 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         ),
       );
     }
-    print('Error saving draw amount: $e');
   }
 }
-
   Future<void> _downloadAsPdf() async {
     final pdf = pw.Document();
     pdf.addPage(
@@ -548,27 +581,28 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             ),
           ];
         } else {
-          /// I don't think this code is doing anything. 1.22.25.
-          _contractorScreenLoanLineItems =
-              lineItemsResponse.map<ContractorScreenLoanLineItem>((item) {
-            // Create the line item with default values
-            var lineItem = ContractorScreenLoanLineItem(
-              categoryId:
-                  item['category_id'] ?? '00000000-0000-0000-0000-000000000000',
-              lineItemName: item['category_name'] ?? 'Unnamed Item',
-              inspectionPercentage:
-                  item['inspection_percentage']?.toDouble() ?? 0.0,
-              budget: item['budgeted_amount']?.toDouble() ?? 0.0,
-            );
+  _contractorScreenLoanLineItems = lineItemsResponse.map<ContractorScreenLoanLineItem>((item) {
+    var lineItem = ContractorScreenLoanLineItem(
+      categoryId: item['category_id'] ?? '00000000-0000-0000-0000-000000000000',
+      lineItemName: item['category_name'] ?? 'Unnamed Item',
+      inspectionPercentage: item['inspection_percentage']?.toDouble() ?? 0.0,
+      budget: item['budgeted_amount']?.toDouble() ?? 0.0,
+    );
 
-            // Get status directly from database
-            lineItem.draw1Status = item['draw1_status'] ?? 'pending';
-            lineItem.draw2Status = item['draw2_status'] ?? 'pending';
-            lineItem.draw3Status = item['draw3_status'] ?? 'pending';
-            lineItem.draw4Status = item['draw4_status'] ?? 'pending';
+    // Set draw amounts from database
+    lineItem.draw1Amount = item['draw1_amount']?.toDouble() ?? 0.0;
+    lineItem.draw2Amount = item['draw2_amount']?.toDouble() ?? 0.0;
+    lineItem.draw3Amount = item['draw3_amount']?.toDouble() ?? 0.0;
+    lineItem.draw4Amount = item['draw4_amount']?.toDouble() ?? 0.0;
 
-            return lineItem;
-          }).toList();
+    // Set draw statuses
+    lineItem.draw1Status = item['draw1_status'] ?? 'pending';
+    lineItem.draw2Status = item['draw2_status'] ?? 'pending';
+    lineItem.draw3Status = item['draw3_status'] ?? 'pending';
+    lineItem.draw4Status = item['draw4_status'] ?? 'pending';
+
+    return lineItem;
+  }).toList();
 
           /// CLAUDE CHANGE HERE
           // Set UI status from first line item after creation

@@ -182,6 +182,28 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
             doc.category == 'Building Permits' &&
             doc.status == FileStatus.verified);
   }
+  Future<void> _saveDrawAmount(ContractorScreenLoanLineItem item, int drawNumber, double amount) async {
+  try {
+    await supabase
+      .from('construction_loan_line_items')
+      .update({
+        'draw${drawNumber}_amount': amount,
+      })
+      .eq('category_id', item.categoryId)
+      .eq('loan_id', widget.loanId);
+      
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving draw amount: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+    print('Error saving draw amount: $e');
+  }
+}
 
   Future<void> _downloadAsPdf() async {
     final pdf = pw.Document();
@@ -1072,16 +1094,17 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
         fontWeight: FontWeight.w500,
       ),
       onChanged: (value) {
-        final newAmount = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
-        setState(() {
-          switch (drawNumber) {
-            case 1: item.draw1Amount = newAmount; break;
-            case 2: item.draw2Amount = newAmount; break;
-            case 3: item.draw3Amount = newAmount; break;
-            case 4: item.draw4Amount = newAmount; break;
-          }
-        });
-      },
+  final newAmount = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
+  setState(() {
+    switch (drawNumber) {
+      case 1: item.draw1Amount = newAmount; break;
+      case 2: item.draw2Amount = newAmount; break;
+      case 3: item.draw3Amount = newAmount; break;
+      case 4: item.draw4Amount = newAmount; break;
+    }
+  });
+  _saveDrawAmount(item, drawNumber, newAmount);
+},
     ),
   );
 }

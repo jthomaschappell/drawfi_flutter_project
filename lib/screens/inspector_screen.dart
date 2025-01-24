@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:tester/loan_dashboard/lender_loan_screen.dart';
 import 'package:tester/screens/inspector_loan_screen.dart';
+import 'package:tester/screens/path_to_auth_screen/auth_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+
+final supabase = Supabase.instance.client;
 
 class InspectorScreen extends StatefulWidget {
   final Map<String, dynamic> userProfile;
@@ -326,10 +331,42 @@ class _InspectorScreenState extends State<InspectorScreen> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, bool isSelected) {
-    return Icon(
-      icon,
-      color: isSelected ? Colors.purple : Colors.grey,
+Widget _buildNavItem(IconData icon, bool isSelected) {
+    return IconButton(
+      icon: Icon(
+        icon,
+        color: isSelected ? Colors.purple : Colors.grey,
+      ),
+      onPressed: () {
+        if (icon == Icons.settings) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('Settings'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: Icon(Icons.logout, color: Colors.red),
+                      title: Text('Log out'),
+                      onTap: () async {
+                        await supabase.auth.signOut();
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const AuthScreen(),
+                          ),
+                          (route) => false,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        }
+      },
     );
   }
 }

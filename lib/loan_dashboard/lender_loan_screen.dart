@@ -1899,50 +1899,27 @@ www.w3.org
             color: status == "approved" ? Colors.green : Colors.grey,
             onPressed: () async {
               String newStatus = "approved";
-              // print("The new status is $newStatus");
-              setState(
-                () {
-                  drawStatuses[drawNumber] = newStatus;
-
-                  /// sets the entire draw (across line items) to approved.
-                  for (var item in _loanLineItems) {
-                    _setDrawStatus(item, drawNumber, newStatus);
-                  }
-                },
-              );
-
-              /// update the draw on the database.
+              setState(() {
+                drawStatuses[drawNumber] = newStatus;
+                for (var item in _loanLineItems) {
+                  _setDrawStatus(item, drawNumber, newStatus);
+                }
+              });
               await updateDrawLenderSide(newStatus, drawNumber);
             },
           ),
-          GestureDetector(
-            onTap: () async {
-              String newStatus = "submitted";
-
-              setState(
-                () {
-                  drawStatuses[drawNumber] = newStatus;
-
-                  for (var item in _loanLineItems) {
-                    _setDrawStatus(item, drawNumber, newStatus);
-                  }
-                },
-              );
-              await updateDrawLenderSide(newStatus, drawNumber);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getStatusColor(status).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                status.toString().split('.').last.toUpperCase(),
-                style: TextStyle(
-                  color: _getStatusColor(status),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _getStatusColor(status).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              status.toString().split('.').last.toUpperCase(),
+              style: TextStyle(
+                color: _getStatusColor(status),
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -1952,21 +1929,21 @@ www.w3.org
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             color: status == "declined" ? Colors.red : Colors.grey,
-            onPressed: () {
+            onPressed: () async {
+              String newStatus = "declined";
               setState(() {
-                drawStatuses[drawNumber] = "declined";
-
+                drawStatuses[drawNumber] = newStatus;
                 for (var item in _loanLineItems) {
-                  _setDrawStatus(item, drawNumber, "declined");
+                  _setDrawStatus(item, drawNumber, newStatus);
                 }
               });
+              await updateDrawLenderSide(newStatus, drawNumber);
             },
           ),
         ],
       ),
     );
   }
-
   void _moveDrawAmount(LoanLineItem item, int drawNumber, String direction) {
     setState(() {
       if (direction == 'left' && drawNumber > 1) {

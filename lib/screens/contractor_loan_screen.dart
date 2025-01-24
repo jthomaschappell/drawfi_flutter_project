@@ -1007,145 +1007,84 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
   /// Builds a cell widget for a specific draw in the loan line item table
   /// Each cell represents a draw amount that can be edited if its status is 'pending'
-  Widget _buildDrawCell(ContractorScreenLoanLineItem item, int drawNumber) {
-    // Create a unique key for this cell's text controller using line item name and draw number
-    final String key = '${item.lineItemName}_$drawNumber';
-    // Check if this draw amount would exceed the budget
-    final bool wouldExceedBudget = _lineItemExceedsBudget(item);
-
-    // Get the status and amount for this specific draw number
-    String status;
-
-    /// TODO:
-    /// Is this supposed to show the amount on the UI.
-    double amount;
-    switch (drawNumber) {
-      case 1:
-        status = item.draw1Status;
-        amount = item.draw1Amount;
-        break;
-      case 2:
-        status = item.draw2Status;
-        amount = item.draw2Amount;
-        break;
-      case 3:
-        status = item.draw3Status;
-        amount = item.draw3Amount;
-        break;
-      case 4:
-        status = item.draw4Status;
-        amount = item.draw4Amount;
-        break;
-      default:
-        status = "pending";
-        amount = 0;
-    }
-    // Cell is only editable if the draw status is 'pending'
-    final bool isEditable = status == "pending";
-
-    // Main container for the draw cell
-    return Container(
-      width: 120,
-      height: 50,
-      alignment: Alignment.center,
-      // Add borders and background color
-      decoration: BoxDecoration(
-        border: Border(
-          left: BorderSide(color: Colors.grey[200]!),
-          bottom: BorderSide(color: Colors.grey[200]!),
-        ),
-        color: Colors.white,
-      ),
-      // Row contains: optional left arrow, text field, optional right arrow
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Show left arrow button only if:
-          // 1. This isn't the first draw
-          // 2. The draw is still editable (pending)
-          if (drawNumber > 1 && isEditable)
-            IconButton(
-              icon: const Icon(Icons.arrow_back, size: 16),
-              padding: const EdgeInsets.all(4),
-              constraints: const BoxConstraints(),
-              // Move this draw amount to the previous draw slot
-              onPressed: () => _moveDrawAmount(item, drawNumber, 'left'),
-            ),
-          // Text field for entering/displaying the draw amount
-          Expanded(
-            child: TextField(
-              // Use existing controller or create new one
-              controller: _controllers[key] ?? TextEditingController(),
-              textAlign: TextAlign.center,
-              // Only allow editing if status is pending
-              enabled: isEditable,
-              // Only allow numerical input with decimals
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                border: InputBorder.none,
-                hintText: '-',
-                // Show dollar sign prefix only if there's a value
-                prefixText:
-                    _controllers[key]?.text.isNotEmpty ?? false ? '\$' : '',
-                // Color the prefix based on whether amount exceeds budget
-                prefixStyle: TextStyle(
-                  color: wouldExceedBudget
-                      ? Colors.red
-                      : const Color.fromARGB(120, 39, 133, 5),
-                ),
-              ),
-              // Style the input text based on whether amount exceeds budget
-              style: TextStyle(
-                fontSize: 14,
-                color: wouldExceedBudget
-                    ? Colors.red
-                    : const Color.fromARGB(120, 39, 133, 5),
-                fontWeight: FontWeight.w500,
-              ),
-              // When the value changes, update the corresponding draw amount
-              onChanged: (value) {
-                // Convert empty string to 0.0, or parse the number (default to 0.0 if parse fails)
-                final newAmount =
-                    value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
-                setState(() {
-                  // Update the specific draw amount based on draw number
-                  switch (drawNumber) {
-                    case 1:
-                      item.draw1Amount = newAmount;
-                      break;
-                    case 2:
-                      item.draw2Amount = newAmount;
-                      break;
-                    case 3:
-                      item.draw3Amount = newAmount;
-                      break;
-                    case 4:
-                      item.draw4Amount = newAmount;
-                      break;
-                  }
-                });
-              },
-            ),
-          ),
-          // Show right arrow button only if:
-          // 1. This isn't the last draw
-          // 2. The draw is still editable (pending)
-          if (drawNumber < numberOfDraws && isEditable)
-            IconButton(
-              icon: const Icon(Icons.arrow_forward, size: 16),
-              padding: const EdgeInsets.all(4),
-              constraints: const BoxConstraints(),
-              // Move this draw amount to the next draw slot
-              onPressed: () => _moveDrawAmount(item, drawNumber, 'right'),
-            ),
-        ],
-      ),
-    );
+ Widget _buildDrawCell(ContractorScreenLoanLineItem item, int drawNumber) {
+  final String key = '${item.lineItemName}_$drawNumber';
+  String status;
+  double amount;
+  
+  switch (drawNumber) {
+    case 1:
+      status = item.draw1Status;
+      amount = item.draw1Amount;
+      break;
+    case 2:
+      status = item.draw2Status;
+      amount = item.draw2Amount;
+      break;
+    case 3:
+      status = item.draw3Status;
+      amount = item.draw3Amount;
+      break;
+    case 4:
+      status = item.draw4Status;
+      amount = item.draw4Amount;
+      break;
+    default:
+      status = "pending";
+      amount = 0;
   }
+  
+  bool isEditable = status == "pending";
+  
+  _controllers[key] ??= TextEditingController(text: amount > 0 ? amount.toString() : '');
 
+  return Container(
+    width: 120,
+    height: 50,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      border: Border(
+        left: BorderSide(color: Colors.grey[200]!),
+        bottom: BorderSide(color: Colors.grey[200]!),
+      ),
+      color: status == "approved" ? Colors.green.withOpacity(0.1) :
+             status == "declined" ? Colors.red.withOpacity(0.1) :
+             Colors.white,
+    ),
+    child: TextField(
+      controller: _controllers[key],
+      textAlign: TextAlign.center,
+      enabled: isEditable,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        fillColor: Colors.transparent,
+        filled: true,
+        hintText: '-',
+        contentPadding: EdgeInsets.zero,
+        prefixText: amount > 0 ? '\$' : '',
+      ),
+      style: TextStyle(
+        fontSize: 14,
+        color: status == "approved" ? Colors.green :
+               status == "declined" ? Colors.red :
+               Colors.black87,
+        fontWeight: FontWeight.w500,
+      ),
+      onChanged: (value) {
+        final newAmount = value.isEmpty ? 0.0 : double.tryParse(value) ?? 0.0;
+        setState(() {
+          switch (drawNumber) {
+            case 1: item.draw1Amount = newAmount; break;
+            case 2: item.draw2Amount = newAmount; break;
+            case 3: item.draw3Amount = newAmount; break;
+            case 4: item.draw4Amount = newAmount; break;
+          }
+        });
+      },
+    ),
+  );
+}
   Widget _buildTotalDrawnCell(ContractorScreenLoanLineItem item) {
     return Container(
       width: 120,
@@ -1185,196 +1124,86 @@ class _ContractorLoanScreenState extends State<ContractorLoanScreen> {
 
   /// CLAUDE MADE A CHANGE HERE
   Widget _buildDrawStatusSection(int drawNumber) {
-    // Initialize with default values
-    print("We are doing the build draw status section!");
-    String status;
-    switch (drawNumber) {
-      case 1:
-        status = draw1StatusUI;
-        print("Draw 1 status was chosen");
-        break;
-      case 2:
-        status = draw2StatusUI;
-        print("Draw 2 status was chosen");
-        break;
-      case 3:
-        status = draw3StatusUI;
-        print("Draw 3 status was chosen");
-        break;
-      case 4:
-        status = draw4StatusUI;
-        print("Draw 4 status was chosen");
-        break;
-      default:
-        status = "pending";
-    }
-    print("The state value status is $status!");
-
-    String? lenderNote;
-    DateTime? reviewedAt;
-
-    // Only try to access first item if list is not empty
-    if (_contractorScreenLoanLineItems.isNotEmpty &&
-        drawNumber <= numberOfDraws) {
-      // // Get status based on draw number
-      // switch (drawNumber) {
-      //   case 1:
-      //     status = _contractorScreenLoanLineItems.first.draw1Status;
-      //     break;
-      //   case 2:
-      //     status = _contractorScreenLoanLineItems.first.draw2Status;
-      //     break;
-      //   case 3:
-      //     status = _contractorScreenLoanLineItems.first.draw3Status;
-      //     break;
-      //   case 4:
-      //     status = _contractorScreenLoanLineItems.first.draw4Status;
-      //     break;
-      // }
-      lenderNote = _contractorScreenLoanLineItems.first.lenderNote;
-      reviewedAt = _contractorScreenLoanLineItems.first.reviewedAt;
-    }
-
-    Color statusColor = _getStatusColor(status);
-
-    return Stack(
-      children: [
-        Container(
-          width: 120,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: Colors.grey[200]!),
-              top: BorderSide(color: Colors.grey[200]!),
-            ),
-          ),
-          child: Column(
-            children: [
-              // Status indicator with timestamp
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      status.toString().split('.').last.toUpperCase(),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    if (reviewedAt != null && status != "pending")
-                      Text(
-                        DateFormat('MM/dd/yy HH:mm').format(reviewedAt),
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 10,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-
-              // Show different buttons based on user type
-              /// TODO:
-              /// What if I take out the lender functionality.
-              if (widget.isLender && status == "submitted")
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.check_circle, color: Colors.green),
-                      onPressed: () =>
-                          _showReviewDialog(drawNumber, "approved"),
-                      tooltip: 'Approve',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.cancel, color: Colors.red),
-                      onPressed: () =>
-                          _showReviewDialog(drawNumber, "declined"),
-                      tooltip: 'Decline',
-                    ),
-                  ],
-                )
-              else if (!widget.isLender)
-                ElevatedButton(
-                  onPressed: () {
-                    print("The Submit button was pressed!");
-                    updateDrawContractorSide(
-                      "submitted",
-                      drawNumber,
-                    );
-
-                    /// TODO:
-                    /// See if this changes what the button text pulls.
-                    switch (drawNumber) {
-                      case 1:
-                        draw1StatusUI = "submitted";
-                        break;
-                      case 2:
-                        draw2StatusUI = "submitted";
-                        break;
-                      case 3:
-                        draw3StatusUI = "submitted";
-                        break;
-                      case 4:
-                        draw4StatusUI = "submitted";
-                        break;
-                      default:
-                        status = "pending";
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 61, 143, 96),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: const Size(80, 32),
-                    disabledBackgroundColor: Colors.grey[400],
-                  ),
-                  child: Text(
-                    _getButtonText(status),
-                    // "Status: $status",
-                    // "Your mom!",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-
-              // Show lender note if available
-              if (lenderNote != null && lenderNote.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Tooltip(
-                    message: lenderNote,
-                    child: const Icon(Icons.comment, size: 16),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        // Status banner
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            height: 3,
-            color: statusColor,
-          ),
-        ),
-      ],
-    );
+  String status;
+  switch (drawNumber) {
+    case 1: status = draw1StatusUI; break;
+    case 2: status = draw2StatusUI; break;
+    case 3: status = draw3StatusUI; break;
+    case 4: status = draw4StatusUI; break;
+    default: status = "pending";
   }
 
+  Color statusColor = _getStatusColor(status);
+  bool isPending = status == "pending";
+
+  return Container(
+    width: 120,
+    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+    decoration: BoxDecoration(
+      border: Border(
+        left: BorderSide(color: Colors.grey[200]!),
+        top: BorderSide(color: Colors.grey[200]!),
+      ),
+      color: Colors.white,
+    ),
+    child: Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isPending ? Colors.grey[100] : statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isPending ? Colors.grey[300]! : statusColor.withOpacity(0.2),
+            ),
+          ),
+          child: Text(
+            status.toUpperCase(),
+            style: TextStyle(
+              color: isPending ? Colors.grey[600] : statusColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+        if (isPending) ...[
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () => updateDrawContractorSide("submitted", drawNumber),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF6366F1), Color(0xFF6500E9)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6500E9).withOpacity(0.25),
+                    offset: const Offset(0, 2),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: const Text(
+                'Submit',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
+}
   Widget _buildDataTable() {
     return Container(
       decoration: BoxDecoration(

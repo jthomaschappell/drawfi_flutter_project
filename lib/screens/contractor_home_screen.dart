@@ -90,10 +90,10 @@ class _ContractorScreenState extends State<ContractorScreen> {
           .select()
           .eq('contractor_id', contractorId);
 
-      setState(() {
-        _projectCards = List<Map<String, dynamic>>.from(response);
-        filteredProjectCards =
-            List.from(_projectCards); // Initialize filtered list
+            setState(() {
+        _projectCards = List<Map<String, dynamic>>.from(response)
+          ..sort((a, b) => (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''));
+        filteredProjectCards = List.from(_projectCards);
         _isLoading = false;
       });
     } catch (e) {

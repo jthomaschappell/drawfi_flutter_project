@@ -1464,37 +1464,36 @@ Widget _buildStepIndicator() {
                       /// EDIT FROM CLAUDE HERE:
                       // Replace the immediate success message with proper error handling
                       createConstructionLoan().then((success) {
-                        if (success) {
-                          // Only show success message if creation actually succeeded
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.check_circle_outline,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Project created successfully',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: const Color(0xFF4F46E5),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              margin: const EdgeInsets.all(16),
-                            ),
-                          );
-                          Navigator.pop(context);
-                        }
+  if (success) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Project created successfully',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF4F46E5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+    Navigator.pop(context, true); // Changed this line
+  }
                       }).catchError((error) {
                         // Show error message if creation failed
                         ScaffoldMessenger.of(context).showSnackBar(

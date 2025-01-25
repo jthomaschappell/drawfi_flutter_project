@@ -996,17 +996,19 @@ for (var data in response) {
                             ),
                             // New Project Button
                             ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const InvitationScreen(),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.add, size: 20),
-                              label: const Text('New Project'),
+  onPressed: () async {  // Replace this entire onPressed handler
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const InvitationScreen(),
+      ),
+    );
+    if (result == true) {
+      _loadProjects();
+    }
+  },
+  icon: const Icon(Icons.add, size: 20),
+  label: const Text('New Project'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF4F46E5),
                                 foregroundColor: Colors.white,

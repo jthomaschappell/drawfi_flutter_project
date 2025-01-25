@@ -93,39 +93,10 @@ class LenderLoanScreen extends StatefulWidget {
 
 class _LenderLoanScreenState extends State<LenderLoanScreen> {
   List<DocumentRequirement> documentRequirements = [
+    
     DocumentRequirement(
-      category: 'Construction Photos',
-      isRequired: false,
-      icon: Icons.photo_library,
-      color: Color(0xFF6500E9),
-    ),
-    DocumentRequirement(
-      category: 'Draw Documentation',
-      isRequired: false,
-      icon: Icons.description,
-      color: Color(0xFF6500E9),
-    ),
-    DocumentRequirement(
-      category: 'Material Receipts',
-      isRequired: false,
-      icon: Icons.receipt,
-      color: Color(0xFF6500E9),
-    ),
-    DocumentRequirement(
-      category: 'Inspection Reports',
-      isRequired: false,
-      icon: Icons.fact_check,
-      color: Color(0xFF6500E9),
-    ),
-    DocumentRequirement(
-      category: 'Permits',
-      isRequired: false,
-      icon: Icons.card_membership,
-      color: Color(0xFF6500E9),
-    ),
-    DocumentRequirement(
-      category: 'Other',
-      isRequired: false,
+      category: '',
+      ///isRequired: false,
       icon: Icons.folder,
       color: Color(0xFF6500E9),
     ),
@@ -979,144 +950,63 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
       ),
     );
   }
-
-  Widget _buildUploadSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
+Widget _buildUploadSection() {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE5E7EB)),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Category Selector
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedCategory, // Use the state variable here
-
-                isExpanded: true,
-
-                icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-
-                items: documentRequirements.map((req) {
-                  return DropdownMenuItem(
-                    value: req.category,
-                    child: Row(
-                      children: [
-                        Icon(req.icon, size: 18, color: req.color),
-                        const SizedBox(width: 12),
-                        Text(
-                          req.category,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedCategory = newValue; // Update the state variable
-                    });
-                  }
-                },
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Upload Box
-
-          InkWell(
-            onTap: () async {
-              final result = await FilePicker.platform.pickFiles(
-                allowMultiple: true,
-                type: FileType.custom,
-                allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
-                withData: true,
-              );
-
-              if (result != null) {
-                await _handleFileUpload(result.files,
-                    _selectedCategory); // Use the state variable here
-              }
-            },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: const Color(0xFF6500E9).withOpacity(0.3),
-                  width: 1,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                color: const Color(0xFF6500E9).withOpacity(0.02),
-              ),
-              child: Column(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedCategory,
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+          items: documentRequirements.map((req) {
+            return DropdownMenuItem(
+              value: req.category,
+              child: Row(
                 children: [
-                  const Icon(
-                    Icons.cloud_upload_outlined,
-                    size: 28,
-                    color: Color(0xFF6500E9),
-                  ),
-                  const SizedBox(height: 8),
-                  RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                      children: const [
-                        TextSpan(text: 'Drop files here or '),
-                        TextSpan(
-                          text: 'browse',
-                          style: TextStyle(
-                            color: Color(0xFF6500E9),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
+                  Icon(req.icon, size: 18, color: req.color),
+                  const SizedBox(width: 12),
                   Text(
-                    'PDF, JPG, PNG, DOC up to 10MB',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
+                    req.category,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
-            ),
-          ),
-        ],
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                _selectedCategory = newValue;
+              });
+            }
+          },
+        ),
       ),
-    );
-  }
-
-  Widget _buildFileList() {
+    ),
+  );
+} 
+ Widget _buildFileList() {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase
           .from('project_documents')

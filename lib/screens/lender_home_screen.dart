@@ -491,6 +491,7 @@ class _LenderScreenState extends State<LenderScreen> {
     .toList();
 
     await prefs.setString(TRASH_KEY, jsonEncode(deletedProjectsJson));
+    
   }
 
   void _onSearchChanged() {

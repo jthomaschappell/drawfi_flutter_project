@@ -693,55 +693,31 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
             padding: const EdgeInsets.only(left: 16.0),
             child: Row(
               children: [
-                SvgPicture.string(
-                  '''<svg width="32" height="32" viewBox="0 0 1531 1531" fill="none" xmlns=http://www.w3.org/2000/svg
-SVG namespace - World Wide Web Consortium (W3C)
-http://www.w3.org/2000/svg is an XML namespace, first defined in the Scalable Vector Graphics (SVG) 1.0 Specification and subsequently added to by SVG 1.1, SVG 1.2 ...
-www.w3.org
->
-
-                    <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
-
-                    <ellipse cx="528" cy="429.5" rx="136.5" ry="136" transform="rotate(-90 528 429.5)" fill="white"/>
-
-                    <circle cx="528" cy="1103" r="136" transform="rotate(-90 528 1103)" fill="white"/>
-
-                    <circle cx="1001" cy="773" r="136" fill="white"/>
-
-                    <ellipse cx="528" cy="774" rx="29" ry="28" fill="white"/>
-
-                    <ellipse cx="808" cy="494" rx="29" ry="28" fill="white"/>
-
-                    <ellipse cx="808" cy="1038.5" rx="29" ry="29.5" fill="white"/>
-
-                    <defs>
-
-                      <linearGradient id="paint0_linear_82_170" x1="1485.07" y1="0.00010633" x2="30.6199" y2="1485.07" gradientUnits="userSpaceOnUse">
-
-                        <stop stop-color="#FF1970"/>
-
-                        <stop offset="0.145" stop-color="#E81766"/>
-
-                        <stop offset="0.307358" stop-color="#DB12AF"/>
-
-                        <stop offset="0.43385" stop-color="#BF09D5"/>
-
-                        <stop offset="0.556871" stop-color="#A200FA"/>
-
-                        <stop offset="0.698313" stop-color="#6500E9"/>
-
-                        <stop offset="0.855" stop-color="#3C17DB"/>
-
-                        <stop offset="1" stop-color="#2800D7"/>
-
-                      </linearGradient>
-
-                    </defs>
-
-                  </svg>''',
-                  width: 32,
-                  height: 32,
-                ),
+                  SvgPicture.string(
+              '''<svg width="40" height="40" viewBox="0 0 1531 1531" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="1531" height="1531" rx="200" fill="url(#paint0_linear_82_170)"/>
+                <ellipse cx="528" cy="429.5" rx="136.5" ry="136" transform="rotate(-90 528 429.5)" fill="white"/>
+                <circle cx="528" cy="1103" r="136" transform="rotate(-90 528 1103)" fill="white"/>
+                <circle cx="1001" cy="773" r="136" fill="white"/>
+                <ellipse cx="528" cy="774" rx="29" ry="28" fill="white"/>
+                <ellipse cx="808" cy="494" rx="29" ry="28" fill="white"/>
+                <ellipse cx="808" cy="1038.5" rx="29" ry="29.5" fill="white"/>
+                <defs>
+                  <linearGradient id="paint0_linear_82_170" x1="1485.07" y1="0.00010633" x2="30.6199" y2="1485.07" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#FF1970"/>
+                    <stop offset="0.145" stop-color="#E81766"/>
+                    <stop offset="0.307358" stop-color="#DB12AF"/>
+                    <stop offset="0.43385" stop-color="#BF09D5"/>
+                    <stop offset="0.556871" stop-color="#A200FA"/>
+                    <stop offset="0.698313" stop-color="#6500E9"/>
+                    <stop offset="0.855" stop-color="#3C17DB"/>
+                    <stop offset="1" stop-color="#2800D7"/>
+                  </linearGradient>
+                </defs>
+              </svg>''',
+              width: 40,
+              height: 40,
+            ),
                 const SizedBox(width: 24),
                 _buildNavItem(
                   icon: Icons.home_outlined,

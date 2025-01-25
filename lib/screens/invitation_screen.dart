@@ -292,30 +292,28 @@ class _InvitationScreenState extends State<InvitationScreen> {
       }
 
       // Remove loading indicator
-      if (context.mounted) {
-        Navigator.pop(context);
-      }
+       if (context.mounted) {
+      Navigator.pop(context);
+      
+    }
+    
+   
+    return true;
+  } catch (error) {
+    print('Error creating project: $error');
 
-      return true;
-    } catch (error) {
-      print('Error creating project: $error');
-
-      // Remove loading indicator if still showing
-      if (context.mounted) {
-        Navigator.pop(context);
-      }
-
-      // Show error message
+    // Show error message
+    if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: ${error.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
-      return false;
     }
+    return false;
   }
-
+}
 // Add this function to retrieve files for a loan
   Future<List<Map<String, dynamic>>> getProjectFiles(String loanId) async {
     final supabase = Supabase.instance.client;

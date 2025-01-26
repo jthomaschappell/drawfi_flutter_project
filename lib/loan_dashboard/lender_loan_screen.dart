@@ -10,29 +10,12 @@ import 'package:printing/printing.dart';
 
 import 'package:path/path.dart' as path;
 import 'package:pdf/widgets.dart' as pw;
-
+import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'dart:html' as html;
 final supabase = Supabase.instance.client;
-
-/// Do we use this? 1.15.25
-enum DownloadStatus { inProgress, completed, failed }
-
-/// Do we use this? 1.15.25
-// enum DrawStatus { pending, submitted, underReview, approved, declined }
-
-class DownloadProgress {
-  final DownloadStatus status;
-  final String message;
-
-  final double? progress;
-  final String? error;
-
-  DownloadProgress({
-    required this.status,
-    required this.message,
-    this.progress,
-    this.error,
-  });
-}
 
 class DocumentRequirement {
   final String category;
@@ -93,13 +76,6 @@ class LenderLoanScreen extends StatefulWidget {
 
 class _LenderLoanScreenState extends State<LenderLoanScreen> {
   List<DocumentRequirement> documentRequirements = [
-    
-    DocumentRequirement(
-      category: '',
-      ///isRequired: false,
-      icon: Icons.folder,
-      color: Color(0xFF6500E9),
-    ),
   ];
 
   final List<String> builderFileCategories = [
@@ -275,82 +251,157 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
 
   /// ---- FILE FUNCTIONS ( I don't know if these are necessary ) ----
   ///
+Future<void> _handleFileAction(Map<String, dynamic> file) async {
+  try {
+    final fileName = file['file_name'] as String;
+    final fileCategory = file['file_category'] as String;
+    
+    // Get file data using storage download
+    final data = await supabase.storage
+        .from('project_documents')
+        .download('$fileCategory/$fileName');
 
-  Future<bool> _checkFileExists(String filePath) async {
-    return false;
+    // Create blob URL and trigger download
+    final blob = html.Blob([data]);
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    
+    final anchor = html.AnchorElement()
+      ..href = url
+      ..setAttribute('download', fileName)
+      ..click();
+
+    html.Url.revokeObjectUrl(url);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Starting download...'), backgroundColor: Colors.green),
+      );
+    }
+  } catch (e) {
+    print('Download error: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    }
   }
+}
 
-  Future<void> _downloadFile(String fileUrl, String fileName) async {}
+Future<void> _downloadFile(String url, String fileName) async {
+  try {
+    final response = await supabase.storage
+        .from('loan-documents')
+        .download(fileName);
+    
+    final blob = html.Blob([response]);
+    final urlObject = html.Url.createObjectUrlFromBlob(blob);
+    
+    html.AnchorElement(href: urlObject)
+      ..setAttribute('download', fileName)
+      ..click();
 
-  Future<void> _openFile(String fileUrl, String fileName) async {}
+    html.Url.revokeObjectUrl(urlObject);
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('File downloaded successfully'), backgroundColor: Colors.green),
+      );
+    }
+  } catch (e) {
+    print('Download error: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    }
+  }
+}
+Future<void> _openInBrowser(String url) async {
+  try {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'Could not launch $url';
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error opening file: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
+Future<void> _handleFileUpload(List<PlatformFile> files, String category) async {
+  try {
+    final currentUser = supabase.auth.currentUser;
+    if (currentUser == null) throw Exception('User not authenticated');
 
-  Future<void> _downloadMultipleFiles(List<Map<String, dynamic>> files) async {}
-
-  Future<void> _handleFileUpload(
-      List<PlatformFile> files, String category) async {
     for (final file in files) {
-      try {
+      if (file.bytes == null) continue;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Uploading ${file.name}...'), duration: const Duration(seconds: 1)),
+      );
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileExtension = path.extension(file.name).replaceAll('.', '');
+      final fileName = '$category/${timestamp}_${file.name}';
+      
+      // Upload to storage
+      await supabase.storage.from('project_documents').uploadBinary(
+        fileName,
+        file.bytes!,
+        fileOptions: FileOptions(contentType: _getContentType(fileExtension)),
+      );
+
+      // Create download URL (using signed URL for private buckets)
+      final fileUrl = await supabase.storage.from('project_documents').createSignedUrl(
+        fileName,
+        60 * 60 * 24 * 7, // 7 days expiry
+      );
+
+      await supabase.from('project_documents').insert({
+        'loan_id': widget.loanId,
+        'file_url': fileUrl,
+        'file_name': file.name,
+        'uploaded_by': currentUser.id,
+        'file_type': fileExtension,
+        'file_status': 'active',
+        'file_category': category,
+        'uploaded_at': DateTime.now().toIso8601String(),
+      });
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Uploading ${file.name}...'),
-            duration: const Duration(seconds: 1),
-          ),
-        );
-
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-
-        final fileExtension = path.extension(file.name);
-
-        final fileName = '${widget.loanId}/${timestamp}_${file.name}';
-
-        if (file.bytes != null) {
-          await supabase.storage.from('project_documents').uploadBinary(
-                fileName,
-                file.bytes!,
-                fileOptions: FileOptions(
-                  contentType:
-                      file.bytes != null ? 'application/octet-stream' : null,
-                ),
-              );
-
-          final fileUrl =
-              supabase.storage.from('project_documents').getPublicUrl(fileName);
-
-          await supabase.from('project_documents').insert({
-            'loan_id': widget.loanId,
-
-            'file_url': fileUrl,
-
-            'file_name': file.name,
-
-            'uploaded_by': supabase.auth.currentUser!.id,
-
-            'file_type': fileExtension.replaceAll('.', ''),
-
-            'file_status': 'active',
-
-            'file_category': category // Add category here
-          });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${file.name} uploaded successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        print('Error uploading file: $e');
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error uploading ${file.name}: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('${file.name} uploaded successfully'), backgroundColor: Colors.green),
         );
       }
     }
+  } catch (e) {
+    print('Upload error: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    }
   }
+}
+
+String _getContentType(String extension) {
+  switch (extension.toLowerCase()) {
+    case 'pdf': return 'application/pdf';
+    case 'jpg':
+    case 'jpeg': return 'image/jpeg';
+    case 'png': return 'image/png';
+    case 'doc': return 'application/msword';
+    case 'docx': return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    default: return 'application/octet-stream';
+  }
+}
 
   Future<void> cleanupOrphanedFileReferences() async {}
 
@@ -462,18 +513,11 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
 
   Map<int, String> drawStatuses = {};
 
-  @override
-  void initState() {
-    super.initState();
-
-    // Test status normalization
-    print('Test normalizeStatus:');
-    print('null -> ${normalizeStatus(null)}');
-    print('APPROVED -> ${normalizeStatus('APPROVED')}');
-    print('Submitted -> ${normalizeStatus('Submitted')}');
-    print('pending -> ${normalizeStatus('pending')}');
-
-    _selectedCategory = documentRequirements[0].category;
+@override
+void initState() {
+  super.initState();
+  _selectedCategory = documentRequirements.isNotEmpty ? 
+    documentRequirements[0].category : 'Construction Photos';
 
     // sets as pending all of the objects in the drawStatuses map.
     // I don't know if we actually use the drawStatus map.
@@ -486,9 +530,6 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
 
     // Is this at all necessary?
     // // Add automatic cleanup of orphaned file references
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      cleanupOrphanedFileReferences();
-    });
   }
 
   /// calls the DB and puts the values into the
@@ -784,91 +825,68 @@ class _LenderLoanScreenState extends State<LenderLoanScreen> {
       ),
     );
   }
-
-  Widget _buildSidebar() {
-    return Container(
-      width: 280,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min, // Change to min
-
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: _buildSearchBar(),
-            ),
-
-            Text(
-              companyName,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-            ),
-
-            const Text(
-              "Construction Loan",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: Colors.black,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            Text(
-              contractorName,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black,
-              ),
-            ),
-
-            Text(
-              contractorPhone,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            _buildSidebarItem(count: "2", label: "Draw Requests"),
-
-            const SizedBox(height: 16),
-
-            _buildUploadSection(),
-
-            const SizedBox(height: 16),
-
-            Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.grey[300]!),
+Widget _buildSidebar() {
+  return Container(
+    width: 280,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: Colors.grey[300]!),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _buildSearchBar(),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFileList(),
-                ],
-              ),
+                Text(
+                  companyName,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                const Text(
+                  "Construction Loan",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  contractorName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+                Text(
+                  contractorPhone,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildSidebarItem(count: "2", label: "Draw Requests"),
+                const SizedBox(height: 16),
+                _buildFileList(),
+              ],
             ),
-
-            // Remove Spacer widget since we're now using SingleChildScrollView
-          ],
+          ),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
   Widget _buildSearchBar() {
     return Container(
@@ -1005,8 +1023,7 @@ Widget _buildUploadSection() {
       ),
     ),
   );
-} 
- Widget _buildFileList() {
+}  Widget _buildFileList() {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: supabase
           .from('project_documents')
@@ -1122,48 +1139,42 @@ Widget _buildUploadSection() {
       },
     );
   }
+Widget _buildFileListItem(Map<String, dynamic> file) {
+  final fileName = file['file_name'] as String;
+  final uploadDate = DateTime.parse(file['uploaded_at'] as String);
+  final fileStatus = file['file_status'] as String? ?? 'pending';
 
-  Widget _buildFileListItem(Map<String, dynamic> file) {
-    final fileName = file['file_name'] as String;
-
-    final uploadDate = DateTime.parse(file['uploaded_at'] as String);
-
-    final fileStatus = file['file_status'] as String? ?? 'pending';
-
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      title: Text(
-        fileName,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+  return ListTile(
+    dense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+    onTap: () => _handleFileAction(file),
+    title: Text(
+      fileName,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+      overflow: TextOverflow.ellipsis,
+    ),
+    subtitle: Text(
+      'Uploaded ${_formatDate(uploadDate)}',
+      style: TextStyle(
+        fontSize: 11,
+        color: Colors.grey[600],
+      ),
+    ),
+    trailing: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildStatusBadge(fileStatus),
+        IconButton(
+          icon: const Icon(Icons.download, size: 18),
+          onPressed: () => _handleFileAction(file),
         ),
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        'Uploaded ${_formatDate(uploadDate)}',
-        style: TextStyle(
-          fontSize: 11,
-          color: Colors.grey[600],
-        ),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildStatusBadge(fileStatus),
-          IconButton(
-            icon: const Icon(Icons.open_in_new),
-            iconSize: 18,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            color: Colors.grey[600],
-            onPressed: () => _openFile(file['file_url'] as String, fileName),
-          ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 
   Widget _buildStatusBadge(String status) {
     Color color;

@@ -54,7 +54,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
       TextEditingController();
 
   final TextEditingController _noteController = TextEditingController();
-
+  final TextEditingController _homeownerEmailController = TextEditingController();
   // State variables
   DateTime? _startDate;
   DateTime? _endDate;
@@ -184,7 +184,7 @@ class _InvitationScreenState extends State<InvitationScreen> {
     print("\n");
     print("The 'create construction loan' function was called");
     final supabase = Supabase.instance.client;
-
+    
     try {
       // Show loading indicator
       showDialog(
@@ -232,10 +232,11 @@ class _InvitationScreenState extends State<InvitationScreen> {
         'project_name': _projectNameController.text,
         'start_date': _startDate?.toIso8601String(),
         'end_date': _endDate?.toIso8601String(),
+        'homeowner_email': _homeownerEmailController.text,
       }).select();
 
       final loanId = loanResponse[0]['loan_id'];
-
+      
       // Upload files
       final fileUrls = await _uploadFiles(loanId);
 
@@ -314,6 +315,8 @@ class _InvitationScreenState extends State<InvitationScreen> {
     return false;
   }
 }
+ 
+  
 // Add this function to retrieve files for a loan
   Future<List<Map<String, dynamic>>> getProjectFiles(String loanId) async {
     final supabase = Supabase.instance.client;
@@ -1098,6 +1101,13 @@ Widget _buildStepIndicator() {
               hint: 'Enter project location',
               prefixIcon: Icons.location_on,
             ),
+            const SizedBox(height: 24),
+_buildFormField(
+  controller: _homeownerEmailController, // Add this controller to your class
+  label: 'Homeowner Email',
+  hint: 'Enter homeowner\'s email address',
+  prefixIcon: Icons.email,
+),
             const SizedBox(height: 24),
             _buildFormField(
               controller: _loanAmountController,

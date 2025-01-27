@@ -14,7 +14,15 @@ class InvitationScreen extends StatefulWidget {
   @override
   State<InvitationScreen> createState() => _InvitationScreenState();
 }
-
+String _formatNumber(String value) {
+  if (value.isEmpty) return '';
+  value = value.replaceAll(',', '');
+  value = value.replaceAll('.', '');
+  final number = int.tryParse(value);
+  if (number == null) return '';
+  return number.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+}
 class LineItem {
   String description;
   double amount;
@@ -876,66 +884,80 @@ Widget _buildStepIndicator() {
   }
 
   Widget _buildFormField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    bool isMultiline = false,
-    IconData? prefixIcon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
+  required TextEditingController controller,
+  required String label,
+  required String hint,
+  bool isMultiline = false,
+  bool isAmount = false,  // Add this parameter
+  IconData? prefixIcon,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF6B7280),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TextField(
+          controller: controller,
+          maxLines: isMultiline ? 4 : 1,
+          onChanged: isAmount ? (value) {
+            if (value.isNotEmpty) {
+              final number = value.replaceAll(',', '');
+              if (number != '0') {
+                final formatted = _formatNumber(number);
+                controller.value = TextEditingValue(
+                  text: formatted,
+                  selection: TextSelection.collapsed(offset: formatted.length),
+                );
+              }
+            }
+          } : null,
+          keyboardType: isAmount ? TextInputType.number : null,
           style: const TextStyle(
+            color: Color(0xFF111827),
             fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF6B7280),
           ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: controller,
-            maxLines: isMultiline ? 4 : 1,
-            style: const TextStyle(
-              color: Color(0xFF111827), // Text color when typing
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(
+              color: Color(0xFF6B7280),
               fontSize: 14,
+              fontWeight: FontWeight.w400,
             ),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(
-                color: Color(0xFF6B7280), // Darker placeholder text
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
-              prefixIcon: prefixIcon != null
-                  ? Icon(prefixIcon, color: const Color(0xFF6B7280))
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.all(16),
+            prefixIcon: prefixIcon != null
+                ? Icon(prefixIcon, color: const Color(0xFF6B7280))
+                : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.all(16),
           ),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   Widget _buildFileUpload() {
     return Column(
@@ -1110,11 +1132,12 @@ _buildFormField(
 ),
             const SizedBox(height: 24),
             _buildFormField(
-              controller: _loanAmountController,
-              label: 'Loan Amount',
-              hint: '\$0.00',
-              prefixIcon: Icons.attach_money,
-            ),
+  controller: _loanAmountController,
+  label: 'Loan Amount',
+  hint: '\$0',
+  prefixIcon: Icons.attach_money,
+  isAmount: true,
+),
             const SizedBox(height: 24),
             _buildLineItemsTable(),
             Row(
@@ -1223,6 +1246,13 @@ _buildFormField(
                 hint: 'Enter email address',
                 prefixIcon: Icons.email,
               ),
+            ),
+                        _buildFormField(
+              controller: _loanAmountController,
+              label: 'Loan Amount',
+              hint: '\$0.00',
+              prefixIcon: Icons.attach_money,
+              isAmount: true,
             ),
             const SizedBox(height: 24),
             _buildFormField(

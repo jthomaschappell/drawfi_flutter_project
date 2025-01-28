@@ -893,13 +893,16 @@ for (var data in response) {
                   isSelected: _selectedNavIndex == 3,
                   onTap: () => setState(() {
                     _selectedNavIndex = 3;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const SettingsScreen(
-                                userProfile: {},
-                              )),
-                    );
+                    // Get the current user ID from Supabase auth
+final currentUser = Supabase.instance.client.auth.currentUser;
+if (currentUser != null) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => SettingsScreen(userProfile: {'id': currentUser.id}),
+    ),
+  );
+}
                   }),
                   label: 'Settings',
                 ),

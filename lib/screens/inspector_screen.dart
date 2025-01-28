@@ -4,7 +4,7 @@ import 'package:tester/loan_dashboard/lender_loan_screen.dart';
 import 'package:tester/screens/inspector_loan_screen.dart';
 import 'package:tester/screens/path_to_auth_screen/auth_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:tester/screens/notification_screen.dart';
 
 final supabase = Supabase.instance.client;
 
@@ -21,6 +21,52 @@ class InspectorScreen extends StatefulWidget {
 }
 
 class _InspectorScreenState extends State<InspectorScreen> {
+  final _supabase = Supabase.instance.client;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _projectCards = [];
+  List<Map<String, dynamic>> filteredProjectCards = [];
+  final TextEditingController searchController = TextEditingController();
+  String searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    filteredProjectCards = List.from(_projectCards);
+    _loadProjects();
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProjects() async {
+    try {
+      final inspectorId = widget.userProfile['user_id'];
+      print("Loading projects for inspector ID: $inspectorId");
+      
+      if (inspectorId == null) {
+        throw Exception('No inspector ID found in user profile');
+      }
+
+      final response = await _supabase
+          .from('construction_loans')
+          .select()
+          .eq('inspector_id', inspectorId);
+
+      setState(() {
+        _projectCards = List<Map<String, dynamic>>.from(response)
+          ..sort((a, b) => (b['created_at'] ?? '').compareTo(a['created_at'] ?? ''));
+        filteredProjectCards = List.from(_projectCards);
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading projects: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -44,7 +90,7 @@ class _InspectorScreenState extends State<InspectorScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hi Hannah,',
+                        'Hi ${widget.userProfile['full_name']?.split(' ')[0] ?? 'Inspector'},',
                         style: TextStyle(
                           fontSize: screenWidth > 600 ? 28 : 24,
                           fontWeight: FontWeight.w600,
@@ -53,7 +99,7 @@ class _InspectorScreenState extends State<InspectorScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '9 Active Projects',
+                        '${_projectCards.length} Active Projects',
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey[600],
@@ -107,6 +153,15 @@ class _InspectorScreenState extends State<InspectorScreen> {
             height: 40,
           ),
           const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationScreen()),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -114,7 +169,7 @@ class _InspectorScreenState extends State<InspectorScreen> {
 
   Widget _buildSearchBar() {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -127,16 +182,43 @@ class _InspectorScreenState extends State<InspectorScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
-        style: TextStyle(
+        controller: searchController,
+        style: const TextStyle(
           color: Colors.black87,
           fontSize: 16,
         ),
+        onChanged: (value) {
+          setState(() {
+            searchQuery = value.toLowerCase();
+            if (searchQuery.isEmpty) {
+              filteredProjectCards = List.from(_projectCards);
+            } else {
+              filteredProjectCards = _projectCards.where((project) {
+                final projectName = project['project_name']?.toString().toLowerCase() ?? '';
+                final location = project['location']?.toString().toLowerCase() ?? '';
+                return projectName.contains(searchQuery) || location.contains(searchQuery);
+              }).toList();
+            }
+          });
+        },
         decoration: InputDecoration(
           hintText: 'Search projects...',
           hintStyle: TextStyle(color: Colors.grey[400]),
           prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+          suffixIcon: searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    setState(() {
+                      searchController.clear();
+                      searchQuery = '';
+                      filteredProjectCards = List.from(_projectCards);
+                    });
+                  },
+                )
+              : null,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           fillColor: Colors.white,
           filled: true,
         ),
@@ -146,7 +228,7 @@ class _InspectorScreenState extends State<InspectorScreen> {
 
   Widget _buildTabBar() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           Text(
@@ -170,125 +252,176 @@ class _InspectorScreenState extends State<InspectorScreen> {
     );
   }
 
- Widget _buildProjectsList() {
- return ListView.builder(
-   padding: EdgeInsets.all(16),
-   itemCount: 3,
-   itemBuilder: (context, index) {
-     return InkWell(
-       onTap: () {
-         Navigator.push(
-           context,
-           MaterialPageRoute(
-             builder: (context) => InspectorLoanScreen(
-               projectData: {
-                 'name': 'KDK Construction',
-                 'location': 'American Fork, UT', 
-                 'lastInspection': '1/9/25',
-                 'completion': '50',
-                 'nextInspection': '1/16/25',
-               },
-             ),
-           ),
-         );
-       },
-       child: Container(
-         margin: EdgeInsets.only(bottom: 16),
-         decoration: BoxDecoration(
-           border: Border.all(color: Colors.grey[200]!),
-           borderRadius: BorderRadius.circular(12),
-         ),
-         child: Padding(
-           padding: EdgeInsets.all(16),
-           child: Column(
-             crossAxisAlignment: CrossAxisAlignment.start,
-             children: [
-               Row(
-                 children: [
-                   Container(
-                     width: 48,
-                     height: 48,
-                     decoration: BoxDecoration(
-                       color: Colors.purple,
-                       borderRadius: BorderRadius.circular(8),
-                     ),
-                     child: Center(
-                       child: Text(
-                         'KD',
-                         style: TextStyle(
-                           color: Colors.white,
-                           fontWeight: FontWeight.bold,
-                         ),
-                       ),
-                     ),
-                   ),
-                   const SizedBox(width: 12),
-                   Expanded(
-                     child: Column(
-                       crossAxisAlignment: CrossAxisAlignment.start,
-                       children: [
-                         Text(
-                           'KDK Construction',
-                           style: TextStyle(
-                             fontSize: 16,
-                             fontWeight: FontWeight.w600,
-                             color: Colors.black87,
-                           ),
-                         ),
-                         Row(
-                           children: [
-                             Icon(Icons.location_on, size: 16, color: Colors.grey),
-                             Text(
-                               'American Fork, UT',
-                               style: TextStyle(
-                                 color: Colors.grey,
-                               ),
-                             ),
-                           ],
-                         ),
-                       ],
-                     ),
-                   ),
-                   Container(
-                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                     decoration: BoxDecoration(
-                       color: Colors.green[50],
-                       borderRadius: BorderRadius.circular(12),
-                     ),
-                     child: Row(
-                       children: [
-                         Icon(Icons.check_circle, size: 16, color: Colors.green),
-                         const SizedBox(width: 4),
-                         Text(
-                           'On track',
-                           style: TextStyle(
-                             color: Colors.green,
-                             fontSize: 12,
-                           ),
-                         ),
-                       ],
-                     ),
-                   ),
-                 ],
-               ),
-               const SizedBox(height: 16),
-               Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: [
-                   _buildInfoColumn('Last Inspection', '1/9/25'),
-                   _buildInfoColumn('Completed', '50%'),
-                   _buildInfoColumn('Next Inspection', '1/16/25'),
-                 ],
-               ),
-             ],
-           ),
-         ),
-       ),
-     );
-   },
- );
-}
+  Widget _buildProjectsList() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
+    if (filteredProjectCards.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.folder_open_outlined,
+              size: 48,
+              color: Colors.black.withOpacity(0.2),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              searchQuery.isEmpty ? 'No projects found' : 'No matching projects found',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black.withOpacity(0.4),
+              ),
+            ),
+            if (searchQuery.isEmpty)
+              TextButton(
+                onPressed: _loadProjects,
+                child: const Text('Refresh'),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredProjectCards.length,
+      itemBuilder: (context, index) {
+        final project = filteredProjectCards[index];
+        return _buildProjectCard(project);
+      },
+    );
+  }
+
+  Widget _buildProjectCard(Map<String, dynamic> project) {
+    final projectName = project['project_name'] ?? 'Unknown Project';
+    final location = project['location'] ?? 'Unknown Location';
+    final lastInspection = project['last_inspection_date'] ?? 'Not inspected';
+    final completion = project['completion_percentage']?.toString() ?? '0';
+    final nextInspection = project['next_inspection_date'] ?? 'Not scheduled';
+    
+    final initials = projectName
+        .split(' ')
+        .take(2)
+        .map((word) => word.isNotEmpty ? word[0] : '')
+        .join('')
+        .toUpperCase();
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => InspectorLoanScreen(
+              projectData: {
+                'name': projectName,
+                'location': location,
+                'lastInspection': lastInspection,
+                'completion': completion,
+                'nextInspection': nextInspection,
+                'loan_id': project['loan_id'],
+              },
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[200]!),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6500E9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          projectName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              location,
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                        const SizedBox(width: 4),
+                        Text(
+                          'On track',
+                          style: TextStyle(
+                            color: Colors.green[700],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildInfoColumn('Last Inspection', lastInspection),
+                  _buildInfoColumn('Completed', '$completion%'),
+                  _buildInfoColumn('Next Inspection', nextInspection),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildInfoColumn(String label, String value) {
     return Column(
@@ -297,13 +430,14 @@ class _InspectorScreenState extends State<InspectorScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey,
+            color: Colors.grey[600],
             fontSize: 12,
           ),
         ),
+        const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 14,
             color: Colors.black87,
@@ -318,55 +452,140 @@ class _InspectorScreenState extends State<InspectorScreen> {
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: Colors.grey[200]!)),
       ),
-      padding: EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(Icons.home, true),
-          _buildNavItem(Icons.notifications_none, false),
-          _buildNavItem(Icons.calendar_today, false),
-          _buildNavItem(Icons.settings, false),
+          _buildNavBarItem(Icons.home, true, 'Home'),
+          _buildNavBarItem(Icons.notifications_none, false, 'Notifications', onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NotificationScreen()),
+            );
+          }),
+          _buildNavBarItem(Icons.calendar_today, false, 'Calendar'),
+          _buildNavBarItem(Icons.settings, false, 'Settings', onTap: () {
+            _showSettingsDialog();
+          }),
         ],
       ),
     );
   }
 
-Widget _buildNavItem(IconData icon, bool isSelected) {
-    return IconButton(
-      icon: Icon(
-        icon,
-        color: isSelected ? Colors.purple : Colors.grey,
+  Widget _buildNavBarItem(IconData icon, bool isSelected, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? const Color(0xFF6500E9) : Colors.grey[600],
+            size: 24,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isSelected ? const Color(0xFF6500E9) : Colors.grey[600],
+            ),
+          ),
+        ],
       ),
-      onPressed: () {
-        if (icon == Icons.settings) {
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: Text('Settings'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: Icon(Icons.logout, color: Colors.red),
-                      title: Text('Log out'),
-                      onTap: () async {
-                        await supabase.auth.signOut();
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (context) => const AuthScreen(),
-                          ),
-                          (route) => false,
-                        );
-                      },
-                    ),
-                  ],
+    );
+  }
+
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Settings',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
-              );
-            },
-          );
-        }
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(
+                    Icons.person_outline,
+                    color: Color(0xFF6500E9),
+                  ),
+                  title: const Text('Profile'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Add profile navigation here
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.notifications_outlined,
+                    color: Color(0xFF6500E9),
+                  ),
+                  title: const Text('Notification Settings'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Add notification settings navigation here
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(
+                    Icons.logout,
+                    color: Colors.red,
+                  ),
+                  title: const Text(
+                    'Log out',
+                    style: TextStyle(
+                      color: Colors.red,
+                    ),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context); // Close dialog
+                    await _handleLogout();
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
+  }
+
+  Future<void> _handleLogout() async {
+    try {
+      await _supabase.auth.signOut();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => const AuthScreen(),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error logging out. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

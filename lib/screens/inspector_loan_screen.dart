@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Inside your class:
+final supabase = Supabase.instance.client;
 // Project Data Model
 class ProjectPhase {
   String name;
+  String categoryId;  // Add this
   DateTime startDate;
   DateTime endDate;
   bool isCompleted;
@@ -14,13 +18,13 @@ class ProjectPhase {
 
   ProjectPhase({
     required this.name,
+    required this.categoryId,  // Add this
     required this.startDate,
     required this.endDate,
     required this.isCompleted,
     required this.progress,
   });
 }
-
 class ChatMessage {
   final String sender;
   final String message;
@@ -53,7 +57,31 @@ class AppColors {
   static const textPrimary = Color(0xFF14142B);
   static const textSecondary = Color(0xFF6E7191);
 }
+class InspectionRecord {
+  final DateTime date;
+  final double percentage;
+  final String notes;
+  final String inspectorId;
+  final List<String> photoUrls;
 
+  InspectionRecord({
+    required this.date,
+    required this.percentage,
+    required this.notes,
+    required this.inspectorId,
+    required this.photoUrls,
+  });
+
+  factory InspectionRecord.fromJson(Map<String, dynamic> json) {
+    return InspectionRecord(
+      date: DateTime.parse(json['inspection_date']),
+      percentage: json['inspection_percentage'] * 100,
+      notes: json['inspector_notes'] ?? '',
+      inspectorId: json['inspector_id'],
+      photoUrls: List<String>.from(json['photo_urls'] ?? []),
+    );
+  }
+}
 class InspectorLoanScreen extends StatefulWidget {
   final Map<String, dynamic> projectData;
 
@@ -70,49 +98,81 @@ class _InspectorLoanScreenState extends State<InspectorLoanScreen> {
   final TextEditingController messageController = TextEditingController();
   DateTime lastInspection = DateTime.now();
   DateTime nextDue = DateTime.now().add(Duration(days: 14));
-  
-  @override
-  void initState() {
-    super.initState();
-    phases.addAll([
-      ProjectPhase(
-        name: 'Foundation',
-        startDate: DateTime(2024, 1, 1),
-        endDate: DateTime(2024, 2, 15),
-        isCompleted: true,
-        progress: 100,
-      ),
-      ProjectPhase(
-        name: 'Structural',
-        startDate: DateTime(2024, 2, 16),
-        endDate: DateTime(2024, 4, 30),
-        isCompleted: false,
-        progress: 75,
-      ),
-      ProjectPhase(
-        name: 'Electrical',
-        startDate: DateTime(2024, 5, 1),
-        endDate: DateTime(2024, 6, 15),
-        isCompleted: false,
-        progress: 30,
-      ),
-      ProjectPhase(
-        name: 'Plumbing',
-        startDate: DateTime(2024, 5, 1),
-        endDate: DateTime(2024, 6, 30),
-        isCompleted: false,
-        progress: 45,
-      ),
-      ProjectPhase(
-        name: 'Finishing',
-        startDate: DateTime(2024, 7, 1),
-        endDate: DateTime(2024, 8, 30),
-        isCompleted: false,
-        progress: 0,
-      ),
-    ]);
-  }
+ @override
+void initState() {
+  super.initState();
+  fetchLineItems();
+}
 
+
+Future<void> fetchLineItems() async {
+  try {
+    print("Fetching line items for loan ID: ${widget.projectData['loan_id']}");
+
+    // Get line items from database
+    final lineItemsResponse = await supabase
+    .from('construction_loan_line_items')
+    .select('''
+      *,
+      construction_loan_draws (
+        draw_number,
+        amount,
+        status
+      ),
+      line_item_inspections (
+        inspection_percentage,
+        inspection_date,
+        inspector_notes
+      )
+    ''')
+    .eq('loan_id', widget.projectData['loan_id']);
+
+    // Map to predefined phases
+    setState(() {
+      phases.clear(); // Clear existing phases
+      
+      // Convert each line item to a ProjectPhase
+      for (var item in lineItemsResponse) {
+        phases.add(
+  ProjectPhase(
+    name: item['category_name'] ?? 'Unnamed Item',
+    categoryId: item['category_id'],  // Add this
+    startDate: DateTime.now(),
+    endDate: DateTime.now().add(Duration(days: 30)),
+    isCompleted: (item['inspection_percentage'] ?? 0) >= 100,
+    progress: ((item['inspection_percentage'] ?? 0) * 100).round(),
+  ),
+);
+      }
+    });
+
+  } catch (e) {
+    print('Error loading line items: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading line items: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
+// Helper methods to calculate phase progress
+bool _calculatePhaseCompletion(List<dynamic> items, String phaseName) {
+  var phaseItems = items.where((item) => item['phase_name'] == phaseName);
+  if (phaseItems.isEmpty) return false;
+  return phaseItems.every((item) => (item['inspection_percentage'] ?? 0) >= 100);
+}
+
+int _calculatePhaseProgress(List<dynamic> items, String phaseName) {
+  var phaseItems = items.where((item) => item['phase_name'] == phaseName);
+  if (phaseItems.isEmpty) return 0;
+  
+  double totalProgress = phaseItems.fold(0.0, 
+    (sum, item) => sum + (item['inspection_percentage'] ?? 0));
+  return (totalProgress / phaseItems.length).round();
+}
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.camera);
@@ -124,33 +184,164 @@ class _InspectorLoanScreenState extends State<InspectorLoanScreen> {
     }
   }
 
-  void _updatePhaseProgress(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Update Progress'),
-        content: StatefulBuilder(
-          builder: (context, setDialogState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('${phases[index].name} Progress: ${phases[index].progress}%'),
-              Slider(
-                value: phases[index].progress.toDouble(),
-                min: 0,
-                max: 100,
-                divisions: 20,
-                label: '${phases[index].progress}%',
-                onChanged: (value) {
-                  setDialogState(() {
-                    phases[index].progress = value.round();
-                  });
-                },
-              ),
-              TextButton(
-                onPressed: () => _updatePhaseDates(index),
-                child: Text('Update Dates'),
-              ),
-            ],
+void _updatePhaseProgress(int index) {
+  final TextEditingController notesController = TextEditingController();
+  double newProgress = phases[index].progress.toDouble();
+  List<XFile> inspectionPhotos = [];
+  List<InspectionRecord> inspectionHistory = [];
+  bool isLoading = true;
+
+  // Show dialog with loading state
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: Text('Inspection Details - ${phases[index].name}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // New Inspection Section
+                Text(
+                  'Add New Inspection',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text('Current Progress: ${phases[index].progress}%'),
+                SizedBox(height: 12),
+                Text('Set New Progress:'),
+                Slider(
+                  value: newProgress,
+                  min: 0,
+                  max: 100,
+                  divisions: 20,
+                  label: '${newProgress.round()}%',
+                  onChanged: (value) {
+                    setDialogState(() => newProgress = value);
+                  },
+                ),
+                TextField(
+                  controller: notesController,
+                  decoration: InputDecoration(
+                    labelText: 'Inspection Notes',
+                    hintText: 'Enter inspection details...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+                SizedBox(height: 16),
+                ElevatedButton.icon(
+                  icon: Icon(Icons.camera_alt),
+                  label: Text('Add Photos'),
+                 style: ElevatedButton.styleFrom(
+   backgroundColor: AppColors.primary,
+  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () async {
+                    final ImagePicker picker = ImagePicker();
+                    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+                    if (image != null) {
+                      setDialogState(() {
+                        inspectionPhotos.add(image);
+                      });
+                    }
+                  },
+                ),
+                if (inspectionPhotos.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('${inspectionPhotos.length} photos ready to upload'),
+                  ),
+                
+                // Inspection History Section
+                SizedBox(height: 24),
+                Text(
+                  'Inspection History',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 16),
+                if (isLoading)
+                  Center(child: CircularProgressIndicator())
+                else if (inspectionHistory.isEmpty)
+                  Text('No previous inspections found')
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: inspectionHistory.length,
+                    itemBuilder: (context, historyIndex) {
+                      final inspection = inspectionHistory[historyIndex];
+                      return Card(
+                        margin: EdgeInsets.only(bottom: 12),
+                        child: Padding(
+                          padding: EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    DateFormat('MM/dd/yyyy').format(inspection.date),
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    '${inspection.percentage.round()}%',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (inspection.notes.isNotEmpty) ...[
+                                SizedBox(height: 8),
+                                Text(inspection.notes),
+                              ],
+                              if (inspection.photoUrls.isNotEmpty) ...[
+                                SizedBox(height: 8),
+                                SizedBox(
+                                  height: 80,
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: inspection.photoUrls.length,
+                                    itemBuilder: (context, photoIndex) {
+                                      return Padding(
+                                        padding: EdgeInsets.only(right: 8),
+                                        child: Image.network(
+                                          supabase.storage
+                                              .from('inspection_photos')
+                                              .getPublicUrl(inspection.photoUrls[photoIndex]),
+                                          height: 80,
+                                          width: 80,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -159,29 +350,150 @@ class _InspectorLoanScreenState extends State<InspectorLoanScreen> {
             child: Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                phases[index].isCompleted = phases[index].progress == 100;
-              });
-              Navigator.pop(context);
-            },
-            child: Text('Save'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                phases.removeAt(index);
-              });
-              Navigator.pop(context);
-            },
-            child: Text('Remove Phase'),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () async {
+  try {
+    final user = supabase.auth.currentUser;
+    if (user == null) throw Exception('Not authenticated');
+
+    // Save new inspection
+    final response = await supabase
+        .from('line_item_inspections')
+        .insert({
+          'category_id': phases[index].categoryId,
+          'inspection_percentage': newProgress / 100, 
+          'inspector_notes': notesController.text,
+          'inspector_id': user.id,
+        })
+        .select()
+        .single();
+
+    // Upload photos if any
+    final photoUrls = <String>[];
+    for (var photo in inspectionPhotos) {
+      final bytes = await photo.readAsBytes();
+      final fileName = '${response['inspection_id']}/${DateTime.now().millisecondsSinceEpoch}_${photo.name}';
+      
+      await supabase.storage
+        .from('inspection_photos')
+        .uploadBinary(fileName, bytes);
+      
+      photoUrls.add(fileName);
+    }
+
+    // Refresh the data
+    await fetchLineItems();
+    Navigator.pop(context);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Inspection saved successfully')),
+    );
+  } catch (e) {
+    print('Error saving inspection: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error saving inspection: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    Navigator.pop(context);
+  }
+},
+            child: Text('Save Inspection'),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+   _fetchInspectionHistory(phases[index].categoryId).then((history) {
+    if (mounted) {
+      setState(() {
+        inspectionHistory = history;
+        isLoading = false;
+      });
+    }
+  });
+}
+Future<List<InspectionRecord>> _fetchInspectionHistory(String categoryId) async {
+  try {
+    final response = await supabase
+        .from('line_item_inspections')
+        .select('*, inspector:inspectors(name)')
+        .eq('category_id', categoryId)
+        .order('inspection_date', ascending: false);
 
+    return response.map<InspectionRecord>((record) => InspectionRecord.fromJson(record)).toList();
+  } catch (e) {
+    print('Error fetching inspection history: $e');
+    return [];
+  }
+}
+
+Future<void> fetchPhases() async {
+  try {
+    print("Starting phase data load for loan ID: ${widget.projectData['loan_id']}");
+    
+    // Fetch line items with their associated draws
+    final lineItemsResponse = await supabase
+        .from('construction_loan_line_items')
+        .select('''
+          *,
+          construction_loan_draws (
+            draw_number,
+            amount,
+            status
+          )
+        ''')
+        .eq('loan_id', widget.projectData['loan_id']);
+
+    // Group line items by phase and create ProjectPhase objects
+    final Map<String, List<dynamic>> itemsByPhase = {};
+    for (var item in lineItemsResponse) {
+      String phaseName = item['phase_name'] ?? 'Unassigned';
+      if (!itemsByPhase.containsKey(phaseName)) {
+        itemsByPhase[phaseName] = [];
+      }
+      itemsByPhase[phaseName]!.add(item);
+    }
+
+    // Convert grouped items to ProjectPhase objects
+    final List<ProjectPhase> newPhases = [];
+    itemsByPhase.forEach((phaseName, items) {
+      // Calculate phase progress based on inspection percentages
+      double totalProgress = 0;
+      for (var item in items) {
+        totalProgress += item['inspection_percentage'] ?? 0;
+      }
+      double averageProgress = items.isEmpty ? 0 : totalProgress / items.length;
+
+      newPhases.add(
+  ProjectPhase(
+    name: phaseName,
+    categoryId: items.first['category_id'], // Add categoryId from the first item
+    startDate: DateTime.now(),
+    endDate: DateTime.now().add(Duration(days: 30)),
+    isCompleted: averageProgress >= 100,
+    progress: averageProgress.round(),
+  )
+);
+    });
+
+    setState(() {
+      phases.clear();
+      phases.addAll(newPhases);
+    });
+
+  } catch (e) {
+    print('Error loading phase data: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error loading phase data: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
   Future<void> _updatePhaseDates(int index) async {
     DateTimeRange? dateRange = await showDateRangePicker(
       context: context,

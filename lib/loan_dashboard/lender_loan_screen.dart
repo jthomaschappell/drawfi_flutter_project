@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+//import 'lender_insp_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pdf/pdf.dart';
@@ -16,6 +16,190 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:html' as html;
 final supabase = Supabase.instance.client;
+class LenderInspScreen extends StatefulWidget {
+  final String loanId;
+  final String lineItem;
+  final double currentInspectionPercentage;
+  final double budget;
+  final double totalDrawn;
+
+  const LenderInspScreen({
+    super.key,
+    required this.loanId,
+    required this.lineItem,
+    required this.currentInspectionPercentage,
+    required this.budget,
+    required this.totalDrawn,
+  });
+
+  @override
+  State<LenderInspScreen> createState() => _LenderInspScreenState();
+}
+
+class _LenderInspScreenState extends State<LenderInspScreen> {
+  final TextEditingController _inspectionController = TextEditingController();
+  bool isLoading = true;
+  String notes = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _inspectionController.text = 
+        (widget.currentInspectionPercentage * 100).toStringAsFixed(1);
+  }
+
+  Future<void> _updateInspection() async {
+  try {
+    final newPercentage = double.parse(_inspectionController.text) / 100;
+    
+    if (newPercentage < 0 || newPercentage > 1) {
+      throw Exception('Percentage must be between 0 and 100');
+    }
+
+    // Update the database
+    await supabase
+        .from('construction_loan_line_items')
+        .update({
+          'inspection_percentage': newPercentage,
+        })
+        .eq('loan_id', widget.loanId)
+        .eq('category_name', widget.lineItem);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inspection updated successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      // Pass back the new percentage to trigger refresh
+      Navigator.pop(context, true);
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error updating inspection: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+}
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Inspection - ${widget.lineItem}'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.lineItem,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Budget'),
+                              Text(
+                                '\$${widget.budget.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Total Drawn'),
+                              Text(
+                                '\$${widget.totalDrawn.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF6500E9),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Update Inspectionssss',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _inspectionController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Completion Percentage',
+                        suffixText: '%',
+                        border: OutlineInputBorder(),
+                        helperText: 'Enter a value between 0 and 100',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Inspection Notes'),
+                    const SizedBox(height: 8),
+                    TextField(
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: 'Enter any notes about the inspection...',
+                      ),
+                      onChanged: (value) => notes = value,
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _updateInspection,
+                        child: const Text('Update Inspection'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 class DocumentRequirement {
   final String category;
@@ -1328,8 +1512,7 @@ Widget _buildFileListItem(Map<String, dynamic> file) {
   }
 
   /// CLAUDE SHOULD TAKE A LOOK AT THE STUFF PAST HERE. 1.15.25.
-
-  Widget _buildDataTable() {
+Widget _buildDataTable() {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey[300]!),
@@ -1464,6 +1647,7 @@ Widget _buildFileListItem(Map<String, dynamic> file) {
               ),
             ],
           ),
+
           // Table body
           Expanded(
             child: SingleChildScrollView(
@@ -1471,7 +1655,6 @@ Widget _buildFileListItem(Map<String, dynamic> file) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Fixed left column
-
                   Column(
                     children: filteredLineItems
                         .map((item) => Row(
@@ -1492,19 +1675,45 @@ Widget _buildFileListItem(Map<String, dynamic> file) {
                                   ),
                                 ),
                                 Container(
-                                  width: 80,
-                                  height: 50,
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
+  width: 80,
+  height: 50,
+  alignment: Alignment.center,
+  child: TextButton(
+    onPressed: () async {
+      final result = await Navigator.pushNamed(
+        context,
+        '/lender_inspection_screen', // This will open the new screen
+        arguments: {
+          'loanId': widget.loanId,
+          'lineItem': item.lineItem,
+          'currentInspectionPercentage': item.inspectionPercentage,
+          'budget': item.budget,
+          'totalDrawn': item.totalDrawn,
+        },
+      );
+
+      if (result == true) {
+        await fetchLoanLineItems();
+      }
+    },
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          '${(item.inspectionPercentage * 100).toStringAsFixed(1)}%',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.black,
+            fontWeight: FontWeight.w500,
+            decoration: TextDecoration.underline,
+          ),
+        ),
+        const SizedBox(width: 4),
+        const Icon(Icons.add_task, size: 14),
+      ],
+    ),
+  ),
+)                        ],
                             ))
                         .toList(),
                   ),
@@ -1528,7 +1737,6 @@ Widget _buildFileListItem(Map<String, dynamic> file) {
                   ),
 
                   // Fixed right columns
-
                   Column(
                     children: filteredLineItems
                         .map((item) => Container(
@@ -1547,8 +1755,7 @@ Widget _buildFileListItem(Map<String, dynamic> file) {
             ),
           ),
 
-          // Status row (NEW)
-
+          // Status row
           Container(
             decoration: BoxDecoration(
               border: Border(
@@ -1558,7 +1765,6 @@ Widget _buildFileListItem(Map<String, dynamic> file) {
             child: Row(
               children: [
                 // Fixed left spacing
-
                 Container(width: 280),
 
                 // Scrollable status section

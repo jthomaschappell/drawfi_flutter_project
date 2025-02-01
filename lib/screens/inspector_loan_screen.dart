@@ -82,6 +82,54 @@ class InspectionRecord {
     );
   }
 }
+Future<void> _debugInspectionSave({
+  required String categoryId,
+  required double percentage,
+  required String notes,
+}) async {
+  try {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      print('DEBUG: No authenticated user found');
+      return;
+    }
+
+    print('DEBUG: Attempting to save inspection with:');
+    print('CategoryID: $categoryId');
+    print('Percentage: $percentage');
+    print('Notes: $notes');
+    print('InspectorID: ${user.id}');
+
+    final response = await supabase
+        .from('line_item_inspections')
+        .insert({
+          'category_id': categoryId,
+          'inspection_percentage': percentage / 100, // Convert to decimal
+          'inspector_notes': notes,
+          'inspector_id': user.id,
+        })
+        .select()
+        .single();
+    
+    print('DEBUG: Success! Saved inspection: ${response.toString()}');
+    
+    // Verify the save by immediately fetching it back
+    final verification = await supabase
+        .from('line_item_inspections')
+        .select()
+        .eq('inspection_id', response['inspection_id'])
+        .single();
+    
+    print('DEBUG: Verification fetch successful: ${verification.toString()}');
+
+  } catch (e, stackTrace) {
+    print('DEBUG: Error saving inspection:');
+    print(e.toString());
+    print('Stack trace:');
+    print(stackTrace);
+  }
+}
+
 class InspectorLoanScreen extends StatefulWidget {
   final Map<String, dynamic> projectData;
 
@@ -101,53 +149,83 @@ class _InspectorLoanScreenState extends State<InspectorLoanScreen> {
  @override
 void initState() {
   super.initState();
+  _loadInitialDates();
   fetchLineItems();
 }
-
 
 Future<void> fetchLineItems() async {
   try {
     print("Fetching line items for loan ID: ${widget.projectData['loan_id']}");
 
-    // Get line items from database
     final lineItemsResponse = await supabase
-    .from('construction_loan_line_items')
-    .select('''
-      *,
-      construction_loan_draws (
-        draw_number,
-        amount,
-        status
-      ),
-      line_item_inspections (
-        inspection_percentage,
-        inspection_date,
-        inspector_notes
-      )
-    ''')
-    .eq('loan_id', widget.projectData['loan_id']);
+        .from('construction_loan_line_items')
+        .select('''
+          *,
+          line_item_inspections (
+            inspection_id,
+            inspection_percentage,
+            inspection_date,
+            inspector_notes,
+            photo_urls,
+            last_inspection_date,
+            next_due_date,
+            completion_percentage
+          )
+        ''')
+        .eq('loan_id', widget.projectData['loan_id']);
 
-    // Map to predefined phases
+    print("Line items response: $lineItemsResponse"); // Debug log
+
     setState(() {
-      phases.clear(); // Clear existing phases
+      phases.clear();
+      double overallCompletion = 0;
       
-      // Convert each line item to a ProjectPhase
       for (var item in lineItemsResponse) {
+        final inspections = item['line_item_inspections'] as List?;
+        double latestPercentage = 0.0;
+        DateTime? lastInspDate;
+        DateTime? nextDueDate;
+        
+        if (inspections != null && inspections.isNotEmpty) {
+          inspections.sort((a, b) => 
+            DateTime.parse(b['inspection_date']).compareTo(DateTime.parse(a['inspection_date']))
+          );
+          
+          var latestInspection = inspections.first;
+          latestPercentage = (latestInspection['inspection_percentage'] ?? 0.0).toDouble();
+          
+          // Update dates from the latest inspection
+          if (latestInspection['last_inspection_date'] != null) {
+            lastInspection = DateTime.parse(latestInspection['last_inspection_date']);
+          }
+          if (latestInspection['next_due_date'] != null) {
+            nextDue = DateTime.parse(latestInspection['next_due_date']);
+          }
+        }
+        
         phases.add(
-  ProjectPhase(
-    name: item['category_name'] ?? 'Unnamed Item',
-    categoryId: item['category_id'],  // Add this
-    startDate: DateTime.now(),
-    endDate: DateTime.now().add(Duration(days: 30)),
-    isCompleted: (item['inspection_percentage'] ?? 0) >= 100,
-    progress: ((item['inspection_percentage'] ?? 0) * 100).round(),
-  ),
-);
+          ProjectPhase(
+            name: item['category_name'] ?? 'Unnamed Item',
+            categoryId: item['category_id'],
+            startDate: lastInspection,
+            endDate: nextDue,
+            isCompleted: latestPercentage >= 1.0,
+            progress: (latestPercentage * 100).round(),
+          ),
+        );
+        
+        overallCompletion += latestPercentage;
+      }
+
+      // Update overall completion percentage
+      if (phases.isNotEmpty) {
+        widget.projectData['completion'] = ((overallCompletion / phases.length) * 100).round();
       }
     });
 
-  } catch (e) {
+  } catch (e, stackTrace) {
     print('Error loading line items: $e');
+    print('Stack trace: $stackTrace');
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -183,6 +261,27 @@ int _calculatePhaseProgress(List<dynamic> items, String phaseName) {
       });
     }
   }
+Future<void> _loadInitialDates() async {
+  try {
+    // Get the most recent inspection record for this loan
+    final response = await supabase
+        .from('line_item_inspections')
+        .select('last_inspection_date, next_due_date')
+        .eq('category_id', widget.projectData['loan_id'])
+        .order('inspection_date', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (response != null) {
+      setState(() {
+        lastInspection = DateTime.parse(response['last_inspection_date']);
+        nextDue = DateTime.parse(response['next_due_date']);
+      });
+    }
+  } catch (e) {
+    print('Error loading initial dates: $e');
+  }
+}
 
 void _updatePhaseProgress(int index) {
   final TextEditingController notesController = TextEditingController();
@@ -191,7 +290,16 @@ void _updatePhaseProgress(int index) {
   List<InspectionRecord> inspectionHistory = [];
   bool isLoading = true;
 
-  // Show dialog with loading state
+  // Load inspection history first
+  _fetchInspectionHistory(phases[index].categoryId).then((history) {
+    if (mounted) {
+      setState(() {
+        inspectionHistory = history;
+        isLoading = false;
+      });
+    }
+  });
+
   showDialog(
     context: context,
     builder: (context) => StatefulBuilder(
@@ -237,31 +345,93 @@ void _updatePhaseProgress(int index) {
                   maxLines: 3,
                 ),
                 SizedBox(height: 16),
-                ElevatedButton.icon(
-                  icon: Icon(Icons.camera_alt),
-                  label: Text('Add Photos'),
-                 style: ElevatedButton.styleFrom(
-   backgroundColor: AppColors.primary,
-  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                
+                // Photo Upload Section
+                Row(
+                  children: [
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.camera_alt),
+                      label: Text('Add Photos'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final ImagePicker picker = ImagePicker();
+                        final XFile? image = await picker.pickImage(source: ImageSource.camera);
+                        if (image != null) {
+                          setDialogState(() {
+                            inspectionPhotos.add(image);
+                          });
+                        }
+                      },
+                    ),
+                    SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.photo_library),
+                      label: Text('Gallery'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final ImagePicker picker = ImagePicker();
+                        final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+                        if (image != null) {
+                          setDialogState(() {
+                            inspectionPhotos.add(image);
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+
+                // Selected Photos Preview
+                if (inspectionPhotos.isNotEmpty) ...[
+                  SizedBox(height: 16),
+                  Text('Selected Photos:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: inspectionPhotos.length,
+                      itemBuilder: (context, photoIndex) {
+                        return Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Stack(
+                            children: [
+                              Image.file(
+                                File(inspectionPhotos[photoIndex].path),
+                                height: 100,
+                                width: 100,
+                                fit: BoxFit.cover,
+                              ),
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: IconButton(
+                                  icon: Icon(Icons.close, color: Colors.red),
+                                  onPressed: () {
+                                    setDialogState(() {
+                                      inspectionPhotos.removeAt(photoIndex);
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  onPressed: () async {
-                    final ImagePicker picker = ImagePicker();
-                    final XFile? image = await picker.pickImage(source: ImageSource.camera);
-                    if (image != null) {
-                      setDialogState(() {
-                        inspectionPhotos.add(image);
-                      });
-                    }
-                  },
-                ),
-                if (inspectionPhotos.isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text('${inspectionPhotos.length} photos ready to upload'),
-                  ),
-                
+                ],
+
                 // Inspection History Section
                 SizedBox(height: 24),
                 Text(
@@ -344,80 +514,90 @@ void _updatePhaseProgress(int index) {
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+       actions: [
+  TextButton(
+    onPressed: () => Navigator.pop(context),
+    child: Text('Cancel'),
+  ),
+  TextButton(
+    onPressed: () async {
+      try {
+        final user = supabase.auth.currentUser;
+        if (user == null) throw Exception('Not authenticated');
+
+        // Save new inspection with dates and completion
+        final response = await supabase
+            .from('line_item_inspections')
+            .insert({
+              'category_id': phases[index].categoryId,
+              'inspection_percentage': newProgress / 100,
+              'completion_percentage': newProgress / 100,
+              'inspector_notes': notesController.text,
+              'inspector_id': user.id,
+              'last_inspection_date': DateTime.now().toIso8601String(),
+              'next_due_date': nextDue.toIso8601String(),
+            })
+            .select()
+            .single();
+
+        // Upload photos if any
+        final photoUrls = <String>[];
+        for (var photo in inspectionPhotos) {
+          final bytes = await photo.readAsBytes();
+          final fileName = '${response['inspection_id']}/${DateTime.now().millisecondsSinceEpoch}_${photo.name}';
+          
+          await supabase.storage
+            .from('inspection_photos')
+            .uploadBinary(fileName, bytes);
+          
+          photoUrls.add(fileName);
+        }
+
+        // Update photo URLs in the inspection record
+        if (photoUrls.isNotEmpty) {
+          await supabase
+              .from('line_item_inspections')
+              .update({'photo_urls': photoUrls})
+              .eq('inspection_id', response['inspection_id']);
+        }
+
+        // Set last inspection date to now and update state
+        setState(() {
+          lastInspection = DateTime.now();
+          // Update the phase's progress
+          phases[index].progress = newProgress.round();
+        });
+
+        // Refresh the data to update all UI elements
+        await fetchLineItems();
+        Navigator.pop(context);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Inspection saved successfully')),
+        );
+      } catch (e) {
+        print('Error saving inspection: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving inspection: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
-          TextButton(
-            onPressed: () async {
-  try {
-    final user = supabase.auth.currentUser;
-    if (user == null) throw Exception('Not authenticated');
-
-    // Save new inspection
-    final response = await supabase
-        .from('line_item_inspections')
-        .insert({
-          'category_id': phases[index].categoryId,
-          'inspection_percentage': newProgress / 100, 
-          'inspector_notes': notesController.text,
-          'inspector_id': user.id,
-        })
-        .select()
-        .single();
-
-    // Upload photos if any
-    final photoUrls = <String>[];
-    for (var photo in inspectionPhotos) {
-      final bytes = await photo.readAsBytes();
-      final fileName = '${response['inspection_id']}/${DateTime.now().millisecondsSinceEpoch}_${photo.name}';
-      
-      await supabase.storage
-        .from('inspection_photos')
-        .uploadBinary(fileName, bytes);
-      
-      photoUrls.add(fileName);
-    }
-
-    // Refresh the data
-    await fetchLineItems();
-    Navigator.pop(context);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Inspection saved successfully')),
-    );
-  } catch (e) {
-    print('Error saving inspection: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error saving inspection: ${e.toString()}'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    Navigator.pop(context);
-  }
-},
-            child: Text('Save Inspection'),
-          ),
-        ],
+        );
+      }
+    },
+    child: Text('Save Inspection'),
+  ),
+],
       ),
     ),
   );
-   _fetchInspectionHistory(phases[index].categoryId).then((history) {
-    if (mounted) {
-      setState(() {
-        inspectionHistory = history;
-        isLoading = false;
-      });
-    }
-  });
 }
+
 Future<List<InspectionRecord>> _fetchInspectionHistory(String categoryId) async {
   try {
     final response = await supabase
         .from('line_item_inspections')
-        .select('*, inspector:inspectors(name)')
+        .select('*')
         .eq('category_id', categoryId)
         .order('inspection_date', ascending: false);
 
@@ -512,57 +692,149 @@ Future<void> fetchPhases() async {
       });
     }
   }
+Future<void> _updateInspectionDates() async {
+  try {
+    // First, fetch a valid category_id for this loan
+    final lineItemsResponse = await supabase
+        .from('construction_loan_line_items')
+        .select('category_id')
+        .eq('loan_id', widget.projectData['loan_id'])
+        .limit(1)
+        .single();
 
-  Future<void> _updateInspectionDates() async {
-    showDialog(
+    if (lineItemsResponse == null) {
+      throw Exception('No line items found for this loan');
+    }
+
+    final categoryId = lineItemsResponse['category_id'];
+    print('Using category_id: $categoryId');
+
+    // Create temporary date variables to manage state in dialog
+    DateTime tempLastInspection = lastInspection;
+    DateTime tempNextDue = nextDue;
+
+    await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Update Inspection Dates'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text('Last Inspection'),
-              subtitle: Text(DateFormat('MM/dd/yyyy').format(lastInspection)),
-              onTap: () async {
-                final DateTime? picked = await showDatePicker(
-                  context: context,
-                  initialDate: lastInspection,
-                  firstDate: DateTime(2024),
-                  lastDate: DateTime(2025),
-                );
-                if (picked != null) {
-                  setState(() => lastInspection = picked);
-                }
-              },
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Update Inspection Dates'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text('Last Inspection'),
+                subtitle: Text(DateFormat('MM/dd/yyyy').format(tempLastInspection)),
+                trailing: Icon(Icons.calendar_today, color: AppColors.primary),
+                onTap: () async {
+                  print('Opening last inspection date picker');
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: tempLastInspection,
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime.now().add(Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    print('Selected last inspection date: $picked');
+                    setDialogState(() => tempLastInspection = picked);
+                  }
+                },
+              ),
+              SizedBox(height: 16),
+              ListTile(
+                title: Text('Next Due'),
+                subtitle: Text(DateFormat('MM/dd/yyyy').format(tempNextDue)),
+                trailing: Icon(Icons.calendar_today, color: AppColors.primary),
+                onTap: () async {
+                  print('Opening next due date picker');
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: tempNextDue,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    print('Selected next due date: $picked');
+                    setDialogState(() => tempNextDue = picked);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
             ),
-            ListTile(
-              title: Text('Next Due'),
-              subtitle: Text(DateFormat('MM/dd/yyyy').format(nextDue)),
-              onTap: () async {
-                final DateTime? picked = await showDatePicker(
-                  context: context,
-                  initialDate: nextDue,
-                  firstDate: DateTime(2024),
-                  lastDate: DateTime(2025),
-                );
-                if (picked != null) {
-                  setState(() => nextDue = picked);
+            TextButton(
+              onPressed: () async {
+                try {
+                  final user = supabase.auth.currentUser;
+                  if (user == null) throw Exception('Not authenticated');
+
+                  print('Saving dates to database');
+                  print('Category ID: $categoryId');
+                  print('Last inspection: $tempLastInspection');
+                  print('Next due: $tempNextDue');
+
+                  // Create a new inspection record with the proper category_id
+                  await supabase
+                      .from('line_item_inspections')
+                      .insert({
+                        'category_id': categoryId,
+                        'inspection_date': DateTime.now().toIso8601String(),
+                        'last_inspection_date': tempLastInspection.toIso8601String(),
+                        'next_due_date': tempNextDue.toIso8601String(),
+                        'inspector_id': user.id,
+                        'inspection_percentage': 0,
+                        'inspector_notes': 'Date update only',
+                      });
+
+                  print('Dates saved successfully');
+
+                  // Update state
+                  setState(() {
+                    lastInspection = tempLastInspection;
+                    nextDue = tempNextDue;
+                  });
+
+                  Navigator.pop(context);
+                  
+                  // Show success message
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Inspection dates updated successfully')),
+                    );
+                  }
+
+                  // Refresh data
+                  await fetchLineItems();
+
+                } catch (e) {
+                  print('Error updating dates: $e');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error updating dates: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               },
+              child: Text('Save'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
-          ),
-        ],
+      ),
+    );
+  } catch (e) {
+    print('Error in _updateInspectionDates: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: Unable to update inspection dates'),
+        backgroundColor: Colors.red,
       ),
     );
   }
-
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -583,27 +855,32 @@ Future<void> fetchPhases() async {
     );
   }
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      backgroundColor: AppColors.cardBackground,
-      elevation: 0,
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Text(
-        widget.projectData['name'] ?? 'Project Details',
-        style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-      ),
-      actions: [
-        IconButton(
+ AppBar _buildAppBar() {
+  return AppBar(
+    backgroundColor: AppColors.cardBackground,
+    elevation: 0,
+    leading: IconButton(
+      icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
+      onPressed: () => Navigator.pop(context),
+    ),
+    title: Text(
+      widget.projectData['name'] ?? 'Project Details',
+      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+    ),
+    actions: [
+      // Debug print to verify the button is rendered
+      Builder(
+        builder: (context) => IconButton(
           icon: Icon(Icons.calendar_today, color: AppColors.primary),
-          onPressed: _updateInspectionDates,
+          onPressed: () {
+            print('Calendar button pressed'); // Debug print
+            _updateInspectionDates(); // Call the date update function
+          },
         ),
-      ],
-    );
-  }
-
+      ),
+    ],
+  );
+}
   Widget _buildPhotoGallery() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

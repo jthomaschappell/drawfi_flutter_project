@@ -4,7 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:tester/screens/path_to_auth_screen/auth_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-
+import 'package:tester/screens/lender_inspection_screen.dart'; 
 void main() async {
   // print("Hello world 1");
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,11 +52,15 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AuthScreen(),
+       initialRoute: '/auth',
+      routes: {
+        '/auth': (context) => const AuthScreen(),
+        '/lender_inspection_screen': (context) => const LenderInspectionScreen(),
+        
+      },
     );
   }
 }
-
 bool isValidEmail(String emailText) {
   final emailPattern = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
   return emailPattern.hasMatch(emailText);
